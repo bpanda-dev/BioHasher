@@ -1,6 +1,6 @@
 /*
- * SMHasher3
- * Copyright (C) 2021-2022  Frank J. T. Wojcik
+ * BioHasher3
+ * 
  *
  * This program is free software: you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -18,7 +18,7 @@
  *
  * This file incorporates work covered by the following copyright and
  * permission notice:
- *
+ *     Copyright (C) 2021-2022  Frank J. T. Wojcik
  *     Copyright (c) 2010-2012 Austin Appleby
  *     Copyright (c) 2014-2021 Reini Urban
  *     Copyright (c) 2015      Ivan Kruglov
@@ -94,6 +94,7 @@
 #include "SeedAvalancheTest.h"
 #include "SeedBitIndependenceTest.h"
 #include "BadSeedsTest.h"
+#include "LSHCollisionTest.h"
 
 #include <cstdio>
 #include <cstdint>
@@ -142,6 +143,7 @@ static bool g_testPerlinNoise;
 static bool g_testBitflip;
 static bool g_testBIC;
 static bool g_testBadSeeds;
+static bool g_testLSHCollision;
 
 struct TestOpts {
     bool &       var;
@@ -177,6 +179,7 @@ static TestOpts g_testopts[] = {
     { g_testBitflip,          true,     false,    "Bitflip" },
     { g_testBIC,              true,     false,    "BIC" },
     { g_testBadSeeds,        false,     false,    "BadSeeds" },
+    { g_testLSHCollision,   false,     false,    "LSHCollision" },
 };
 
 static void set_default_tests( bool enable ) {
@@ -624,6 +627,15 @@ static bool test( const HashInfo * hInfo, const flags_t flags ) {
     }
 
     //-----------------------------------------------------------------------------
+    // Test for Collision Curve for LSH family of hashes
+
+    if (g_testLSHCollision) {
+        result &= LSHCollisionTest<hashtype>(hInfo, g_testExtra, flags);
+        if (g_dumpAllVCodes) { DumpVCodes(); }        // This is for the purpose of debugging only by the tests in smhasher3
+        if (!result && g_exitOnFailure) { goto out; } 
+    }
+
+    //-----------------------------------------------------------------------------
     // If All material tests were done, show a final summary of testing
     summary |= g_testAll;
 
@@ -670,6 +682,9 @@ static bool testHash( const char * name, const flags_t flags ) {
         printf("Invalid hash '%s' specified\n", name);
         return false;
     }
+
+    printf("Testing hash %s\n", name);
+    printf("\n%u",hInfo->bits);
 
     // If you extend these statements by adding a new bitcount/type, you
     // need to adjust HASHTYPELIST in util/Instantiate.h also.
