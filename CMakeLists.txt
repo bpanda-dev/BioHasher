@@ -230,6 +230,7 @@ add_library(
   util/VCode.cpp
   util/Wordlist.cpp
   util/TestGlobals.cpp
+  util/BioDataGeneration.cpp
 #
   tests/SanityTest.cpp
   tests/AvalancheTest.cpp
@@ -253,6 +254,7 @@ add_library(
   tests/BadSeedsTest.cpp
   tests/PerlinNoiseTest.cpp
   tests/SpeedTest.cpp
+  tests/LSHCollisionTest.cpp
 )
 target_include_directories(SMHasher3Tests PRIVATE util PUBLIC include/common)
 

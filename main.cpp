@@ -634,7 +634,8 @@ static bool test( const HashInfo * hInfo, const flags_t flags ) {
         if (g_dumpAllVCodes) { DumpVCodes(); }        // This is for the purpose of debugging only by the tests in smhasher3
         if (!result && g_exitOnFailure) { goto out; } 
     }
-
+    
+    
     //-----------------------------------------------------------------------------
     // If All material tests were done, show a final summary of testing
     summary |= g_testAll;
@@ -682,6 +683,8 @@ static bool testHash( const char * name, const flags_t flags ) {
         printf("Invalid hash '%s' specified\n", name);
         return false;
     }
+
+    listHashes(true);
 
     printf("Testing hash %s\n", name);
     printf("\n%u",hInfo->bits);
