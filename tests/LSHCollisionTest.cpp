@@ -54,6 +54,8 @@
 #include "Instantiate.h"
 #include "VCode.h"
 #include "BioDataGeneration.h"
+#include "LSHGlobals.h"
+
 #include "LSHCollisionTest.h"
 #include "fstream"
 #include <iostream>
@@ -75,12 +77,12 @@ std::vector<float> similarity_x_A = {0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0
 std::vector<float> similarity_x_B = {0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.90,0.91,0.92,0.93,0.94,0.95,0.96,0.97,0.98,0.99,1.0};
 std::vector<float> similarity_x_C = {0.80,0.81,0.82,0.83,0.84,0.85,0.86,0.87,0.88,0.89,0.90,0.91,0.92,0.93,0.94,0.95,0.96,0.97,0.98,0.99,1.0}; // from 0.8 to 1.0
 // std::vector<float> sim_vector_step_twentieth_from_098 = {0.980,0.981,0.982,0.983,0.984,0.985,0.986,0.987,0.988,0.989,0.990,0.991,0.992,0.993,0.994,0.995,0.996,0.997,0.998,0.999,1.0};
-std::vector<float> sim_vector_step_tenth = similarity_x_C;//{0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0};
+std::vector<float> sim_vector_step_tenth = similarity_x_B;//{0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0};
 // {1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0};//
 
 
 // from 0.8 to 1.0
-const std::vector<int> tokenLengths = {13, 21, 31}; // to be only used for tokenized hashes like minhash and simhash
+// const std::vector<int> tokenLengths = {13, 21, 31}; // to be only used for tokenized hashes like minhash and simhash
 
 //low token size 13
 //medium token size 21
@@ -93,11 +95,28 @@ const std::vector<int> tokenLengths = {13, 21, 31}; // to be only used for token
 // keybits = 64 -> sequence length = 32 bases
 template <typename hashtype>
 static bool LSHCollisionTestImpl( const HashInfo * hinfo, unsigned keybits, const seed_t seed, flags_t flags, std::ofstream &out_file) {
+
+
 	
+	out_file << ":1:LSH Collision Test Results\n";
+	
+	int tokenlength = get_lsh_token_length();  // Get runtime token length
+	
+	// if(tokenlength > 0){
+	// 	out_file << ":2: " << tokenlength << "\n";
+	// } else {
+	// 	out_file << ":2: " << 0 << "\n";
+	// }
+
+	out_file << ":2:" << "Hashname," << "Keybits," << "Tokenlength" << std::endl;
+	out_file << ":3:" << hinfo->name << "," << keybits << "," << tokenlength << std::endl;
+
 	/*Initialisation part*/
     bool result = true; //The default result is true unless a test fails.
 
     const uint32_t sequenceLength = keybits/2; // Length of the sequence to be generated.
+
+    // LSH global variables are already set before this function is called
 
 	size_t outlen = 1;  // Default for standard hashes
 	HashFn hash = nullptr;
@@ -110,16 +129,19 @@ static bool LSHCollisionTestImpl( const HashInfo * hinfo, unsigned keybits, cons
     }
 	
 
-    const unsigned keycount = 1000; //100000; //1024; //512 * 1024 * ((hinfo->bits <= 64) ? 3 : 4);   // Number of keys to generate and test. More bits will require more keys for better statistical significance.
+    const unsigned keycount = 100; //100000; //1024; //512 * 1024 * ((hinfo->bits <= 64) ? 3 : 4);   // Number of keys to generate and test. More bits will require more keys for better statistical significance.
     unsigned       keybytes = keybits / 8;                                  // Number of bytes in the key. Note that the keybits have to be a multiple of 8.
 
-    const size_t hashcount = 400; //1024; // Number of hashes(from the hash family) to compute per key: 1024 hashes per key.
+    const size_t hashcount = 1024; //1024; // Number of hashes(from the hash family) to compute per key: 1024 hashes per key.
 
-    printf("LSH Collision Test: Key Size = %3u bits (%2u bytes), Keys = %8zu, Hashes per Key = %4zu\n",
+	if (!REPORT(VERBOSE, flags)) {
+		printf("LSH Collision Test: Key Size = %3u bits (%2u bytes), Keys = %8u, Hashes per Key = %4zu\n",
            keybits, (unsigned)keybytes, keycount, hashcount);
 
-    printf("Hash Function: %s\n", hinfo->name);
-    printf("Hash Bits: %u\n", hinfo->bits);
+		printf("Hash Function: %s\n", hinfo->name);
+		printf("Hash Bits: %u\n", hinfo->bits);
+    }
+
     
 	SequenceRecord records;
 	records.SeqLength = sequenceLength;
@@ -136,11 +158,31 @@ static bool LSHCollisionTestImpl( const HashInfo * hinfo, unsigned keybits, cons
 	for (size_t i = 0; i < dissimrates.size(); i++) {
 		printf("%.2f ", dissimrates[i]);
 	}
+
 	printf("\nCorresponding Hamming distances (for sequence length %u): ", sequenceLength);
 	for (size_t i = 0; i < distances.size(); i++) {
 		printf("%d ", distances[i]);
 	}
 	printf("\n");
+
+	
+	// print the simrates in one line in the output file.
+	out_file << ":4:" ;
+	for (size_t i = 0; i < simrates.size(); i++) {
+		if (i == simrates.size() - 1)
+			out_file << simrates[i] << "\n";
+		else
+			out_file << simrates[i] << ",";
+	}
+
+	// print the distances in one line in the output file.
+	out_file << ":5:" ;
+	for (size_t i = 0; i < distances.size(); i++) {
+		if (i == distances.size() - 1)
+			out_file << distances[i] << "\n";
+		else
+			out_file << distances[i] << ",";
+	}
 
 	// An empty 2d vector to store collisions <-- This array will be printed to the file for plotting.
 	std::vector<std::vector<float>> collisionRateVec(simrates.size(), std::vector<float>(keycount, 0.0f));
@@ -160,7 +202,6 @@ static bool LSHCollisionTestImpl( const HashInfo * hinfo, unsigned keybits, cons
 
 
 	for(dissimilarityIdx=0; dissimilarityIdx < dissimrates.size(); dissimilarityIdx++){
-		printf("\n>>%d", distances[dissimilarityIdx]);
 		
 		// Generate the samples for each dissimilarity index
 		DataGeneration<hashtype> dataGen(&records, sequenceLength, keycount, dataGenSeed);	// SEEDING
@@ -243,6 +284,12 @@ static bool LSHCollisionTestImpl( const HashInfo * hinfo, unsigned keybits, cons
 
 //----------------------------------------------------------------------------
 
+// std::vector<int> create_tokens(){
+// 	std::vector<int> tokenLengths = {13, 21, 31}; // to be only used for tokenized hashes like minhash and simhash
+// 	return tokenLengths;
+// }
+
+
 template <typename hashtype>
 bool LSHCollisionTest( const HashInfo * hinfo, bool extra, flags_t flags ) {
 
@@ -257,27 +304,59 @@ bool LSHCollisionTest( const HashInfo * hinfo, bool extra, flags_t flags ) {
     printf("[[[ LSH Collision Tests ]]]\n\n");
 
 	const seed_t seed = hinfo->Seed(g_seed);
-    // const seed_t seed = 84574;
 
-	// printf("Hash %s has tokenisation property: %d\n", hinfo->name, hinfo->hasTokenisationProperty());
-	// if(hinfo->hasTokenisationProperty()){
-	// 	printf("Hash %s has tokenisation property. Proceeding with LSH Collision Test.\n", hinfo->name);
-	// }
+	std::vector<int> tokenlengths;
+	// If the hash has tokenisation property, then we need to test for multiple token lengths
+	// Otherwise, we just use a token length of 0 (no tokenisation)
+	// This is because the LSH collision test is primarily designed for tokenised hashes like minhash and simhash
+	// which have the tokenisation property.
+	// For other hashes, we just use a token length of 0 (no tokenisation).
+	if(hinfo->hasTokenisationProperty()){
+		tokenlengths = {7, 13, 21, 31}; //create_tokens();
+	}
+	else{
+		tokenlengths = {0}; // No tokenization
+	}
+	for(const auto & tlen : tokenlengths){
+		printf("Token length: %d\n", tlen);
+		
+		// Set LSH global variables for this token length
+		set_lsh_test_active(true);
+		set_lsh_token_length(tlen > 0 ? tlen : 0);  // Use token length or default
+		// set_lsh_num_signatures(32);  // Default number of signatures
+		
+		//skip cases with tlen > keybits / 2
+		// if(tlen < (32 >> 1))
+		// 	result &= LSHCollisionTestImpl<hashtype>(hinfo, 32, seed, flags, out_file);   	// Keybits = 32 Sequence length = 16
+		// if(tlen < (48 >> 1))
+		// 	result &= LSHCollisionTestImpl<hashtype>(hinfo, 48, seed, flags, out_file);   		// Keybits = 48 Sequence length = 24
+		if(tlen < (64 >> 1))
+			result &= LSHCollisionTestImpl<hashtype>(hinfo, 64, seed, flags, out_file);   	// Keybits = 64 Sequence length = 32
+		if(tlen < (96 >> 1))
+			result &= LSHCollisionTestImpl<hashtype>(hinfo, 96, seed, flags, out_file);   	// Keybits = 96 Sequence length = 48
+		if(tlen < (128 >> 1))
+			result &= LSHCollisionTestImpl<hashtype>(hinfo, 128, seed, flags, out_file);   	// Keybits = 128 Sequence length = 64
+		// if(tlen < (160 >> 1))
+		// 	result &= LSHCollisionTestImpl<hashtype>(hinfo, 160, seed, flags, out_file);		// Keybits = 160 Sequence length = 80
+		if(tlen < (192 >> 1))
+			result &= LSHCollisionTestImpl<hashtype>(hinfo, 192, seed, flags, out_file);		// Keybits = 192 Sequence length = 96
+		if(tlen < (256 >> 1))
+			result &= LSHCollisionTestImpl<hashtype>(hinfo, 256, seed, flags, out_file);		// Keybits = 256 Sequence length = 128
 
-    // Set up various key sizes to test.
-    // result &= LSHCollisionTestImpl<hashtype>(hinfo, 32, seed, flags, out_file);   // Keybits = 32 Sequence length = 16
-    result &= LSHCollisionTestImpl<hashtype>(hinfo, 48, seed, flags, out_file);   // Keybits = 48 Sequence length = 24
-    // result &= LSHCollisionTestImpl<hashtype>(hinfo, 64, seed, flags, out_file);   // Keybits = 64 Sequence length = 32
-    // result &= LSHCollisionTestImpl<hashtype>(hinfo, 96, seed, flags, out_file);   // Keybits = 96 Sequence length = 48
-    // result &= LSHCollisionTestImpl<hashtype>(hinfo, 128, seed, flags, out_file);   // Keybits = 128 Sequence length = 64
-	// result &= LSHCollisionTestImpl<hashtype>(hinfo, 256, seed, flags, out_file);
-	if (extra && !hinfo->isVerySlow()) {    // if the extra flag is given, and the hash is not very slow then we can also test longer keys
-        result &= LSHCollisionTestImpl<hashtype>(hinfo, 160, seed, flags, out_file);
-        result &= LSHCollisionTestImpl<hashtype>(hinfo, 256, seed, flags, out_file);
-    }
+		if (extra && !hinfo->isVerySlow()) {    // if the extra flag is given, and the hash is not very slow then we can also test longer keys
+			// if(tlen < (160 >> 1))
+			// 	result &= LSHCollisionTestImpl<hashtype>(hinfo, 160, seed, flags, out_file);		// Keybits = 160 Sequence length = 80
+			// if(tlen < (192 >> 1))
+			// 	result &= LSHCollisionTestImpl<hashtype>(hinfo, 192, seed, flags, out_file);		// Keybits = 192 Sequence length = 96
+			// if(tlen < (256 >> 1))
+			// 	result &= LSHCollisionTestImpl<hashtype>(hinfo, 256, seed, flags, out_file);		// Keybits = 256 Sequence length = 128
+		}
+	}
+
+    // Cleanup: Reset LSH global variables after test completion
+    set_lsh_test_active(false);
 
     printf("%s\n", result ? "" : g_failstr);
-
 	out_file.close();
     return result;
 }

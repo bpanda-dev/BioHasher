@@ -51,12 +51,13 @@ class DataGeneration{
 		uint32_t SequenceLength;
 		uint32_t KeyBytes;
 		uint32_t KeyCount;				// Num Trials
+		seed_t Seed;
 		
 	public:
 
 		// Constructor for simulated data generation module.
 		DataGeneration(SequenceRecord *records, uint32_t sequenceLength, uint32_t keyCount, seed_t seed): 
-			SequenceLength(sequenceLength), KeyCount(keyCount) {  
+			SequenceLength(sequenceLength), KeyCount(keyCount), Seed(seed) {  
 			assert(records != nullptr);
 			assert(sequenceLength > 0);
 			assert(keyCount > 0);
@@ -113,11 +114,12 @@ class MutationEngine {
 		// float DeletionRate;
 		float CurrentErrorRate;
 		bool IsMutationRate;
+		seed_t Seed;
 
 	public:
 
 		MutationEngine(uint32_t sequenceLength, float currentErrorRate, seed_t seed, bool isMutationRateEnabled = false, uint32_t keyCount = 1024):SequenceLength(sequenceLength), 
-			KeyCount(keyCount), CurrentErrorRate(currentErrorRate), IsMutationRate(isMutationRateEnabled) {
+			KeyCount(keyCount), CurrentErrorRate(currentErrorRate), IsMutationRate(isMutationRateEnabled), Seed(seed) {
 				assert(sequenceLength > 0);
 				assert(sequenceLength > 13);
 				assert(currentErrorRate >= 0.0 && currentErrorRate <= 1.0);

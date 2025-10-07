@@ -231,6 +231,7 @@ add_library(
   util/Wordlist.cpp
   util/TestGlobals.cpp
   util/BioDataGeneration.cpp
+  util/LSHGlobals.cpp
 #
   tests/SanityTest.cpp
   tests/AvalancheTest.cpp

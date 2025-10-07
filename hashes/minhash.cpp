@@ -6,6 +6,7 @@
  */
 #include "Platform.h"
 #include "Hashlib.h"
+#include "LSHGlobals.h"
 
 #include "Mathmult.h"
 
@@ -15,12 +16,7 @@
 //------------------------------------------------------------
 #define MINHASH_FUNCTIONS 32  // Number of hash functions
 
-static int g_minhash_token_length = 13; // default token length. In our genomics application, this is typically referred to as a kmer.
-
-// function to set token length
-void set_minhash_token_length(int length) {
-    g_minhash_token_length = length;
-}
+static int g_default_minhash_token_length = 13; // default token length. In our genomics application, this is typically referred to as a kmer.
 
 
 // FNV1a 32/64 bit version.
@@ -95,17 +91,17 @@ static void minhash32_bitwise( const void * in, const size_t len, const seed_t s
             return;
       }
 
-      uint32_t hash = 0;
       const uint8_t* data = static_cast<const uint8_t*>(in);
 
       uint32_t bases_per_byte = 4; // 2 bits per base
-      uint32_t total_bases = len * bases_per_byte; // Total number of bases
+      int total_bases = len * bases_per_byte; // Total number of bases
       
-      uint32_t bases_in_token = g_minhash_token_length;
+      // Use runtime k-mer length if LSH test is active, otherwise use default
+      int bases_in_token = is_lsh_test_active() ? get_lsh_token_length() : g_default_minhash_token_length;
       uint32_t bits_in_token = bases_in_token * 2; // in bits
       uint32_t bytes_in_token = (bits_in_token + 7) / 8; // in bytes, rounded up
 
-      if (total_bases < (size_t)bases_in_token) {
+      if (total_bases < bases_in_token) {
             if (out) PUT_U32<bswap>(0, (uint8_t *)out, 0);
             return;
       }
@@ -117,13 +113,13 @@ static void minhash32_bitwise( const void * in, const size_t len, const seed_t s
             signatures[func] = UINT32_MAX;
       }
 
-      uint8_t token[bytes_in_token];
+      std::vector<uint8_t> token(bytes_in_token);
 
       for(int i = 0; i < (total_bases - bases_in_token + 1); i++){
-            memset(token, 0, bytes_in_token);
+            std::fill(token.begin(), token.end(), 0);
             uint32_t bit_index = 2*i;      //start bit position of the token
 
-            extract_bits_minhash(data, bit_index, bits_in_token, token);
+            extract_bits_minhash(data, bit_index, bits_in_token, token.data());
                         
             // Hash this k-mer
             // Apply ALL hash functions to this k-mer
@@ -132,7 +128,7 @@ static void minhash32_bitwise( const void * in, const size_t len, const seed_t s
 
                   uint32_t token_hash = 0;
 
-                  FNV1a<uint32_t, bswap>(token, bytes_in_token, hash_seed, &token_hash);
+                  FNV1a<uint32_t, bswap>(token.data(), bytes_in_token, hash_seed, &token_hash);
 
                   if (token_hash < signatures[func]) {  //storing the minimum hash value
                       signatures[func] = token_hash;
@@ -189,7 +185,7 @@ REGISTER_HASH(MinHash_32_bitwise,
 //    $.hashfn_bswap    = nullptr,
    $.hashfn_varout_native = minhash32_bitwise<false>,
    $.hashfn_varout_bswap  = minhash32_bitwise<true>
- );
+);
 
 //------------------------------------------------------------
 

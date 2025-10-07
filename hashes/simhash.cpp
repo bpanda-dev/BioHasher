@@ -6,6 +6,7 @@
  */
 #include "Platform.h"
 #include "Hashlib.h"
+#include "LSHGlobals.h"
 
 #include "Mathmult.h"
 
@@ -123,7 +124,8 @@ static void simhash32_bitwise( const void * in, const size_t len, const seed_t s
       uint32_t bases_per_byte = 4; // 2 bits per base
       uint32_t total_bases = len * bases_per_byte; // Total number of bases
       
-      uint32_t bases_in_token = 11;
+      // Use runtime k-mer length if LSH test is active, otherwise use default
+      uint32_t bases_in_token = is_lsh_test_active() ? get_lsh_token_length() : 11;
       uint32_t bits_in_token = bases_in_token * 2; // in bits
       uint32_t bytes_in_token = (bits_in_token + 7) / 8; // in bytes, rounded up
 
