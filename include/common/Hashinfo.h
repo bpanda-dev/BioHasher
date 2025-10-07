@@ -33,7 +33,11 @@
     FLAG_EXPAND(HASH_NO_SEED)            \
     FLAG_EXPAND(HASH_SYSTEM_SPECIFIC)    \
     FLAG_EXPAND(HASH_ENDIAN_INDEPENDENT) \
-    FLAG_EXPAND(HASH_FLOATING_POINT)
+    FLAG_EXPAND(HASH_FLOATING_POINT)     \
+    FLAG_EXPAND(HASH_LOCAL_SENSITIVE)    \
+    FLAG_EXPAND(HASH_TOKENISATION_PROPERTY)          \
+    FLAG_EXPAND(HASH_VARIABLE_OUTPUT_SIZE)   \
+    
 
 #define IMPL_FLAGS                          \
     FLAG_EXPAND(IMPL_SANITY_FAILS)          \
@@ -89,7 +93,10 @@ class HashInfo;
 typedef bool       (* HashInitFn)( void );
 typedef seed_t     (* HashSeedfixFn)( const HashInfo * hinfo, const seed_t seed );
 typedef uintptr_t  (* HashSeedFn)( const seed_t seed );
+//standard hash function signature
 typedef void       (* HashFn)( const void * in, const size_t len, const seed_t seed, void * out );
+//Variable output length hash function signature
+typedef void       (* HashFnVarOut)( const void * in, const size_t len, const seed_t seed, void * out, const size_t outlen );
 
 seed_t excludeBadseeds( const HashInfo * hinfo, const seed_t seed );
 
@@ -163,13 +170,17 @@ class HashInfo {
     HashSeedFn        seedfn;
     HashFn            hashfn_native;
     HashFn            hashfn_bswap;
+    HashFnVarOut      hashfn_varout_native;
+    HashFnVarOut      hashfn_varout_bswap;
     std::set<seed_t>  badseeds;
     const char *      badseeddesc;
 
     HashInfo( const char * n, const char * f ) :
         name( _fixup_name( n ) ), family( f ), desc( "" ), impl( "" ),
         initfn( NULL ), seedfixfn( NULL ), seedfn( NULL ),
-        hashfn_native( NULL ), hashfn_bswap( NULL ), badseeddesc( NULL ) {}
+        hashfn_native( NULL ), hashfn_bswap( NULL ),
+        hashfn_varout_native( NULL ), hashfn_varout_bswap( NULL ), 
+        badseeddesc( NULL ) {}
 
     ~HashInfo() {
         free((char *)name);
@@ -188,6 +199,12 @@ class HashInfo {
 
     FORCE_INLINE HashFn hashFn( enum HashInfo::endianness endian ) const {
         return _is_native(endian) ? hashfn_native : hashfn_bswap;
+    }
+    FORCE_INLINE HashFnVarOut hashFnVarOut( enum HashInfo::endianness endian ) const {
+        return _is_native(endian) ? hashfn_varout_native : hashfn_varout_bswap;
+    }
+    FORCE_INLINE bool hasVariableOutput( void ) const {
+        return !!(hash_flags & FLAG_HASH_VARIABLE_OUTPUT_SIZE);
     }
 
     FORCE_INLINE bool Init( void ) const {
@@ -244,6 +261,15 @@ class HashInfo {
     FORCE_INLINE bool isVerySlow( void ) const {
         return !!(impl_flags & FLAG_IMPL_VERY_SLOW);
     }
+
+    FORCE_INLINE bool isLocalSensitive( void ) const {
+        return !!(hash_flags & FLAG_HASH_LOCAL_SENSITIVE);
+    }
+
+    FORCE_INLINE bool hasTokenisationProperty( void ) const {
+        return !!(hash_flags & FLAG_HASH_TOKENISATION_PROPERTY);
+    }
+
 }; // class HashInfo
 
 class HashFamilyInfo {

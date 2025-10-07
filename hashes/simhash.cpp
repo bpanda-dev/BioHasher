@@ -123,7 +123,7 @@ static void simhash32_bitwise( const void * in, const size_t len, const seed_t s
       uint32_t bases_per_byte = 4; // 2 bits per base
       uint32_t total_bases = len * bases_per_byte; // Total number of bases
       
-      uint32_t bases_in_token = 4;
+      uint32_t bases_in_token = 11;
       uint32_t bits_in_token = bases_in_token * 2; // in bits
       uint32_t bytes_in_token = (bits_in_token + 7) / 8; // in bytes, rounded up
 
@@ -184,10 +184,10 @@ REGISTER_FAMILY(SimHash,
 //The bitwise version is for the encoded form of the data. 
 REGISTER_HASH(SimHash_32_bitwise,
    $.desc            = "SIMHASH 32-bit version",
-   $.hash_flags      =
-         0,
-   $.impl_flags      =
-         0,
+   $.hash_flags      = FLAG_HASH_LOCAL_SENSITIVE | FLAG_HASH_TOKENISATION_PROPERTY,
+   $.impl_flags      = 
+            FLAG_IMPL_MULTIPLY |   // FNV1a uses multiplication
+            FLAG_IMPL_SLOW,        // Simhash is computationally expensive
    $.bits            = 32,
    $.verification_LE = 0x0,
    $.verification_BE = 0x0,

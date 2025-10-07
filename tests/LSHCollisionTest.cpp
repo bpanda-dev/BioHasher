@@ -99,11 +99,21 @@ static bool LSHCollisionTestImpl( const HashInfo * hinfo, unsigned keybits, cons
 
     const uint32_t sequenceLength = keybits/2; // Length of the sequence to be generated.
 
-    const HashFn   hash     = hinfo->hashFn(g_hashEndian);                  // Get the appropriate hash function for the specified endian-ness
-    const unsigned keycount = 1000; //1024; //512 * 1024 * ((hinfo->bits <= 64) ? 3 : 4);   // Number of keys to generate and test. More bits will require more keys for better statistical significance.
+	size_t outlen = 1;  // Default for standard hashes
+	HashFn hash = nullptr;
+    HashFnVarOut hashVarOut = nullptr;
+	if(hinfo->hasVariableOutput()){
+		outlen=1;
+        hashVarOut = hinfo->hashFnVarOut(g_hashEndian);
+    } else {
+        hash = hinfo->hashFn(g_hashEndian);
+    }
+	
+
+    const unsigned keycount = 1000; //100000; //1024; //512 * 1024 * ((hinfo->bits <= 64) ? 3 : 4);   // Number of keys to generate and test. More bits will require more keys for better statistical significance.
     unsigned       keybytes = keybits / 8;                                  // Number of bytes in the key. Note that the keybits have to be a multiple of 8.
 
-    const size_t hashcount = 2000; //1024; // Number of hashes(from the hash family) to compute per key: 1024 hashes per key.
+    const size_t hashcount = 400; //1024; // Number of hashes(from the hash family) to compute per key: 1024 hashes per key.
 
     printf("LSH Collision Test: Key Size = %3u bits (%2u bytes), Keys = %8zu, Hashes per Key = %4zu\n",
            keybits, (unsigned)keybytes, keycount, hashcount);
@@ -150,6 +160,7 @@ static bool LSHCollisionTestImpl( const HashInfo * hinfo, unsigned keybits, cons
 
 
 	for(dissimilarityIdx=0; dissimilarityIdx < dissimrates.size(); dissimilarityIdx++){
+		printf("\n>>%d", distances[dissimilarityIdx]);
 		
 		// Generate the samples for each dissimilarity index
 		DataGeneration<hashtype> dataGen(&records, sequenceLength, keycount, dataGenSeed);	// SEEDING
@@ -190,13 +201,21 @@ static bool LSHCollisionTestImpl( const HashInfo * hinfo, unsigned keybits, cons
 
 				seed_t currentSeed = currentHashSeed + (HashFamilySeedIncrement * i); // Different seed per hash
 
-				hash(k1, keybytes, currentSeed, &hashOrg);
+				if(hinfo->hasVariableOutput()){
+					hashVarOut(k1, keybytes, currentSeed, &hashOrg,outlen);
+					hashVarOut(k2, keybytes, currentSeed, &hashMut,outlen);
+				}
+				else{
+					hash(k1, keybytes, currentSeed, &hashOrg);
+					hash(k2, keybytes, currentSeed, &hashMut);
+				}
+				
 				// addVCodeInput(k1, keybytes);
 
-				hash(k2, keybytes, currentSeed, &hashMut);
+				
 				// addVCodeInput(k, keybytes);
 				
-				// Check for collision
+				// Check for collision. But this check needs to be different when there is variable amount of return data
 				if (hashOrg == hashMut) {
 					collisionCount++;
 				}
@@ -227,7 +246,7 @@ static bool LSHCollisionTestImpl( const HashInfo * hinfo, unsigned keybits, cons
 template <typename hashtype>
 bool LSHCollisionTest( const HashInfo * hinfo, bool extra, flags_t flags ) {
 
-	std::ofstream out_file("collisionResults_" + std::string(hinfo->name) + "_" + ".csv");
+	std::ofstream out_file("../results/collisionResults_" + std::string(hinfo->name)  +".csv");
 	if (!out_file.is_open()) {
 		std::cerr << "Error: Could not open output file" << std::endl;
 		exit(EXIT_FAILURE);
@@ -240,13 +259,19 @@ bool LSHCollisionTest( const HashInfo * hinfo, bool extra, flags_t flags ) {
 	const seed_t seed = hinfo->Seed(g_seed);
     // const seed_t seed = 84574;
 
+	// printf("Hash %s has tokenisation property: %d\n", hinfo->name, hinfo->hasTokenisationProperty());
+	// if(hinfo->hasTokenisationProperty()){
+	// 	printf("Hash %s has tokenisation property. Proceeding with LSH Collision Test.\n", hinfo->name);
+	// }
+
     // Set up various key sizes to test.
     // result &= LSHCollisionTestImpl<hashtype>(hinfo, 32, seed, flags, out_file);   // Keybits = 32 Sequence length = 16
-    // result &= LSHCollisionTestImpl<hashtype>(hinfo, 48, seed, flags, out_file);   // Keybits = 48 Sequence length = 24
+    result &= LSHCollisionTestImpl<hashtype>(hinfo, 48, seed, flags, out_file);   // Keybits = 48 Sequence length = 24
     // result &= LSHCollisionTestImpl<hashtype>(hinfo, 64, seed, flags, out_file);   // Keybits = 64 Sequence length = 32
     // result &= LSHCollisionTestImpl<hashtype>(hinfo, 96, seed, flags, out_file);   // Keybits = 96 Sequence length = 48
-    result &= LSHCollisionTestImpl<hashtype>(hinfo, 128, seed, flags, out_file);   // Keybits = 128 Sequence length = 64
-    if (extra && !hinfo->isVerySlow()) {    // if the extra flag is given, and the hash is not very slow then we can also test longer keys
+    // result &= LSHCollisionTestImpl<hashtype>(hinfo, 128, seed, flags, out_file);   // Keybits = 128 Sequence length = 64
+	// result &= LSHCollisionTestImpl<hashtype>(hinfo, 256, seed, flags, out_file);
+	if (extra && !hinfo->isVerySlow()) {    // if the extra flag is given, and the hash is not very slow then we can also test longer keys
         result &= LSHCollisionTestImpl<hashtype>(hinfo, 160, seed, flags, out_file);
         result &= LSHCollisionTestImpl<hashtype>(hinfo, 256, seed, flags, out_file);
     }
