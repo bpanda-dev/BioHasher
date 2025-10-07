@@ -285,6 +285,3 @@ This project builds upon the SMHasher3 framework. Please refer to individual sou
 - **SMHasher**: Original hash testing framework
 - **Genomic Hashing**: Specialized applications in bioinformatics
 
-<!-- ---
-
-*BioHasher provides a robust foundation for locality-sensitive hashing in bioinformatics applications, enabling efficient similarity detection and analysis across large genomic datasets.* -->
