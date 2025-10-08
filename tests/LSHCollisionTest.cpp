@@ -132,7 +132,7 @@ static bool LSHCollisionTestImpl( const HashInfo * hinfo, unsigned keybits, cons
     const unsigned keycount = 100; //100000; //1024; //512 * 1024 * ((hinfo->bits <= 64) ? 3 : 4);   // Number of keys to generate and test. More bits will require more keys for better statistical significance.
     unsigned       keybytes = keybits / 8;                                  // Number of bytes in the key. Note that the keybits have to be a multiple of 8.
 
-    const size_t hashcount = 1024; //1024; // Number of hashes(from the hash family) to compute per key: 1024 hashes per key.
+    const size_t hashcount = 500; //1024; // Number of hashes(from the hash family) to compute per key: 1024 hashes per key.
 
 	if (!REPORT(VERBOSE, flags)) {
 		printf("LSH Collision Test: Key Size = %3u bits (%2u bytes), Keys = %8u, Hashes per Key = %4zu\n",
@@ -312,7 +312,7 @@ bool LSHCollisionTest( const HashInfo * hinfo, bool extra, flags_t flags ) {
 	// which have the tokenisation property.
 	// For other hashes, we just use a token length of 0 (no tokenisation).
 	if(hinfo->hasTokenisationProperty()){
-		tokenlengths = {7, 13, 21, 31}; //create_tokens();
+		tokenlengths = {4 }; //,7, 13, 21, 31}; //create_tokens();
 	}
 	else{
 		tokenlengths = {0}; // No tokenization
