@@ -10,6 +10,8 @@
 /.mailmap
 /.devbox
 
+*.vscode/
+
 *.a
 *.o
 *.d
@@ -20,5 +22,7 @@ depend.internal
 
 SMHasher3
 misc/exactcoll
+
+extras/datasketch
 
 .gdbinit

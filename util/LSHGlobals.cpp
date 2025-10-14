@@ -5,32 +5,34 @@
 
 
 // Global variables for LSH runtime communication
-int g_lsh_token_length = 13;        // Default token/kmer length
-int g_lsh_num_signatures = 32;     // Default number of signatures	// Useful in Minhash
-bool g_lsh_test_active = false;    // Whether LSH test is currently running
+uint32_t gLSHTokenLength = 13;        // Default token/kmer length
+uint32_t gLSHNumSignatures = 32;     // Default number of signatures	// Useful in Minhash
+bool gLSHTestActive = false;    // Whether LSH test is currently running
+
+const uint32_t gGoldenRatio = 0x9e3779b1;	
 
 // Setter functions (called by LSHCollision test)
-void set_lsh_token_length(int length) {
-    g_lsh_token_length = length;
+void SetLSHTokenLength(uint32_t length) {
+    gLSHTokenLength = length;
 }
 
-void set_lsh_num_signatures(int num) {
-    g_lsh_num_signatures = num;
+void SetLSHNumSignatures(uint32_t num) {
+    gLSHNumSignatures = num;
 }
 
-void set_lsh_test_active(bool active) {
-    g_lsh_test_active = active;
+void SetLSHTestActive(bool active) {
+    gLSHTestActive = active;
 }
 
 // Getter functions (called by hash functions)
-int get_lsh_token_length() {
-    return g_lsh_token_length;
+uint32_t GetLSHTokenLength() {
+    return gLSHTokenLength;
 }
 
-int get_lsh_num_signatures() {
-    return g_lsh_num_signatures;
+uint32_t GetLSHNumSignatures() {
+    return gLSHNumSignatures;
 }
 
-bool is_lsh_test_active() {
-    return g_lsh_test_active;
+bool IsLSHTestActive() {
+    return gLSHTestActive;
 }

@@ -232,6 +232,7 @@ add_library(
   util/TestGlobals.cpp
   util/BioDataGeneration.cpp
   util/LSHGlobals.cpp
+  util/distances.cpp
 #
   tests/SanityTest.cpp
   tests/AvalancheTest.cpp

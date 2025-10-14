@@ -1,16 +1,18 @@
 #pragma once
+#include <cstdint>
 
 // Global variables for LSH runtime communication
-extern int g_lsh_token_length;
-extern int g_lsh_num_signatures;
-extern bool g_lsh_test_active;
+extern uint32_t gLSHTokenLength;
+extern uint32_t gLSHNumSignatures;
+extern bool gLSHTestActive;
+extern const uint32_t gGoldenRatio;	
 
 // Setter functions (called by LSHCollision test)
-void set_lsh_token_length(int length);
-void set_lsh_num_signatures(int num);
-void set_lsh_test_active(bool active);
+void SetLSHTokenLength(uint32_t length);
+void SetLSHNumSignatures(uint32_t num);
+void SetLSHTestActive(bool active);
 
 // Getter functions (called by hash functions)
-int get_lsh_token_length();
-int get_lsh_num_signatures();
-bool is_lsh_test_active();
+uint32_t GetLSHTokenLength();
+uint32_t GetLSHNumSignatures();
+bool IsLSHTestActive();
