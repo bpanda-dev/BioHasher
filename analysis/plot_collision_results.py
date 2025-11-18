@@ -159,7 +159,9 @@ def generate_line_plots(data_lines, output_filename):
         # Customize subplot
         ax.set_xlabel('Similarity Rate', fontsize=12)
         ax.set_ylabel('Average Collisions', fontsize=12)
-        ax.set_title(f'Keybits = {keybit}', fontsize=14, fontweight='bold')
+        # ax.set_title(f'Keybits = {keybit}', fontsize=14, fontweight='bold')
+        sequence_length = keybit // 2
+        ax.set_title(f'SequenceLength = {sequence_length}', fontsize=14, fontweight='bold')
         ax.grid(True, alpha=0.3)
         ax.legend()
         ax.set_xlim(0, 1)
@@ -172,11 +174,11 @@ def generate_line_plots(data_lines, output_filename):
     # Overall plot formatting
     fig.suptitle(f'LSH Collision Analysis: {data_lines["hashname"].iloc[0]}', 
                  fontsize=18, fontweight='bold')
-    plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+    plt.tight_layout(rect=(0, 0.03, 1, 0.95))
     
     # Save figure with border
     plt.savefig(output_filename, dpi=300, bbox_inches='tight', 
-                facecolor='white', edgecolor='black', linewidth=2)
+                facecolor='white', edgecolor='black', pad_inches=0.1)
     plt.close()
     print(f"  Saved: {output_filename}")
 
@@ -291,7 +293,9 @@ def generate_boxplot_categorical(data_lines, output_filename):
         # Customize subplot
         ax.set_xlabel('Similarity Rate', fontsize=12)
         ax.set_ylabel('Collision Counts Distribution', fontsize=12)
-        ax.set_title(f'Keybits = {keybit}', fontsize=14, fontweight='bold')
+        # ax.set_title(f'Keybits = {keybit}', fontsize=14, fontweight='bold')
+        sequence_length = keybit // 2
+        ax.set_title(f'SequenceLength = {sequence_length}', fontsize=14, fontweight='bold')
         ax.grid(True, alpha=0.3)
         
         # Set x-ticks and labels (categorical)
@@ -313,11 +317,11 @@ def generate_boxplot_categorical(data_lines, output_filename):
     # Overall formatting
     fig.suptitle(f'LSH Collision Count Distributions: {data_lines["hashname"].iloc[0]}', 
                  fontsize=16, fontweight='bold')
-    plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+    plt.tight_layout(rect=(0, 0.03, 1, 0.95))
     
     # Save figure with border
     plt.savefig(output_filename, dpi=300, bbox_inches='tight', 
-                facecolor='white', edgecolor='black', linewidth=2)
+                facecolor='white', edgecolor='black', pad_inches=0.1)
     plt.close()
     print(f"  Saved: {output_filename}")
 
@@ -417,7 +421,9 @@ def generate_boxplot_numerical(data_lines, output_filename):
         # Customize subplot
         ax.set_xlabel('Similarity Rate', fontsize=12)
         ax.set_ylabel('Collision Counts Distribution', fontsize=12)
-        ax.set_title(f'Keybits = {keybit}', fontsize=14, fontweight='bold')
+        # ax.set_title(f'Keybits = {keybit}', fontsize=14, fontweight='bold')
+        sequence_length = keybit // 2
+        ax.set_title(f'SequenceLength = {sequence_length}', fontsize=14, fontweight='bold')
         ax.grid(True, alpha=0.3)
         
         # Set x-axis to use numerical values with proper spacing
@@ -446,11 +452,11 @@ def generate_boxplot_numerical(data_lines, output_filename):
     # Overall formatting
     fig.suptitle(f'LSH Collision Count Distributions: {data_lines["hashname"].iloc[0]}', 
                  fontsize=16, fontweight='bold')
-    plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+    plt.tight_layout(rect=(0, 0.03, 1, 0.95))
     
     # Save figure with border
     plt.savefig(output_filename, dpi=300, bbox_inches='tight', 
-                facecolor='white', edgecolor='black', linewidth=2)
+                facecolor='white', edgecolor='black', pad_inches=0.1)
     plt.close()
     print(f"  Saved: {output_filename}")
 
