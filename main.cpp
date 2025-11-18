@@ -684,10 +684,8 @@ static bool testHash( const char * name, const flags_t flags ) {
         return false;
     }
 
-    listHashes(true);
-
     printf("Testing hash %s\n", name);
-    printf("\n%u",hInfo->bits);
+    printf("%u\n",hInfo->bits);
 
     // If you extend these statements by adding a new bitcount/type, you
     // need to adjust HASHTYPELIST in util/Instantiate.h also.
@@ -730,11 +728,28 @@ static void usage( void ) {
            "  Hashnames can be supplied using any case letters.\n");
 }
 
+// uint32_t generate_single_random32(uint64_t seed) {
+// 	uint32_t KeyBytes = 4; // 32 bits
+// 	Rand r( seed, KeyBytes );
+// 	RandSeq rs = r.get_seq(SEQ_DIST_1, KeyBytes);
+// 	uint32_t random_value;
+// 	rs.write((void*)&random_value, 0, 1);
+// 	return random_value;
+// }
+
 int main( int argc, const char ** argv ) {
     setbuf(stdout, NULL); // Unbuffer stdout always
     setbuf(stderr, NULL); // Unbuffer stderr always
     std::setlocale(LC_COLLATE, "C");
     std::setlocale(LC_CTYPE, "C");
+
+//     /*----------------------------------------------*/
+//    uint32_t my_random = generate_single_random32(12345);
+//     printf("Generated random number: 0x%08x\n", my_random);
+//     /*----------------------------------------------*/
+
+
+
 
     if (!isLE() && !isBE()) {
         printf("Runtime endian detection failed! Cannot continue\n");

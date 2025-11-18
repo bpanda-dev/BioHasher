@@ -42,6 +42,8 @@
     FLAG_EXPAND(HASH_EDIT_DISTANCE)       \
     FLAG_EXPAND(HASH_COSINE_SIMILARITY)  \
     FLAG_EXPAND(HASH_EUCLIDEAN_DISTANCE) \
+    FLAG_EXPAND(HASH_OVERLAPPING_TOKENS) \
+    FLAG_EXPAND(HASH_NONOVERLAPPING_TOKENS)
 
 #define IMPL_FLAGS                          \
     FLAG_EXPAND(IMPL_SANITY_FAILS)          \
@@ -272,6 +274,13 @@ class HashInfo {
 
     FORCE_INLINE bool hasTokenisationProperty( void ) const {
         return !!(hash_flags & FLAG_HASH_TOKENISATION_PROPERTY);
+    }
+
+    FORCE_INLINE bool hasJaccardSimilarity( void ) const {
+        return !!(hash_flags & FLAG_HASH_JACCARD_SIMILARITY);
+    }
+    FORCE_INLINE bool hasHammingDistance( void ) const {
+        return !!(hash_flags & FLAG_HASH_HAMMING_DISTANCE);
     }
 
 }; // class HashInfo

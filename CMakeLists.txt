@@ -18,7 +18,7 @@ if(POLICY CMP0069) # Honor IPO setting for all supported compilers, not just icc
   cmake_policy(SET CMP0069 NEW) # since 3.9
 endif()
 
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
 set(CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 

@@ -48,5 +48,15 @@
 // Collision tests for locality-sensitive hashes (LSH).
 
 #include "BioDataGeneration.h"
+
+uint32_t setDistanceClassForHashInfo(const HashInfo * hinfo);
+
+void FillDistanceVectorFromSimilarity(const std::vector<float>& simrates, uint32_t sequenceLength, uint32_t distanceClass, std::vector<uint32_t>& distances);
+
+template <typename hashtype>
+bool LSHCollisionTestImplInner(SequenceRecordsWithMetadataStruct *sequenceRecordsWithMetadata, const std::vector<uint32_t>& distances, HashFn hash, const std::vector<float>& collisionRateVec, const seed_t seed);
+
 template <typename hashtype>
 bool LSHCollisionTest( const HashInfo * info, bool extra, flags_t flags );
+
+

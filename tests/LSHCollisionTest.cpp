@@ -1,5 +1,6 @@
 /*
  * BioHasher
+ * Copyright (C) 2025 IISc
  * Copyright (C) 2021-2023  Frank J. T. Wojcik
  * Copyright (C) 2023       jason
  *
@@ -61,19 +62,19 @@
 #include "fstream"
 #include <iostream>
 
-//-----------------------------------------------------------------------------
 /*
-The following Impl function doesn't discover the key length - it tests multiple predetermined lengths:
-
-24 bits (3 bytes) - Small keys
-32 bits (4 bytes) - Common integer size
-64 bits (8 bytes) - Common for larger data
-160 bits (20 bytes) - Extended test (if --extra flag)
-256 bits (32 bytes) - Large key test (if --extra flag)
+Note, the keybits influences the sequence length for bio sequences.
+For example, for DNA sequences with 2 bits per base:
+keybits = 32 -> sequence length = 16 bases
+keybits = 64 -> sequence length = 32 bases
+For now, we have fixed the number of keybits to be multiple of 8.
 */
 
+/*-------------------------------------------------------------------------------*/
+/*									Collision Test		 						 */
+/*-------------------------------------------------------------------------------*/
 
-//32 bits
+// 32 bits
 std::vector<float> similarity_x_A = {0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0};
 std::vector<float> similarity_x_B = {0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.90,0.91,0.92,0.93,0.94,0.95,0.96,0.97,0.98,0.99,1.0};
 std::vector<float> similarity_x_C = {0.80,0.81,0.82,0.83,0.84,0.85,0.86,0.87,0.88,0.89,0.90,0.91,0.92,0.93,0.94,0.95,0.96,0.97,0.98,0.99,1.0}; // from 0.8 to 1.0
@@ -82,56 +83,178 @@ std::vector<float> sim_vector_step_tenth = similarity_x_B;//{0.0,0.1,0.2,0.3,0.4
 // {1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0};//
 
 
-// from 0.8 to 1.0
-// const std::vector<int> tokenLengths = {13, 21, 31}; // to be only used for tokenized hashes like minhash and simhash
+//TODO: Add support for Levenshtein distance class in the future.
+uint32_t setDistanceClassForHashInfo(const HashInfo * hinfo) {
+	// Determine the distance class based on the hash function's properties
+	if (hinfo->hash_flags & FLAG_HASH_HAMMING_DISTANCE) {
+		return 1U; // Hamming distance
+	} 
+	else if (hinfo->hash_flags & FLAG_HASH_JACCARD_SIMILARITY) {
+		return 2U; // Jaccard distance
+	}
+	else {
+		return 0U; // Default or unknown or distance not supported.
+	}
+}
 
-//low token size 13
-//medium token size 21
-//high token size 31
+void FillDistanceVectorFromSimilarity(const std::vector<float>& simrates, uint32_t sequenceLength, uint32_t distanceClass, std::vector<uint32_t>& distances) {
+	
+	distances.resize(simrates.size());
+	uint32_t *p = distances.data();	// pointer to the distances array data
+	
+	if(distanceClass == 1){ // Hamming distance
+		for (size_t i = 0; i < simrates.size(); i++) {
+			uint32_t dist = static_cast<uint32_t>((1.0f - simrates[i]) * static_cast<float>(sequenceLength));
+			p[i] = dist;
+			printf("Simrate: %.4f, Hamming Distance: %u\n", simrates[i], p[i]);
+		}
+	}
+	
+	else if(distanceClass == 2){ // Jaccard distance
+		int tokenlength = GetLSHTokenLength();  // Get runtime token length
+		assert(tokenlength > 0 && "Token length must be greater than 0 for Jaccard distance calculation.");
 
- 
-// Note, the keybits influences the sequence length for bio sequences.
-// For example, for DNA sequences with 2 bits per base:
-// keybits = 32 -> sequence length = 16 bases
-// keybits = 64 -> sequence length = 32 bases
+		for (size_t i = 0; i < simrates.size(); i++) {
+			assert(simrates[i]>=0.0f && simrates[i]<=1.0f);
+			// For Jaccard similarity, distance = 2*(1 - similarity) / (1 + similarity)
+			// Here we scale it by sequence length to get an approximate count of differing elements
+			uint32_t dist = (static_cast<uint32_t>(  ((2.0f * (1.0f - simrates[i])) / (1.0f + simrates[i])) * (static_cast<float>(sequenceLength)/static_cast<float>(tokenlength))));
+			p[i] = dist & ~1U; // Make it even. Its always even.
+			// printf("Simrate: %.4f, Jaccard Distance: %u\n", simrates[i], p[i]);
+		}
+	}
+	
+	else{	// Default case: Hamming distance
+		for (size_t i = 0; i < simrates.size(); i++) {
+			uint32_t dist = static_cast<uint32_t>((1.0f - simrates[i]) * static_cast<float>(sequenceLength));
+			p[i] = dist;
+		}
+		printf("Distance class %u not implemented yet!\n", distanceClass);
+	}
+}
+
 template <typename hashtype>
-static bool LSHCollisionTestImpl( const HashInfo * hinfo, unsigned keybits, const seed_t seed, flags_t flags, std::ofstream &out_file) {
+bool LSHCollisionTestImplInner(SequenceRecordsWithMetadataStruct *sequenceRecordsWithMetadata, const std::vector<uint32_t>& distances, HashFn hash, std::vector<std::vector<float>>& collisionRateVec, const seed_t seed) {
+	
+	// Implementation for Hamming distance based LSH collision test.
+	// This function will generate data, mutate it, compute hashes, and record collision rates.
 
+	uint32_t distanceIdx = 0;
+	uint32_t trialIdx = 0;
+
+	/*-------------------------------------------------------------------------------*/
+	/*							Seeding the rand functions							 */
+	/*-------------------------------------------------------------------------------*/
+	seed_t dataGenSeed = (seed*3) + 31*gGoldenRatio; // Seed for data generation
+	seed_t dataGenSeedOffset = 3; // Offset to change the seed for data generation
+
+	seed_t MutationSeed = (seed*7) + 33*gGoldenRatio; // Seed for mutation
+	seed_t MutationSeedOffset = 7; //  offset to change the seed for mutation
+
+	seed_t HashFamilySeed = seed;
+	seed_t HashFamilySeedOffset = gGoldenRatio;
+
+	// printf("????? %d\n", sequenceRecordsWithMetadata->KeyCount);
+	/*-------------------------------------------------------------------------------*/
+	/*							LSH Collision Test Logic							 */
+	/*-------------------------------------------------------------------------------*/
+	for(distanceIdx=0; distanceIdx < distances.size(); distanceIdx++){
+		
+		float a_percentage = 0.25f;
+		float c_percentage = 0.25f;
+		float g_percentage = 0.25f;
+		float t_percentage = 0.25f;
+
+		/* Generate the samples for each dissimilarity index */
+		sequenceRecordsWithMetadata->A_percentage = a_percentage;
+		sequenceRecordsWithMetadata->C_percentage = c_percentage;
+		sequenceRecordsWithMetadata->G_percentage = g_percentage;
+		sequenceRecordsWithMetadata->T_percentage = t_percentage;
+		
+		DataGeneration dataGen(sequenceRecordsWithMetadata, dataGenSeed);	// Constructor to initialize data generation parameters.
+		dataGen.FillRecords(sequenceRecordsWithMetadata);		// Filling the records.
+		
+		dataGenSeed += dataGenSeedOffset;
+		
+		// Note: Please do not delete the following comment under any circumstance! Explaination for certain design choices is present here.
+		/* At this level, we should not be able to see how we are changing the values and what is the mutated sequence.*/
+		// Introduction of mutations to sequence requires knowledge of distance class. 
+		// For case(1): Hamming distance requires that the mutations be substitutions only.
+		// For case(2): There will be two types of abstract visualisation of the input sequences, either they can be seen as sequences or a concatenation of tokens (for Jaccard).
+		// For eg: ATGCTGATCGGGCAGC can be seen as a sequence of length 16 or as a set of tokens of length 4: {ATGC, TGAT, CGGG, CAGC}.
+		// The above two case justifies the need of distance class information at this level.
+		// Need to add more classes here. 
+
+
+		bool isMutationRate = false;
+		MutationEngine mutationEngine(sequenceRecordsWithMetadata->DistanceClass, distances[distanceIdx], isMutationRate);	// Initialising mutation engine with absolute edit distance.
+		mutationEngine.MutateRecords(sequenceRecordsWithMetadata, distances[distanceIdx], MutationSeed);
+
+		// if(sequenceRecordsWithMetadata->DistanceClass == 1){
+		// 	printf("Mutating records for Hamming distance: %u\n", distances[distanceIdx]);
+		// }
+		// else if(sequenceRecordsWithMetadata->DistanceClass == 2){
+		// 	printf("Mutating records for Jaccard distance: %u\n", distances[distanceIdx]);
+		// }
+		
+		MutationSeed += MutationSeedOffset;
+
+		for(trialIdx=0; trialIdx < sequenceRecordsWithMetadata->KeyCount; trialIdx++){
+			float collisionCount = 0;
+			float collisionRate = 0;
+			seed_t currentHashSeed = HashFamilySeed + (HashFamilySeedOffset * trialIdx);
+			// printf("Trial %u: Hash Family Seed: %llu, bit vector Length in bytes: %zu\n", trialIdx, (unsigned long long)currentHashSeed, sequenceRecordsWithMetadata->Records[trialIdx].SeqTwoBitOrg.size());
+			ExtBlob k1(&(sequenceRecordsWithMetadata->Records[trialIdx].SeqTwoBitOrg[0]), sequenceRecordsWithMetadata->Records[trialIdx].SeqTwoBitOrg.size());
+			ExtBlob k2(&(sequenceRecordsWithMetadata->Records[trialIdx].SeqTwoBitMut[0]), sequenceRecordsWithMetadata->Records[trialIdx].SeqTwoBitMut.size());
+
+			for (unsigned i = 0; i < sequenceRecordsWithMetadata->HashCount; i++) {
+				hashtype hashOrg;
+				hashtype hashMut;
+
+				seed_t currentSeed = currentHashSeed + (HashFamilySeedOffset * i); // Different seed per hash
+
+				hash(k1, sequenceRecordsWithMetadata->Records[trialIdx].SeqTwoBitOrg.size(), currentSeed, &hashOrg);
+				hash(k2, sequenceRecordsWithMetadata->Records[trialIdx].SeqTwoBitMut.size(), currentSeed, &hashMut);
+
+				if(hashOrg == hashMut){
+					collisionCount++;
+				}
+			}
+			collisionRate = collisionCount / static_cast<float>(sequenceRecordsWithMetadata->HashCount);
+			collisionRateVec[distanceIdx][trialIdx] = collisionRate;
+			// printf("DistanceIdx: %u, TrialIdx: %u, Collision Rate: %.4f\n", distanceIdx, trialIdx, collisionRate);
+		}
+	}
+
+	// printf("LSHCollisionTestImplHamming called with sequenceLength=%u, keycount=%u\n", sequenceRecordsWithMetadata->OriginalSequenceLength, sequenceRecordsWithMetadata->KeyCount);
+	return true;
+}
+
+template <typename hashtype>
+static bool LSHCollisionTestImpl( const HashInfo * hinfo, unsigned keybits, flags_t flags, std::ofstream &out_file) {
+
+	bool result = true;	//TODO: Update this based on test results.
+
+
+	const uint32_t seqLen = keybits/2;					// Length of the sequence to be generated.
+	const unsigned keybytes = ((keybits + 8 - 1) / 8);	// Number of bytes in the key. Note that the keybits have to be a multiple of 8.
+	assert(keybits % 8 == 0 && "Keybits should be multiples of 8."); // Ensure keybits is a multiple of 8.
+
+	const int tokenlength = GetLSHTokenLength();  		// Get runtime token length
+
+	HashFn hash = hinfo->hashFn(g_hashEndian);
+
+	const seed_t seed = hinfo->Seed(g_seed);
+
+	const unsigned keycount = 100; //000; //100000; //1024; //512 * 1024 * ((hinfo->bits <= 64) ? 3 : 4);   // Number of keys to generate and test.
+	
+    const size_t hashcount = 100; //000; //1024;	// Number of hashes(from the hash family) to compute per key
+
+	// File header
 	out_file << ":1:LSH Collision Test Results\n";
-
-	int tokenlength = GetLSHTokenLength();  // Get runtime token length
-
-	// if(tokenlength > 0){
-	// 	out_file << ":2: " << tokenlength << "\n";
-	// } else {
-	// 	out_file << ":2: " << 0 << "\n";
-	// }
-
 	out_file << ":2:" << "Hashname," << "Keybits," << "Tokenlength" << std::endl;
 	out_file << ":3:" << hinfo->name << "," << keybits << "," << tokenlength << std::endl;
-
-	/*Initialisation part*/
-    bool result = true; //The default result is true unless a test fails.
-
-    const uint32_t sequenceLength = keybits/2; // Length of the sequence to be generated.
-
-    // LSH global variables are already set before this function is called
-	size_t outlen = 1;  // Default for standard hashes
-	HashFn hash = nullptr;
-    HashFnVarOut hashVarOut = nullptr;
-	if(hinfo->hasVariableOutput()){
-		outlen=32; // Num of permutations for minhash
-        hashVarOut = hinfo->hashFnVarOut(g_hashEndian);
-    } else {
-        hash = hinfo->hashFn(g_hashEndian);
-    }
-	
-
-    const unsigned keycount = 1; //100000; //1024; //512 * 1024 * ((hinfo->bits <= 64) ? 3 : 4);   // Number of keys to generate and test. More bits will require more keys for better statistical significance.
-    unsigned       keybytes = keybits / 8;                                  // Number of bytes in the key. Note that the keybits have to be a multiple of 8.
-
-    const size_t hashcount = 1; //1024; // Number of hashes(from the hash family) to compute per key: 1024 hashes per key.
-
+    
 	if (!REPORT(VERBOSE, flags)) {
 		printf("LSH Collision Test: Key Size = %3u bits (%2u bytes), Keys = %8u, Hashes per Key = %4zu\n",
            keybits, (unsigned)keybytes, keycount, hashcount);
@@ -140,31 +263,39 @@ static bool LSHCollisionTestImpl( const HashInfo * hinfo, unsigned keybits, cons
 		printf("Hash Bits: %u\n", hinfo->bits);
     }
 
-    
-	SequenceRecord records;
-	records.SeqLength = sequenceLength;
-	records.DistanceClass = 0;	//Hamming distance
+	SequenceRecordsWithMetadataStruct sequenceRecordsWithMetadata;
 
-	std::vector<float> simrates = sim_vector_step_tenth; //sim_vector_step_twentieth;
-    std::vector<float> dissimrates(simrates.size());
-    std::vector<int> distances(simrates.size());
-    for (size_t i = 0; i < simrates.size(); i++) {
-        dissimrates[i] = 1.0f - simrates[i];
-        distances[i] = static_cast<int>(dissimrates[i] * sequenceLength);
-    }
-	printf("Dissimilarity rates: ");
-	for (size_t i = 0; i < dissimrates.size(); i++) {
-		printf("%.2f ", dissimrates[i]);
+	sequenceRecordsWithMetadata.OriginalSequenceLength = seqLen;
+	sequenceRecordsWithMetadata.DistanceClass = setDistanceClassForHashInfo(hinfo);		//TODO: Add more distance classes.
+	sequenceRecordsWithMetadata.KeyCount = keycount;
+	sequenceRecordsWithMetadata.HashCount = hashcount;
+
+	/*-------------------------------------------------------------------------------*/
+	/*						Similarity and Distance Computation						 */
+	/*-------------------------------------------------------------------------------*/
+	printf("Using Distance Class: %u\n", sequenceRecordsWithMetadata.DistanceClass);
+	
+	/*Similarity and Distance vector preparation*/
+	std::vector<float> simrates = sim_vector_step_tenth;
+	
+	printf("Similarity rates: ");
+	for (size_t i = 0; i < simrates.size(); i++) {
+		printf("%.2f ", simrates[i]);
 	}
+	printf("\n");
 
-	printf("\nCorresponding Hamming distances (for sequence length %u): ", sequenceLength);
+	/* Based on the distance type, similarity may have different values. so here will be compute that distance vector.*/
+	std::vector<uint32_t> distances;
+	FillDistanceVectorFromSimilarity(simrates, seqLen, sequenceRecordsWithMetadata.DistanceClass, distances);
+	
+	printf("\nCorresponding distances (for sequence length %u): ", seqLen);
 	for (size_t i = 0; i < distances.size(); i++) {
 		printf("%d ", distances[i]);
 	}
 	printf("\n");
 
 	
-	// print the simrates in one line in the output file.
+	// fprint the simrates in one line in the output file.
 	out_file << ":4:" ;
 	for (size_t i = 0; i < simrates.size(); i++) {
 		if (i == simrates.size() - 1)
@@ -173,7 +304,7 @@ static bool LSHCollisionTestImpl( const HashInfo * hinfo, unsigned keybits, cons
 			out_file << simrates[i] << ",";
 	}
 
-	// print the distances in one line in the output file.
+	// fprint the distances in one line in the output file.
 	out_file << ":5:" ;
 	for (size_t i = 0; i < distances.size(); i++) {
 		if (i == distances.size() - 1)
@@ -182,185 +313,130 @@ static bool LSHCollisionTestImpl( const HashInfo * hinfo, unsigned keybits, cons
 			out_file << distances[i] << ",";
 	}
 
+	out_file << ":6: For metadata. token length determines the number of distinct tokens. Need to focus\n"; 
+	
+
+	/*-------------------------------------------------------------------------------*/
+
 	// An empty 2d vector to store collisions <-- This array will be printed to the file for plotting.
 	std::vector<std::vector<float>> collisionRateVec(simrates.size(), std::vector<float>(keycount, 0.0f));
 
-	/*Part 2: Data generation and logic*/
+	/*Data generation: Each distance metric needs a different way of generation of input data.*/
 
-	uint32_t dissimilarityIdx = 0;
+	LSHCollisionTestImplInner<hashtype>(&sequenceRecordsWithMetadata, distances, hash, collisionRateVec, seed);
+
+	// Print the collision rates to the output file.
+	uint32_t distanceIdx = 0;
 	uint32_t trialIdx = 0;
-
-	seed_t dataGenSeed = seed + 3; // Seed for data generation
-	seed_t MutationSeed = seed + 7; // Seed for mutation
-	seed_t HashFamilySeed = seed;
-	seed_t HashFamilySeedIncrement = 42;
-
-	seed_t MutationOffset = 13; //  offset to change the seed for mutation
-	seed_t dataGenOffset = 11; // Offset to change the seed for data generation
-
-
-	for(dissimilarityIdx=0; dissimilarityIdx < dissimrates.size(); dissimilarityIdx++){
-		
-		// Generate the samples for each dissimilarity index
-		DataGeneration<hashtype> dataGen(&records, sequenceLength, keycount, dataGenSeed);	// SEEDING
-		dataGen.FillRecords(&records, dataGenSeed);
-
-		// Add debug output here:
-		// printf("Debug: sequenceLength=%u, keycount=%u, keybytes=%u\n", sequenceLength, keycount, keybytes);
-		// printf("Debug: SeqTwoBitOrg size=%zu, SeqTwoBitMut size=%zu\n", 
-		// 	records.SeqTwoBitOrg.size(), records.SeqTwoBitMut.size());
-		// printf("Debug: Expected size=%u\n", keycount * keybytes);
-
-		MutationEngine<hashtype> mutationEngine(sequenceLength, dissimrates[dissimilarityIdx], MutationSeed, false, keycount);	// SEEDING
-		mutationEngine.MutateRecordsWithSubstitutions(&records, distances[dissimilarityIdx]);
-
-		// Compute collision rates for each samples across multiple hash functions in the hash family.
-		for(trialIdx=0; trialIdx < keycount; trialIdx++){
-			
-			float collisionCount = 0;
-			float collisionRate = 0;
-			seed_t currentHashSeed = HashFamilySeed + (HashFamilySeedIncrement * trialIdx);
-			// HashFamilySeed += HashFamilySeedIncrement; // Different starting seed for each key
-
-			// Add bounds checking
-            if (trialIdx * keybytes >= records.SeqTwoBitOrg.size() || 
-                trialIdx * keybytes >= records.SeqTwoBitMut.size()) {
-                printf("ERROR: Index out of bounds! trialIdx=%u, keybytes=%u\n", trialIdx, keybytes);
-                return false;
-            }
-
-			ExtBlob k1(&records.SeqTwoBitOrg[trialIdx * keybytes], keybytes);
-			ExtBlob k2(&records.SeqTwoBitMut[trialIdx * keybytes], keybytes);
-			// k1.printbits();
-			// k2.printbits();
-
-			for (unsigned i = 0; i < hashcount; i++) {
-				hashtype hashOrg;
-				hashtype hashMut;
-
-				seed_t currentSeed = currentHashSeed + (HashFamilySeedIncrement * i); // Different seed per hash
-
-				if(hinfo->hasVariableOutput()){
-					hashVarOut(k1, keybytes, currentSeed, &hashOrg,outlen);
-					hashVarOut(k2, keybytes, currentSeed, &hashMut,outlen);
-					// // convert hashOrg to uint32_t array for debugging
-					// uint32_t* hashOrgInt = (uint32_t*)&hashOrg;
-					// uint32_t* hashMutInt = (uint32_t*)&hashMut;
-					// // For debugging, printing
-					// for(int xx_i = 0; xx_i < outlen; xx_i++){
-					// 	std::cout << (uint32_t)hashOrgInt[xx_i] << " ";
-					// 	std::cout << (uint32_t)hashMutInt[xx_i] << " ";
-					// 	std::cout << "\n";
-					// }
-				}
-				else{
-					hash(k1, keybytes, currentSeed, &hashOrg);
-					hash(k2, keybytes, currentSeed, &hashMut);
-				}
-
-				// addVCodeInput(k1, keybytes);
-				
-				// addVCodeInput(k, keybytes);
-				
-				// Check for collision. But this check needs to be different when there is variable amount of return data
-				if(hinfo->hasVariableOutput()){
-					
-				}
-				else{
-					if(hashOrg == hashMut){
-						collisionCount++;
-					}
-				}
-			}
-
-			collisionRate = collisionCount / static_cast<float>(hashcount);
-			collisionRateVec[dissimilarityIdx][trialIdx] = collisionRate;
-		}
-		dataGenSeed +=  dataGenOffset; // Change the seed for data generation for next iteration.
-		MutationSeed += MutationOffset; // Change the seed for mutation for next iteration.
-	}
-
-	for(dissimilarityIdx=0; dissimilarityIdx < dissimrates.size(); dissimilarityIdx++){		
+	for(distanceIdx=0; distanceIdx < distances.size(); distanceIdx++){		
 		for(trialIdx=0; trialIdx < keycount; trialIdx++){
 			if(trialIdx == keycount-1)
-				out_file << collisionRateVec[dissimilarityIdx][trialIdx] << "\n";
+				out_file << collisionRateVec[distanceIdx][trialIdx] << "\n";
 			else
-				out_file << collisionRateVec[dissimilarityIdx][trialIdx] << ",";
+				out_file << collisionRateVec[distanceIdx][trialIdx] << ",";
 		}
 	}
 
-    // For now, the result is always true. we need to add logic to find where the test fails.
-    return result;
+    
+    return result;	//TODO: For now, the result is always true. We need to add logic to find where the test fails.
 }
 
-//----------------------------------------------------------------------------
 
-// std::vector<int> create_tokens(){
-// 	std::vector<int> tokenLengths = {13, 21, 31}; // to be only used for tokenized hashes like minhash and simhash
-// 	return tokenLengths;
-// }
-
-
+//----------------------------------------------------------------------------//
 template <typename hashtype>
 bool LSHCollisionTest( const HashInfo * hinfo, bool extra, flags_t flags ) {
-
+	
 	std::ofstream out_file("../results/collisionResults_" + std::string(hinfo->name)  +".csv");
 	if (!out_file.is_open()) {
 		std::cerr << "Error: Could not open output file" << std::endl;
 		exit(EXIT_FAILURE);
 	} 
     
+	if(extra){
+		printf("Extra flag is set. Running extended tests where applicable.\n");
+	}
+
     bool result = true;
 
     printf("[[[ LSH Collision Tests ]]]\n\n");
 
-	const seed_t seed = hinfo->Seed(g_seed);
-
-	std::vector<int> tokenlengths;
+	// A token of length toklen will produce keys of length 2*token bits for DNA sequences (2 bits per base).
 	// If the hash has tokenisation property, then we need to test for multiple token lengths
 	// Otherwise, we just use a token length of 0 (no tokenisation)
 	// This is because the LSH collision test is primarily designed for tokenised hashes like minhash and simhash
 	// which have the tokenisation property.
-	// For other hashes, we just use a token length of 0 (no tokenisation).
+	// For other hashes, we just use a token length of 0 (i.e. no tokenisation).
+	std::vector<uint32_t> tokenlengths;
 	if(hinfo->hasTokenisationProperty()){
-		tokenlengths = {4 }; //,7, 13, 21, 31}; //create_tokens();
+		printf("Hash %s has tokenisation property. Testing multiple token lengths.\n", hinfo->name);
+		tokenlengths = {4 ,7, 13, 21, 31, 32}; //create_tokens();
 	}
 	else{
 		tokenlengths = {0}; // No tokenization
 	}
-	for(const auto & tlen : tokenlengths){
-		printf("Token length: %d\n", tlen);
+
+	std::vector<uint32_t> sequenceLengths = {16, 24, 32, 48, 64, 80, 96, 128, 256, 512, 1024, 2048, 4096}; // Corresponding sequence lengths for DNA (2 bits per base)
+
+	// std::vector<uint32_t> keybits_list = {32, 48, 64}; //, 96, 128, 160, 192, 256}; // Key sizes to test
+
+	if(extra && !hinfo->isVerySlow()){
+		sequenceLengths.push_back(80);
+		sequenceLengths.push_back(96);
+		sequenceLengths.push_back(128);
+	}
+
+	for(const auto & toklen : tokenlengths){
+		printf("=====================================\n");
+		printf("Token length: %d\n", toklen);
+		printf("=====================================\n");
 		
 		// Set LSH global variables for this token length
 		SetLSHTestActive(true);
-		SetLSHTokenLength(tlen > 0 ? tlen : 0);  // Use token length or default
-		// set_lsh_num_signatures(32);  // Default number of signatures
+		SetLSHTokenLength(toklen > 0 ? toklen : 0);  // Use token length or default	// This is a redundant check but added for safety.
 		
-		//skip cases with tlen > keybits / 2
-		// if(tlen < (32 >> 1))
-		// 	result &= LSHCollisionTestImpl<hashtype>(hinfo, 32, seed, flags, out_file);   	// Keybits = 32 Sequence length = 16
-		// if(tlen < (48 >> 1))
-		// 	result &= LSHCollisionTestImpl<hashtype>(hinfo, 48, seed, flags, out_file);   		// Keybits = 48 Sequence length = 24
-		if(tlen < (64 >> 1))
-			result &= LSHCollisionTestImpl<hashtype>(hinfo, 64, seed, flags, out_file);   	// Keybits = 64 Sequence length = 32
-		// if(tlen < (96 >> 1))
-		// 	result &= LSHCollisionTestImpl<hashtype>(hinfo, 96, seed, flags, out_file);   	// Keybits = 96 Sequence length = 48
-		// if(tlen < (128 >> 1))
-		// 	result &= LSHCollisionTestImpl<hashtype>(hinfo, 128, seed, flags, out_file);   	// Keybits = 128 Sequence length = 64
-		// // if(tlen < (160 >> 1))
-		// // 	result &= LSHCollisionTestImpl<hashtype>(hinfo, 160, seed, flags, out_file);		// Keybits = 160 Sequence length = 80
-		// if(tlen < (192 >> 1))
-		// 	result &= LSHCollisionTestImpl<hashtype>(hinfo, 192, seed, flags, out_file);		// Keybits = 192 Sequence length = 96
-		// if(tlen < (256 >> 1))
-		// 	result &= LSHCollisionTestImpl<hashtype>(hinfo, 256, seed, flags, out_file);		// Keybits = 256 Sequence length = 128
+		for(const auto & seqLen : sequenceLengths){
+			printf("-------------------------------------\n");
+			printf("Sequence length: %u\n", seqLen);
+			printf("-------------------------------------\n");
+			// For DNA sequences, keybits = 2 * sequence length
+			uint32_t keybits = seqLen * 2;	// Eg: Keybits = 32 Sequence length = 16
+			
+			
+			//------------------------------ Need reworking ------------------------------//
+			// --- Sanity Checks for Test Configuration Only valid for tokenised hashes ---	//
+			if(hinfo->hasTokenisationProperty()){
+				// Condition 1: Skipping if token length is greater than sequence length.
+				if (toklen > seqLen) {
+					printf("Skipping: Token length (%u) > sequence length (%u).\n", toklen, seqLen);
+					continue;
+				}
 
-		if (extra && !hinfo->isVerySlow()) {    // if the extra flag is given, and the hash is not very slow then we can also test longer keys
-			// if(tlen < (160 >> 1))
-			// 	result &= LSHCollisionTestImpl<hashtype>(hinfo, 160, seed, flags, out_file);		// Keybits = 160 Sequence length = 80
-			// if(tlen < (192 >> 1))
-			// 	result &= LSHCollisionTestImpl<hashtype>(hinfo, 192, seed, flags, out_file);		// Keybits = 192 Sequence length = 96
-			// if(tlen < (256 >> 1))
-			// 	result &= LSHCollisionTestImpl<hashtype>(hinfo, 256, seed, flags, out_file);		// Keybits = 256 Sequence length = 128
+				// Calculate the number of tokens the sequence will be split into.
+				const uint64_t tokensInSequence = (seqLen + toklen - 1) / toklen; // Ceiling division	//Cardinality
+				// Condition 2: Skipping if the sequence is too short to provide enough tokens for meaningful mutation analysis and avoid natural repetition.
+				const uint64_t MIN_TOKENS_FOR_MUTATION = 20; // A more reasonable threshold.
+				if (tokensInSequence < MIN_TOKENS_FOR_MUTATION) {
+					printf("Skipping: Sequence with %llu tokens is too short (min is %llu).\n", (unsigned long long)tokensInSequence, (unsigned long long)MIN_TOKENS_FOR_MUTATION);
+					continue;
+				}
+
+				// Condition 3: Skipping if the token space is too small, which would lead to high collision rates
+				// even for random data, making the LSH property test less meaningful.
+				if (toklen > 0) {
+					uint64_t maxPossibleTokens = (toklen >= 32) ? UINT64_MAX : (1ULL << (2 * toklen));
+					
+					// This checks if the number of tokens in the sequence is a large fraction of the total possible unique tokens.
+					// For example, skip if tokensInSequence > 1% of maxPossibleTokens.
+					if (maxPossibleTokens / 100 < tokensInSequence) {
+						printf("Skipping: High token repetition expected. Tokens in sequence (%llu) vs. max possible (%llu).\n", (unsigned long long)tokensInSequence, (unsigned long long)maxPossibleTokens);
+						continue;
+					}
+				}
+			}
+			//------------------------------ Need reworking ------------------------------//
+
+			printf("\nTesting hash: %s with keybits: %u (sequence length: %u), token length: %d\n", hinfo->name, keybits, seqLen, toklen);
+			result &= LSHCollisionTestImpl<hashtype>(hinfo, keybits, flags, out_file);
 		}
 	}
 
