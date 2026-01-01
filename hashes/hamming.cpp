@@ -18,7 +18,6 @@
  * 
  * ###YOURLICENSETEXT
  */
-
 #include "Platform.h"
 #include "Hashlib.h"
 #include "LSHGlobals.h"
@@ -77,6 +76,34 @@ static void hamming32_encoded_seq(const void* in, const size_t len, const seed_t
 }
 
 
+//len is in bytes
+template <bool bswap>
+static void hamming32_base_seq(const void* in, const size_t len, const seed_t seed, void* out) {
+    
+    // Input validation
+    if (in == nullptr || len == 0) {
+        PUT_U32<bswap>(0, (uint8_t*)out, 0);
+        return;
+    }
+    
+    const uint8_t* data = static_cast<const uint8_t*>(in);
+
+    const uint32_t totalBases = len;
+
+    Rand r(seed, sizeof(uint32_t));
+    uint32_t randomBase = r.rand_range(totalBases);
+
+    // printf(">>> %d\n", randomBase);
+
+    uint32_t hashValue = 0;
+    
+    // Extract the 8-bit base at the random position
+    hashValue = static_cast<uint32_t>(data[randomBase]);
+    
+    PUT_U32<bswap>(hashValue, (uint8_t*)out, 0);
+}
+
+
 //------------------------------------------------------------
 REGISTER_FAMILY(HammingLSH,
    $.src_url    = "https://github.com/bpanda-dev/BioHasher",
@@ -93,6 +120,18 @@ REGISTER_HASH(Hamming_32_encoded_seq,
    $.verification_BE = 0x0,
    $.hashfn_native   = hamming32_encoded_seq<false>,
    $.hashfn_bswap    = hamming32_encoded_seq<true>
+);
+
+// Standard 32-bit Hamming LSH
+REGISTER_HASH(Hamming_32_base_seq,
+   $.desc            = "Hamming LSH 32-bit - Random base sampling for Hamming distance preservation",
+   $.hash_flags      = FLAG_HASH_LOCAL_SENSITIVE | FLAG_HASH_HAMMING_DISTANCE,
+   $.impl_flags      = 0,
+   $.bits            = 32,
+   $.verification_LE = 0x0,
+   $.verification_BE = 0x0,
+   $.hashfn_native   = hamming32_base_seq<false>,
+   $.hashfn_bswap    = hamming32_base_seq<true>
 );
 
 //------------------------------------------------------------

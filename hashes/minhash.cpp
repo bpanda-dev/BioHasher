@@ -15,7 +15,6 @@
  * 
  * ###YOURLICENSETEXT
  */
-
 #include "Platform.h"
 #include "Hashlib.h"
 #include "LSHGlobals.h"

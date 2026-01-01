@@ -164,6 +164,7 @@ bool LSHCollisionTestImplInner(SequenceRecordsWithMetadataStruct *sequenceRecord
 		float c_percentage = 0.25f;
 		float g_percentage = 0.25f;
 		float t_percentage = 0.25f;
+		assert((a_percentage + c_percentage + g_percentage + t_percentage) == 1.0f);
 
 		/* Generate the samples for each dissimilarity index */
 		sequenceRecordsWithMetadata->A_percentage = a_percentage;
@@ -369,21 +370,13 @@ bool LSHCollisionTest( const HashInfo * hinfo, bool extra, flags_t flags ) {
 	std::vector<uint32_t> tokenlengths;
 	if(hinfo->hasTokenisationProperty()){
 		printf("Hash %s has tokenisation property. Testing multiple token lengths.\n", hinfo->name);
-		tokenlengths = {4 ,7, 13, 21, 31, 32}; //create_tokens();
+		tokenlengths = {4 ,7, 13, 21, 31, 33}; //create_tokens();
 	}
 	else{
 		tokenlengths = {0}; // No tokenization
 	}
 
-	std::vector<uint32_t> sequenceLengths = {16, 24, 32, 48, 64, 80, 96, 128, 256, 512, 1024, 2048, 4096}; // Corresponding sequence lengths for DNA (2 bits per base)
-
-	// std::vector<uint32_t> keybits_list = {32, 48, 64}; //, 96, 128, 160, 192, 256}; // Key sizes to test
-
-	if(extra && !hinfo->isVerySlow()){
-		sequenceLengths.push_back(80);
-		sequenceLengths.push_back(96);
-		sequenceLengths.push_back(128);
-	}
+	std::vector<uint32_t> sequenceLengths = {16, 24, 32, 48, 64, 80, 96, 128, 256, 512, 1024, 2048, 4096, 8192}; // Corresponding sequence lengths for DNA (2 bits per base)
 
 	for(const auto & toklen : tokenlengths){
 		printf("=====================================\n");
