@@ -1,53 +1,3 @@
-/*
- * BioHasher
- * Copyright (C) 2025 IISc
- * Copyright (C) 2021-2023  Frank J. T. Wojcik
- * Copyright (C) 2023       jason
- *
- * This program is free software: you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see
- * <https://www.gnu.org/licenses/>.
- *
- * This file incorporates work covered by the following copyright and
- * permission notice:
- *     Copyright (C) 2021-2023 Frank J. T. Wojcik
- *     Copyright (C) 2023      jason
- *     Copyright (c) 2010-2012 Austin Appleby
- *     Copyright (c) 2019-2021 Reini Urban
- *     Copyright (c) 2019      Yann Collet
- *
- *     Permission is hereby granted, free of charge, to any person
- *     obtaining a copy of this software and associated documentation
- *     files (the "Software"), to deal in the Software without
- *     restriction, including without limitation the rights to use,
- *     copy, modify, merge, publish, distribute, sublicense, and/or
- *     sell copies of the Software, and to permit persons to whom the
- *     Software is furnished to do so, subject to the following
- *     conditions:
- *
- *     The above copyright notice and this permission notice shall be
- *     included in all copies or substantial portions of the Software.
- *
- *     THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- *     EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
- *     OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- *     NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
- *     HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
- *     WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- *     FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
- *     OTHER DEALINGS IN THE SOFTWARE.
- */
-
 #include "Platform.h"
 #include "Hashinfo.h"
 #include "TestGlobals.h"
@@ -55,6 +5,7 @@
 #include "Analyze.h"
 #include "Instantiate.h"
 #include "VCode.h"
+
 #include "distances.h"
 #include "BioDataGeneration.h"
 #include "LSHGlobals.h"
@@ -62,81 +13,18 @@
 #include "fstream"
 #include <iostream>
 
-/*
-Note, the keybits influences the sequence length for bio sequences.
-For example, for DNA sequences with 2 bits per base:
-keybits = 32 -> sequence length = 16 bases
-keybits = 64 -> sequence length = 32 bases
-For now, we have fixed the number of keybits to be multiple of 8.
-*/
 
 /*-------------------------------------------------------------------------------*/
 /*									Collision Test		 						 */
 /*-------------------------------------------------------------------------------*/
 
-// 32 bits
-std::vector<float> similarity_x_A = {0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0};
-std::vector<float> similarity_x_B = {0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.90,0.91,0.92,0.93,0.94,0.95,0.96,0.97,0.98,0.99,1.0};
-std::vector<float> similarity_x_C = {0.80,0.81,0.82,0.83,0.84,0.85,0.86,0.87,0.88,0.89,0.90,0.91,0.92,0.93,0.94,0.95,0.96,0.97,0.98,0.99,1.0}; // from 0.8 to 1.0
-// std::vector<float> sim_vector_step_twentieth_from_098 = {0.980,0.981,0.982,0.983,0.984,0.985,0.986,0.987,0.988,0.989,0.990,0.991,0.992,0.993,0.994,0.995,0.996,0.997,0.998,0.999,1.0};
-std::vector<float> sim_vector_step_tenth = similarity_x_B;//{0.0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0};
-// {1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0,1.0};//
-
-
-//TODO: Add support for Levenshtein distance class in the future.
-uint32_t setDistanceClassForHashInfo(const HashInfo * hinfo) {
-	// Determine the distance class based on the hash function's properties
-	if (hinfo->hash_flags & FLAG_HASH_HAMMING_DISTANCE) {
-		return 1U; // Hamming distance
-	} 
-	else if (hinfo->hash_flags & FLAG_HASH_JACCARD_SIMILARITY) {
-		return 2U; // Jaccard distance
-	}
-	else {
-		return 0U; // Default or unknown or distance not supported.
-	}
-}
-
-void FillDistanceVectorFromSimilarity(const std::vector<float>& simrates, uint32_t sequenceLength, uint32_t distanceClass, std::vector<uint32_t>& distances) {
-	
-	distances.resize(simrates.size());
-	uint32_t *p = distances.data();	// pointer to the distances array data
-	
-	if(distanceClass == 1){ // Hamming distance
-		for (size_t i = 0; i < simrates.size(); i++) {
-			uint32_t dist = static_cast<uint32_t>((1.0f - simrates[i]) * static_cast<float>(sequenceLength));
-			p[i] = dist;
-			printf("Simrate: %.4f, Hamming Distance: %u\n", simrates[i], p[i]);
-		}
-	}
-	
-	else if(distanceClass == 2){ // Jaccard distance
-		int tokenlength = GetLSHTokenLength();  // Get runtime token length
-		assert(tokenlength > 0 && "Token length must be greater than 0 for Jaccard distance calculation.");
-
-		for (size_t i = 0; i < simrates.size(); i++) {
-			assert(simrates[i]>=0.0f && simrates[i]<=1.0f);
-			// For Jaccard similarity, distance = 2*(1 - similarity) / (1 + similarity)
-			// Here we scale it by sequence length to get an approximate count of differing elements
-			uint32_t dist = (static_cast<uint32_t>(  ((2.0f * (1.0f - simrates[i])) / (1.0f + simrates[i])) * (static_cast<float>(sequenceLength)/static_cast<float>(tokenlength))));
-			p[i] = dist & ~1U; // Make it even. Its always even.
-			// printf("Simrate: %.4f, Jaccard Distance: %u\n", simrates[i], p[i]);
-		}
-	}
-	
-	else{	// Default case: Hamming distance
-		for (size_t i = 0; i < simrates.size(); i++) {
-			uint32_t dist = static_cast<uint32_t>((1.0f - simrates[i]) * static_cast<float>(sequenceLength));
-			p[i] = dist;
-		}
-		printf("Distance class %u not implemented yet!\n", distanceClass);
-	}
-}
-
 template <typename hashtype>
-bool LSHCollisionTestImplInner(SequenceRecordsWithMetadataStruct *sequenceRecordsWithMetadata, const std::vector<uint32_t>& distances, HashFn hash, std::vector<std::vector<float>>& collisionRateVec, const seed_t seed) {
-	
-	// Implementation for Hamming distance based LSH collision test.
+bool LSHCollisionTestInnerInner(SequenceRecordsWithMetadata *sequenceRecordsWithMetadata, HashFn hash, const seed_t seed, std::ofstream &out_file) {
+
+
+
+
+
 	// This function will generate data, mutate it, compute hashes, and record collision rates.
 
 	uint32_t distanceIdx = 0;
@@ -232,14 +120,11 @@ bool LSHCollisionTestImplInner(SequenceRecordsWithMetadataStruct *sequenceRecord
 }
 
 template <typename hashtype>
-static bool LSHCollisionTestImpl( const HashInfo * hinfo, unsigned keybits, flags_t flags, std::ofstream &out_file) {
+static bool LSHCollisionTestInner( const HashInfo * hinfo, const uint32_t seqLen, flags_t flags, std::ofstream &out_file) {
 
 	bool result = true;	//TODO: Update this based on test results.
 
-
-	const uint32_t seqLen = keybits/2;					// Length of the sequence to be generated.
-	const unsigned keybytes = ((keybits + 8 - 1) / 8);	// Number of bytes in the key. Note that the keybits have to be a multiple of 8.
-	assert(keybits % 8 == 0 && "Keybits should be multiples of 8."); // Ensure keybits is a multiple of 8.
+	const uint32_t keybytes = seqLen; //Since 8 bytes = 1 base.
 
 	const int tokenlength = GetLSHTokenLength();  		// Get runtime token length
 
@@ -247,14 +132,14 @@ static bool LSHCollisionTestImpl( const HashInfo * hinfo, unsigned keybits, flag
 
 	const seed_t seed = hinfo->Seed(g_seed);
 
-	const unsigned keycount = 100; //000; //100000; //1024; //512 * 1024 * ((hinfo->bits <= 64) ? 3 : 4);   // Number of keys to generate and test.
+	const unsigned keycount = 1000;	// Number of keys to generate and test.
 	
-    const size_t hashcount = 100; //000; //1024;	// Number of hashes(from the hash family) to compute per key
+    const size_t hashcount = 1000;	// Number of hashes(from the hash family) to compute per key
 
 	// File header
 	out_file << ":1:LSH Collision Test Results\n";
-	out_file << ":2:" << "Hashname," << "Keybits," << "Tokenlength" << std::endl;
-	out_file << ":3:" << hinfo->name << "," << keybits << "," << tokenlength << std::endl;
+	out_file << ":2:" << "Hashname," << "SequenceLength," << "TokenLength" << std::endl;
+	out_file << ":3:" << hinfo->name << "," << seqLen << "," << tokenlength << std::endl;
     
 	if (!REPORT(VERBOSE, flags)) {
 		printf("LSH Collision Test: Key Size = %3u bits (%2u bytes), Keys = %8u, Hashes per Key = %4zu\n",
@@ -264,81 +149,47 @@ static bool LSHCollisionTestImpl( const HashInfo * hinfo, unsigned keybits, flag
 		printf("Hash Bits: %u\n", hinfo->bits);
     }
 
-	SequenceRecordsWithMetadataStruct sequenceRecordsWithMetadata;
-
+	SequenceRecordsWithMetadata sequenceRecordsWithMetadata;
+	
 	sequenceRecordsWithMetadata.OriginalSequenceLength = seqLen;
 	sequenceRecordsWithMetadata.DistanceClass = setDistanceClassForHashInfo(hinfo);		//TODO: Add more distance classes.
-	sequenceRecordsWithMetadata.KeyCount = keycount;
-	sequenceRecordsWithMetadata.HashCount = hashcount;
+
+	sequenceRecordsWithMetadata.A_percentage = 0.25;
+    sequenceRecordsWithMetadata.C_percentage = 0.25;
+    sequenceRecordsWithMetadata.G_percentage = 0.25;
+    sequenceRecordsWithMetadata.T_percentage = 0.25;
+
+	sequenceRecordsWithMetadata.KeyCount = keycount; // 1 million sequences
+	sequenceRecordsWithMetadata.HashCount = hashcount; // 100 hashes per sequence
+
+    sequenceRecordsWithMetadata.DatagenSeed = 42;
+    sequenceRecordsWithMetadata.DataMutateSeed = 43;
+
 
 	/*-------------------------------------------------------------------------------*/
 	/*						Similarity and Distance Computation						 */
 	/*-------------------------------------------------------------------------------*/
 	printf("Using Distance Class: %u\n", sequenceRecordsWithMetadata.DistanceClass);
-	
-	/*Similarity and Distance vector preparation*/
-	std::vector<float> simrates = sim_vector_step_tenth;
-	
-	printf("Similarity rates: ");
-	for (size_t i = 0; i < simrates.size(); i++) {
-		printf("%.2f ", simrates[i]);
-	}
-	printf("\n");
 
-	/* Based on the distance type, similarity may have different values. so here will be compute that distance vector.*/
-	std::vector<uint32_t> distances;
-	FillDistanceVectorFromSimilarity(simrates, seqLen, sequenceRecordsWithMetadata.DistanceClass, distances);
+	sequenceRecordsWithMetadata.binsize = 0.01f;	// Bin size for distance metrics
+	sequenceRecordsWithMetadata.binstart = 0.0f;	// Bin start
+	sequenceRecordsWithMetadata.binend = 1.01f;		// Bin end
+	sequenceRecordsWithMetadata.bincount = static_cast<uint32_t>(std::ceil((sequenceRecordsWithMetadata.binend - sequenceRecordsWithMetadata.binstart) / sequenceRecordsWithMetadata.binsize));
 	
-	printf("\nCorresponding distances (for sequence length %u): ", seqLen);
-	for (size_t i = 0; i < distances.size(); i++) {
-		printf("%d ", distances[i]);
-	}
-	printf("\n");
-
+	printf("Number of bins for distance metrics: %u\n", sequenceRecordsWithMetadata.bincount);
 	
 	// fprint the simrates in one line in the output file.
 	out_file << ":4:" ;
-	for (size_t i = 0; i < simrates.size(); i++) {
-		if (i == simrates.size() - 1)
-			out_file << simrates[i] << "\n";
+	float temp_binstart = sequenceRecordsWithMetadata.binstart;
+	for (size_t i = 0; i <= sequenceRecordsWithMetadata.bincount; i++) {
+		if (i == sequenceRecordsWithMetadata.bincount)
+			out_file << (temp_binstart + (i * sequenceRecordsWithMetadata.binsize)) << "\n";
 		else
-			out_file << simrates[i] << ",";
+			out_file << (temp_binstart + (i * sequenceRecordsWithMetadata.binsize)) << ",";
 	}
 
-	// fprint the distances in one line in the output file.
-	out_file << ":5:" ;
-	for (size_t i = 0; i < distances.size(); i++) {
-		if (i == distances.size() - 1)
-			out_file << distances[i] << "\n";
-		else
-			out_file << distances[i] << ",";
-	}
+	LSHCollisionTestInnerInner<hashtype>(&sequenceRecordsWithMetadata, hash, seed, out_file);
 
-	out_file << ":6: For metadata. token length determines the number of distinct tokens. Need to focus\n"; 
-	
-
-	/*-------------------------------------------------------------------------------*/
-
-	// An empty 2d vector to store collisions <-- This array will be printed to the file for plotting.
-	std::vector<std::vector<float>> collisionRateVec(simrates.size(), std::vector<float>(keycount, 0.0f));
-
-	/*Data generation: Each distance metric needs a different way of generation of input data.*/
-
-	LSHCollisionTestImplInner<hashtype>(&sequenceRecordsWithMetadata, distances, hash, collisionRateVec, seed);
-
-	// Print the collision rates to the output file.
-	uint32_t distanceIdx = 0;
-	uint32_t trialIdx = 0;
-	for(distanceIdx=0; distanceIdx < distances.size(); distanceIdx++){		
-		for(trialIdx=0; trialIdx < keycount; trialIdx++){
-			if(trialIdx == keycount-1)
-				out_file << collisionRateVec[distanceIdx][trialIdx] << "\n";
-			else
-				out_file << collisionRateVec[distanceIdx][trialIdx] << ",";
-		}
-	}
-
-    
     return result;	//TODO: For now, the result is always true. We need to add logic to find where the test fails.
 }
 
@@ -347,26 +198,26 @@ static bool LSHCollisionTestImpl( const HashInfo * hinfo, unsigned keybits, flag
 template <typename hashtype>
 bool LSHCollisionTest( const HashInfo * hinfo, bool extra, flags_t flags ) {
 	
-	std::ofstream out_file("../results/collisionResults_" + std::string(hinfo->name)  +".csv");
-	if (!out_file.is_open()) {
-		std::cerr << "Error: Could not open output file" << std::endl;
-		exit(EXIT_FAILURE);
-	} 
-    
+	printf("[[[ LSH Collision Tests ]]]\n\n");
 	if(extra){
 		printf("Extra flag is set. Running extended tests where applicable.\n");
 	}
 
-    bool result = true;
+	bool result = true;
 
-    printf("[[[ LSH Collision Tests ]]]\n\n");
+	// Create a output file for storing the results.
+	std::ofstream out_file("../results/collisionResults_" + std::string(hinfo->name)  +".csv");
+	if (!out_file.is_open()) {
+		std::cerr << "Error: Could not open output file" << std::endl;
+		exit(EXIT_FAILURE);
+	}
 
-	// A token of length toklen will produce keys of length 2*token bits for DNA sequences (2 bits per base).
-	// If the hash has tokenisation property, then we need to test for multiple token lengths
-	// Otherwise, we just use a token length of 0 (no tokenisation)
-	// This is because the LSH collision test is primarily designed for tokenised hashes like minhash and simhash
-	// which have the tokenisation property.
-	// For other hashes, we just use a token length of 0 (i.e. no tokenisation).
+	// Create a code for generating an output file name based on hash name.
+	
+	/*
+		If the hash has tokenisation property, then we need to test for multiple token lengths
+		Otherwise, we just use a token length of 0 (no tokenisation)
+	*/
 	std::vector<uint32_t> tokenlengths;
 	if(hinfo->hasTokenisationProperty()){
 		printf("Hash %s has tokenisation property. Testing multiple token lengths.\n", hinfo->name);
@@ -375,27 +226,21 @@ bool LSHCollisionTest( const HashInfo * hinfo, bool extra, flags_t flags ) {
 	else{
 		tokenlengths = {0}; // No tokenization
 	}
-
-	std::vector<uint32_t> sequenceLengths = {16, 24, 32, 48, 64, 80, 96, 128, 256, 512, 1024, 2048, 4096, 8192}; // Corresponding sequence lengths for DNA (2 bits per base)
+	
+	std::vector<uint32_t> sequenceLengths = {16, 24, 32, 48, 64, 80, 96, 128, 256, 512, 1024, 2048, 4096, 8192};
 
 	for(const auto & toklen : tokenlengths){
-		printf("=====================================\n");
-		printf("Token length: %d\n", toklen);
-		printf("=====================================\n");
 		
-		// Set LSH global variables for this token length
-		SetLSHTestActive(true);
-		SetLSHTokenLength(toklen > 0 ? toklen : 0);  // Use token length or default	// This is a redundant check but added for safety.
-		
+		SetIsTestActive(true);
+
 		for(const auto & seqLen : sequenceLengths){
-			printf("-------------------------------------\n");
-			printf("Sequence length: %u\n", seqLen);
-			printf("-------------------------------------\n");
-			// For DNA sequences, keybits = 2 * sequence length
-			uint32_t keybits = seqLen * 2;	// Eg: Keybits = 32 Sequence length = 16
+			printf("=====================================\n");
+			printf("Sequence length: %u \tToken length: %d\n", seqLen, toklen);
+			printf("=====================================\n");
+			// For DNA sequences, keybits = 8 * sequence length
+			uint32_t keybits = seqLen * 8;	// Eg: Keybits = Sequence length times 8 (8 bits per base)
 			
 			
-			//------------------------------ Need reworking ------------------------------//
 			// --- Sanity Checks for Test Configuration Only valid for tokenised hashes ---	//
 			if(hinfo->hasTokenisationProperty()){
 				// Condition 1: Skipping if token length is greater than sequence length.
@@ -426,13 +271,12 @@ bool LSHCollisionTest( const HashInfo * hinfo, bool extra, flags_t flags ) {
 					}
 				}
 			}
-			//------------------------------ Need reworking ------------------------------//
 
 			printf("\nTesting hash: %s with keybits: %u (sequence length: %u), token length: %d\n", hinfo->name, keybits, seqLen, toklen);
-			result &= LSHCollisionTestImpl<hashtype>(hinfo, keybits, flags, out_file);
+			result &= LSHCollisionTestInner<hashtype>(hinfo, seqLen, flags, out_file);
 		}
 	}
-
+		
     // Cleanup: Reset LSH global variables after test completion
     SetLSHTestActive(false);
 

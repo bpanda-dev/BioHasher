@@ -1,22 +1,12 @@
 /*
- * HAMMING LSH
+ * One base sampling Hash Function for Hamming LSH
  * Copyright (C) 2025 IISc
  *
- * A brief intro about Hamming LSH:
- * Hamming LSH is a locality-sensitive hashing technique designed for Hamming distance.
- * It works by randomly sampling bit positions from the input and checking if they are set (1).
- * The hash value is constructed from the sampled bits. Similar inputs (small Hamming distance)
+ * One-base sampling is a locality-sensitive hashing technique designed for Hamming distance.
+ * It works by randomly sampling one base from the hash.
+ * The hash value is sampled base. Similar inputs (small Hamming distance)
  * will have similar hash values with high probability.
  *
- * The algorithm:
- * 1. Generate A random BASE position using a seed
- * 2. For each position, extract the BASE value from the input
- * 3. return the base as the hash value
- * 
- * This preserves Hamming distance: inputs that differ in few bits will produce
- * similar hash values, while inputs that differ in many bits will produce very different hashes.
- * 
- * ###YOURLICENSETEXT
  */
 #include "Platform.h"
 #include "Hashlib.h"
@@ -25,6 +15,26 @@
 
 #include <vector>
 #include <cstdint>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 //-----------------------------------------------------------------------------
 // Helper function to extract a single bit from a byte array
@@ -76,9 +86,9 @@ static void hamming32_encoded_seq(const void* in, const size_t len, const seed_t
 }
 
 
-//len is in bytes
+// len is in bytes
 template <bool bswap>
-static void hamming32_base_seq(const void* in, const size_t len, const seed_t seed, void* out) {
+static void oneBaseSamplingHash_32(const void* in, const size_t len, const seed_t seed, void* out) {
     
     // Input validation
     if (in == nullptr || len == 0) {
@@ -110,28 +120,28 @@ REGISTER_FAMILY(HammingLSH,
    $.src_status = HashFamilyInfo::SRC_ACTIVE
 );
 
-// Standard 32-bit Hamming LSH
-REGISTER_HASH(Hamming_32_encoded_seq,
-   $.desc            = "Hamming LSH 32-bit - Random bit sampling for Hamming distance preservation",
-   $.hash_flags      = FLAG_HASH_LOCAL_SENSITIVE | FLAG_HASH_HAMMING_DISTANCE,
+// Standard 32-bit one-base sampling hashing
+REGISTER_HASH(OneBaseSamplingHash_32,
+   $.desc            = "One-Base Sampling 32-bit - Random base sampling for Hamming distance preservation",
+   $.hash_flags      = FLAG_HASH_LOCAL_SENSITIVE,
    $.impl_flags      = 0,
    $.bits            = 32,
    $.verification_LE = 0x0,
    $.verification_BE = 0x0,
-   $.hashfn_native   = hamming32_encoded_seq<false>,
-   $.hashfn_bswap    = hamming32_encoded_seq<true>
+   $.hashfn_native   = oneBaseSamplingHash_32<false>,
+   $.hashfn_bswap    = oneBaseSamplingHash_32<true>
 );
 
-// Standard 32-bit Hamming LSH
-REGISTER_HASH(Hamming_32_base_seq,
-   $.desc            = "Hamming LSH 32-bit - Random base sampling for Hamming distance preservation",
-   $.hash_flags      = FLAG_HASH_LOCAL_SENSITIVE | FLAG_HASH_HAMMING_DISTANCE,
+// Standard 64-bit one-base sampling hashing
+REGISTER_HASH(OneBaseSamplingHash_64,
+   $.desc            = "One-Base Sampling 64-bit - Random base sampling for Hamming distance preservation",
+   $.hash_flags      = FLAG_HASH_LOCAL_SENSITIVE,
    $.impl_flags      = 0,
-   $.bits            = 32,
+   $.bits            = 64,
    $.verification_LE = 0x0,
    $.verification_BE = 0x0,
-   $.hashfn_native   = hamming32_base_seq<false>,
-   $.hashfn_bswap    = hamming32_base_seq<true>
+   $.hashfn_native   = oneBaseSamplingHash_64<false>,
+   $.hashfn_bswap    = oneBaseSamplingHash_64<true>
 );
 
 //------------------------------------------------------------
