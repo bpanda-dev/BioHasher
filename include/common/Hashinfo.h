@@ -34,14 +34,13 @@
     FLAG_EXPAND(HASH_SYSTEM_SPECIFIC)    \
     FLAG_EXPAND(HASH_ENDIAN_INDEPENDENT) \
     FLAG_EXPAND(HASH_FLOATING_POINT)     \
-    FLAG_EXPAND(HASH_LOCAL_SENSITIVE)    \
-    FLAG_EXPAND(HASH_TOKENISATION_PROPERTY)          \
-    FLAG_EXPAND(HASH_VARIABLE_OUTPUT_SIZE)   \
+    FLAG_EXPAND(HASH_LOCALITY_SENSITIVE)    \
+    FLAG_EXPAND(HASH_TOKENISATION_PROPERTY)   \
+    FLAG_EXPAND(HASH_HAMMING_SIMILARITY)    \
     FLAG_EXPAND(HASH_JACCARD_SIMILARITY)   \
-    FLAG_EXPAND(HASH_HAMMING_DISTANCE)    \
-    FLAG_EXPAND(HASH_EDIT_DISTANCE)       \
-    FLAG_EXPAND(HASH_COSINE_SIMILARITY)  \
-    FLAG_EXPAND(HASH_EUCLIDEAN_DISTANCE) \
+    FLAG_EXPAND(HASH_COSINE_SIMILARITY)    \
+    FLAG_EXPAND(HASH_ANGULAR_SIMILARITY)    \
+    FLAG_EXPAND(HASH_EDIT_SIMILARITY)    \
     FLAG_EXPAND(HASH_OVERLAPPING_TOKENS) \
     FLAG_EXPAND(HASH_NONOVERLAPPING_TOKENS)
 
@@ -176,8 +175,6 @@ class HashInfo {
     HashSeedFn        seedfn;
     HashFn            hashfn_native;
     HashFn            hashfn_bswap;
-    HashFnVarOut      hashfn_varout_native;
-    HashFnVarOut      hashfn_varout_bswap;
     std::set<seed_t>  badseeds;
     const char *      badseeddesc;
 
@@ -185,7 +182,6 @@ class HashInfo {
         name( _fixup_name( n ) ), family( f ), desc( "" ), impl( "" ),
         initfn( NULL ), seedfixfn( NULL ), seedfn( NULL ),
         hashfn_native( NULL ), hashfn_bswap( NULL ),
-        hashfn_varout_native( NULL ), hashfn_varout_bswap( NULL ), 
         badseeddesc( NULL ) {}
 
     ~HashInfo() {
@@ -205,12 +201,6 @@ class HashInfo {
 
     FORCE_INLINE HashFn hashFn( enum HashInfo::endianness endian ) const {
         return _is_native(endian) ? hashfn_native : hashfn_bswap;
-    }
-    FORCE_INLINE HashFnVarOut hashFnVarOut( enum HashInfo::endianness endian ) const {
-        return _is_native(endian) ? hashfn_varout_native : hashfn_varout_bswap;
-    }
-    FORCE_INLINE bool hasVariableOutput( void ) const {
-        return !!(hash_flags & FLAG_HASH_VARIABLE_OUTPUT_SIZE);
     }
 
     FORCE_INLINE bool Init( void ) const {
@@ -269,18 +259,27 @@ class HashInfo {
     }
 
     FORCE_INLINE bool isLocalSensitive( void ) const {
-        return !!(hash_flags & FLAG_HASH_LOCAL_SENSITIVE);
+        return !!(hash_flags & FLAG_HASH_LOCALITY_SENSITIVE);
     }
 
     FORCE_INLINE bool hasTokenisationProperty( void ) const {
         return !!(hash_flags & FLAG_HASH_TOKENISATION_PROPERTY);
     }
 
+    FORCE_INLINE bool hasHammingSimilarity( void ) const {
+        return !!(hash_flags & FLAG_HASH_HAMMING_SIMILARITY);
+    }
     FORCE_INLINE bool hasJaccardSimilarity( void ) const {
         return !!(hash_flags & FLAG_HASH_JACCARD_SIMILARITY);
     }
-    FORCE_INLINE bool hasHammingDistance( void ) const {
-        return !!(hash_flags & FLAG_HASH_HAMMING_DISTANCE);
+    FORCE_INLINE bool hasAngularSimilarity( void ) const {
+        return !!(hash_flags & FLAG_HASH_ANGULAR_SIMILARITY);
+    }
+    FORCE_INLINE bool hasCosineSimilarity( void ) const {
+        return !!(hash_flags & FLAG_HASH_COSINE_SIMILARITY);
+    }
+    FORCE_INLINE bool hasEditSimilarity( void ) const {
+        return !!(hash_flags & FLAG_HASH_EDIT_SIMILARITY);
     }
 
 }; // class HashInfo

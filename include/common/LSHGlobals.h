@@ -2,10 +2,12 @@
 #include <cstdint>
 
 // Global variables for runtime communication
-extern uint32_t gTokenLength;
-// extern uint32_t gNumSignatures;
-extern bool gIsTestActive;
-extern const uint32_t gGoldenRatio;	
+extern uint32_t g_TokenLength;
+// extern uint32_t g_NumSignatures;
+extern bool g_IsTestActive;
+extern const uint32_t g_GoldenRatio;	
+
+extern const uint32_t g_bincount_full;
 
 // Setter functions (called by LSHCollision test)
 void SetTokenLength(uint32_t length);

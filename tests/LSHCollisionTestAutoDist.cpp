@@ -1,52 +1,3 @@
-/*
- * BioHasher
- * Copyright (C) 2025 IISc
- * Copyright (C) 2021-2023  Frank J. T. Wojcik
- * Copyright (C) 2023       jason
- *
- * This program is free software: you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see
- * <https://www.gnu.org/licenses/>.
- *
- * This file incorporates work covered by the following copyright and
- * permission notice:
- *     Copyright (C) 2021-2023 Frank J. T. Wojcik
- *     Copyright (C) 2023      jason
- *     Copyright (c) 2010-2012 Austin Appleby
- *     Copyright (c) 2019-2021 Reini Urban
- *     Copyright (c) 2019      Yann Collet
- *
- *     Permission is hereby granted, free of charge, to any person
- *     obtaining a copy of this software and associated documentation
- *     files (the "Software"), to deal in the Software without
- *     restriction, including without limitation the rights to use,
- *     copy, modify, merge, publish, distribute, sublicense, and/or
- *     sell copies of the Software, and to permit persons to whom the
- *     Software is furnished to do so, subject to the following
- *     conditions:
- *
- *     The above copyright notice and this permission notice shall be
- *     included in all copies or substantial portions of the Software.
- *
- *     THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- *     EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
- *     OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- *     NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
- *     HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
- *     WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- *     FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
- *     OTHER DEALINGS IN THE SOFTWARE.
- */
 
 #include "Platform.h"
 #include "Hashinfo.h"
@@ -82,11 +33,20 @@ uint32_t LESS_RECORDS_THRESHOLD = 10; // Threshold to decide if there are less r
 //TODO: Add support for Levenshtein distance class in the future.
 uint32_t setDistanceClassForHashInfo(const HashInfo * hinfo) {
 	// Determine the distance class based on the hash function's properties
-	if (hinfo->hash_flags & FLAG_HASH_HAMMING_DISTANCE) {
+	if (hinfo->hash_flags & FLAG_HASH_HAMMING_SIMILARITY) {
 		return 1U; // Hamming distance
 	} 
 	else if (hinfo->hash_flags & FLAG_HASH_JACCARD_SIMILARITY) {
 		return 2U; // Jaccard distance
+	}
+	else if(hinfo->hash_flags & FLAG_HASH_COSINE_SIMILARITY){
+		return 3U; // Cosine similarity
+	}
+	else if(hinfo->hash_flags & FLAG_HASH_ANGULAR_SIMILARITY){
+		return 4U; // angular similarity
+	}
+	else if(hinfo->hash_flags & FLAG_HASH_EDIT_SIMILARITY){
+		return 5U; // Edit similarity
 	}
 	else {
 		return 0U; // Default or unknown or distance not supported.

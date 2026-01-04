@@ -86,7 +86,8 @@ set(HASH_SRC_FILES
   hashes/chibihash.cpp
   hashes/mulxp_hash.cpp
   hashes/museair.cpp
-  hashes/simhash.cpp
+  hashes/onebasesamplinghash.cpp
   hashes/minhash.cpp
-  hashes/hamming.cpp
+  # hashes/simhash.cpp
+  
 )

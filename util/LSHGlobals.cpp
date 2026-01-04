@@ -7,15 +7,17 @@ if we want to test different number of signatures in Minhash or other LSH functi
 
 
 // Global variables for runtime communication
-uint32_t gTokenLength = 13;     // Default token/kmer length
-// uint32_t gNumSignatures = 32;   // Default number of signatures	
-bool gIsTestActive = false;     // Whether test is currently running
+const uint32_t g_bincount_full = 4000;
 
-const uint32_t gGoldenRatio = 0x9e3779b1;	
+uint32_t g_TokenLength = 0;     // Default token/kmer length
+// uint32_t gNumSignatures = 32;   // Default number of signatures	
+bool g_IsTestActive = false;     // Whether test is currently running
+
+const uint32_t g_GoldenRatio = 0x9e3779b1;	
 
 // Setter functions (called by LSHCollision test)
 void SetTokenLength(uint32_t length) {
-    gTokenLength = length;
+    g_TokenLength = length;
 }
 
 // void SetNumSignatures(uint32_t num) {
@@ -23,18 +25,18 @@ void SetTokenLength(uint32_t length) {
 // }
 
 void SetIsTestActive(bool active) {
-    gIsTestActive = active;
+    g_IsTestActive = active;
 }
 
 // Getter functions (called by hash functions)
 uint32_t GetTokenLength() {
-    return gTokenLength;
+    return g_TokenLength;
 }
 
 // uint32_t GetNumSignatures() {
-//     return gNumSignatures;
+//     return g_NumSignatures;
 // }
 
 bool IsTestActive() {
-    return gIsTestActive;
+    return g_IsTestActive;
 }

@@ -95,7 +95,7 @@
 #include "SeedAvalancheTest.h"
 #include "SeedBitIndependenceTest.h"
 #include "BadSeedsTest.h"
-#include "LSHCollisionTestAutoDist.h"
+#include "LSHCollisionTest.h"
 
 #include <cstdio>
 #include <cstdint>

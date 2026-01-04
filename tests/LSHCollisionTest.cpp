@@ -14,189 +14,373 @@
 #include <iostream>
 
 
+struct common_params_struct{
+	uint32_t seqLen;
+	seed_t DatagenSeed;
+	seed_t DataMutateSeed;
+	uint32_t tokenlength;
+	bool isBasesDrawnFromUniformDist;
+	uint32_t distanceClass;
+};
+
 /*-------------------------------------------------------------------------------*/
 /*									Collision Test		 						 */
 /*-------------------------------------------------------------------------------*/
+uint32_t setDistanceClassForHashInfo(const HashInfo * hinfo) {
+	// Determine the distance class based on the hash function's properties
+	if (hinfo->hash_flags & FLAG_HASH_HAMMING_SIMILARITY) {
+		return 1U; // Hamming distance
+	} 
+	else if (hinfo->hash_flags & FLAG_HASH_JACCARD_SIMILARITY) {
+		return 2U; // Jaccard distance
+	}
+	else if(hinfo->hash_flags & FLAG_HASH_COSINE_SIMILARITY){
+		return 3U; // Cosine similarity
+	}
+	else if(hinfo->hash_flags & FLAG_HASH_ANGULAR_SIMILARITY){
+		return 4U; // angular similarity
+	}
+	else if(hinfo->hash_flags & FLAG_HASH_EDIT_SIMILARITY){
+		return 5U; // Edit similarity
+	}
+	else {
+		return 0U; // Default or unknown or distance not supported.
+	}
+}
 
-template <typename hashtype>
-bool LSHCollisionTestInnerInner(SequenceRecordsWithMetadata *sequenceRecordsWithMetadata, HashFn hash, const seed_t seed, std::ofstream &out_file) {
 
+sim_bins_struct LSHCollisionTestInnerAgg(uint32_t N_agg, common_params_struct &common_params){
+	
+	printf("Inside get_params_aggregated_in_bins\n");
 
+	SequenceRecordsWithMetadataStruct sequenceRecordsForAgg;
 
+	sequenceRecordsForAgg.OriginalSequenceLength = common_params.seqLen;
+	sequenceRecordsForAgg.DistanceClass = common_params.distanceClass;
+	sequenceRecordsForAgg.isBasesDrawnFromUniformDist = common_params.isBasesDrawnFromUniformDist;
+	sequenceRecordsForAgg.DatagenSeed = common_params.DatagenSeed;
+	sequenceRecordsForAgg.DataMutateSeed = common_params.DataMutateSeed;
+	// sequenceRecordsForAgg.tokenlength = common_params.tokenlength;
+	sequenceRecordsForAgg.KeyCount = N_agg;
 
+	SequenceDataGenerator dataGenAgg(&sequenceRecordsForAgg);
 
-	// This function will generate data, mutate it, compute hashes, and record collision rates.
+	sim_bins_struct sim_bins_agg;	//Bin to store the error parameters 
 
-	uint32_t distanceIdx = 0;
-	uint32_t trialIdx = 0;
+	Rand rng(sequenceRecordsForAgg.DataMutateSeed);
 
-	/*-------------------------------------------------------------------------------*/
-	/*							Seeding the rand functions							 */
-	/*-------------------------------------------------------------------------------*/
-	seed_t dataGenSeed = (seed*3) + 31*gGoldenRatio; // Seed for data generation
-	seed_t dataGenSeedOffset = 3; // Offset to change the seed for data generation
+    std::vector<double> rand_error_param(N_agg, 0.0);
+	std::vector<double> similarity_values(N_agg, 0.0);
+	
+	for(uint32_t idx = 0; idx < N_agg; idx++){
+		uint32_t rand_val = rng.rand_range(sequenceRecordsForAgg.bincount);
+		rand_error_param[idx] = (double)rand_val/(sequenceRecordsForAgg.bincount);	// Random error parameter for this sequence pair.
+		sequenceRecordsForAgg.Records[idx].snpRate = rand_error_param[idx];
+	}
 
-	seed_t MutationSeed = (seed*7) + 33*gGoldenRatio; // Seed for mutation
-	seed_t MutationSeedOffset = 7; //  offset to change the seed for mutation
+	SequenceDataMutatorSubstitutionOnly dataMutAgg(&sequenceRecordsForAgg);
+	
+	for(uint32_t idx = 0; idx < N_agg; idx++){
+		similarity_values[idx] = sequenceRecordsForAgg.Records[idx].similarity;
+	}
 
-	seed_t HashFamilySeed = seed;
-	seed_t HashFamilySeedOffset = gGoldenRatio;
-
-	// printf("????? %d\n", sequenceRecordsWithMetadata->KeyCount);
-	/*-------------------------------------------------------------------------------*/
-	/*							LSH Collision Test Logic							 */
-	/*-------------------------------------------------------------------------------*/
-	for(distanceIdx=0; distanceIdx < distances.size(); distanceIdx++){
+	// Perform binning on similarity values
+	for (size_t i = 0; i < N_agg; i++) {
+		float sim_value = similarity_values[i];
+		uint32_t bin_index = static_cast<uint32_t>((sim_value - sequenceRecordsForAgg.binstart) / sequenceRecordsForAgg.binsize);
+		if (bin_index >= sequenceRecordsForAgg.bincount) {
+			bin_index = sequenceRecordsForAgg.bincount - 1; // Clamp to last bin
+		}
 		
-		float a_percentage = 0.25f;
-		float c_percentage = 0.25f;
-		float g_percentage = 0.25f;
-		float t_percentage = 0.25f;
-		assert((a_percentage + c_percentage + g_percentage + t_percentage) == 1.0f);
+		uint32_t bin_fill_count = sim_bins_agg.bin_fill_count[bin_index];
 
-		/* Generate the samples for each dissimilarity index */
-		sequenceRecordsWithMetadata->A_percentage = a_percentage;
-		sequenceRecordsWithMetadata->C_percentage = c_percentage;
-		sequenceRecordsWithMetadata->G_percentage = g_percentage;
-		sequenceRecordsWithMetadata->T_percentage = t_percentage;
+		if(bin_fill_count == g_bincount_full){
+			continue;	// To avoid excessive memory usage, we limit to x entries per bin.
+		}
 		
-		DataGeneration dataGen(sequenceRecordsWithMetadata, dataGenSeed);	// Constructor to initialize data generation parameters.
-		dataGen.FillRecords(sequenceRecordsWithMetadata);		// Filling the records.
-		
-		dataGenSeed += dataGenSeedOffset;
-		
-		// Note: Please do not delete the following comment under any circumstance! Explaination for certain design choices is present here.
-		/* At this level, we should not be able to see how we are changing the values and what is the mutated sequence.*/
-		// Introduction of mutations to sequence requires knowledge of distance class. 
-		// For case(1): Hamming distance requires that the mutations be substitutions only.
-		// For case(2): There will be two types of abstract visualisation of the input sequences, either they can be seen as sequences or a concatenation of tokens (for Jaccard).
-		// For eg: ATGCTGATCGGGCAGC can be seen as a sequence of length 16 or as a set of tokens of length 4: {ATGC, TGAT, CGGG, CAGC}.
-		// The above two case justifies the need of distance class information at this level.
-		// Need to add more classes here. 
+		sim_bins_agg.bin_error_parameters[bin_index][bin_fill_count] = rand_error_param[i];
+		sim_bins_agg.bin_fill_count[bin_index]++;
+	}
 
-
-		bool isMutationRate = false;
-		MutationEngine mutationEngine(sequenceRecordsWithMetadata->DistanceClass, distances[distanceIdx], isMutationRate);	// Initialising mutation engine with absolute edit distance.
-		mutationEngine.MutateRecords(sequenceRecordsWithMetadata, distances[distanceIdx], MutationSeed);
-
-		// if(sequenceRecordsWithMetadata->DistanceClass == 1){
-		// 	printf("Mutating records for Hamming distance: %u\n", distances[distanceIdx]);
-		// }
-		// else if(sequenceRecordsWithMetadata->DistanceClass == 2){
-		// 	printf("Mutating records for Jaccard distance: %u\n", distances[distanceIdx]);
-		// }
-		
-		MutationSeed += MutationSeedOffset;
-
-		for(trialIdx=0; trialIdx < sequenceRecordsWithMetadata->KeyCount; trialIdx++){
-			float collisionCount = 0;
-			float collisionRate = 0;
-			seed_t currentHashSeed = HashFamilySeed + (HashFamilySeedOffset * trialIdx);
-			// printf("Trial %u: Hash Family Seed: %llu, bit vector Length in bytes: %zu\n", trialIdx, (unsigned long long)currentHashSeed, sequenceRecordsWithMetadata->Records[trialIdx].SeqTwoBitOrg.size());
-			ExtBlob k1(&(sequenceRecordsWithMetadata->Records[trialIdx].SeqTwoBitOrg[0]), sequenceRecordsWithMetadata->Records[trialIdx].SeqTwoBitOrg.size());
-			ExtBlob k2(&(sequenceRecordsWithMetadata->Records[trialIdx].SeqTwoBitMut[0]), sequenceRecordsWithMetadata->Records[trialIdx].SeqTwoBitMut.size());
-
-			for (unsigned i = 0; i < sequenceRecordsWithMetadata->HashCount; i++) {
-				hashtype hashOrg;
-				hashtype hashMut;
-
-				seed_t currentSeed = currentHashSeed + (HashFamilySeedOffset * i); // Different seed per hash
-
-				hash(k1, sequenceRecordsWithMetadata->Records[trialIdx].SeqTwoBitOrg.size(), currentSeed, &hashOrg);
-				hash(k2, sequenceRecordsWithMetadata->Records[trialIdx].SeqTwoBitMut.size(), currentSeed, &hashMut);
-
-				if(hashOrg == hashMut){
-					collisionCount++;
-				}
+	//Compute mean and stddev for each bin
+	for (size_t bin_idx = 0; bin_idx < sequenceRecordsForAgg.bincount; bin_idx++) {
+		const auto & params = sim_bins_agg.bin_error_parameters[bin_idx];
+		if (!params.empty()) {
+			// Compute mean
+			double sum = 0.0;
+			for(uint32_t param_idx = 0; param_idx < sim_bins_agg.bin_fill_count[bin_idx]; param_idx++){
+				sum += params[param_idx];
 			}
-			collisionRate = collisionCount / static_cast<float>(sequenceRecordsWithMetadata->HashCount);
-			collisionRateVec[distanceIdx][trialIdx] = collisionRate;
-			// printf("DistanceIdx: %u, TrialIdx: %u, Collision Rate: %.4f\n", distanceIdx, trialIdx, collisionRate);
+			// printf("Bin %zu: Sum = %f, Count = %u\n", bin_idx, sum, sim_bins_agg.bin_fill_count[bin_idx]);
+			double mean = sum / sim_bins_agg.bin_fill_count[bin_idx];
+			sim_bins_agg.bin_error_parameters_mean[bin_idx] = mean;
+
+			// Compute stddev
+			double sq_sum = 0.0;
+			for (uint32_t param_idx = 0; param_idx < sim_bins_agg.bin_fill_count[bin_idx]; param_idx++) {
+				sq_sum += (params[param_idx] - mean) * (params[param_idx] - mean);
+			}
+			double stddev = std::sqrt(sq_sum / sim_bins_agg.bin_fill_count[bin_idx]);
+			sim_bins_agg.bin_error_parameters_stddev[bin_idx] = stddev;
+			
+		} else {
+			sim_bins_agg.bin_error_parameters_mean[bin_idx] = 0.0;
+			sim_bins_agg.bin_error_parameters_stddev[bin_idx] = 0.0;
 		}
 	}
 
-	// printf("LSHCollisionTestImplHamming called with sequenceLength=%u, keycount=%u\n", sequenceRecordsWithMetadata->OriginalSequenceLength, sequenceRecordsWithMetadata->KeyCount);
+	
+	// // Print each bin's fill count
+	// for (size_t bin_idx = 0; bin_idx < sequenceRecordsForAgg.bincount; bin_idx++) {
+	// 	printf("Bin %zu: Fill Count = %u", bin_idx, sim_bins_agg.bin_fill_count[bin_idx]);
+	// 	// Print mean and stddev
+	// 	printf(", Mean = %0.2f, Stddev = %0.2f\n", sim_bins_agg.bin_error_parameters_mean[bin_idx], sim_bins_agg.bin_error_parameters_stddev[bin_idx]);
+	// 	// // Print error parameters in this bin
+	// 	// printf(" | Error Parameters: ");
+	// 	// for (size_t j = 0; j < sim_bins_agg.bin_fill_count[bin_idx]; j++) {
+	// 	// 	printf("%f ", sim_bins_agg.bin_error_parameters[bin_idx][j]);
+	// 	// }
+	// 	// printf("\n");
+	// }
+
+
+	//--------------------------------------------	//
+	// Fill the partially filled bins using the 	//
+	// mean and stddev values computed above. 		//
+	//--------------------------------------------	//
+	// Now, I want to go through each bin, and if its fill count is less than g_bincount_full,
+	// I want to fill the remaining entries with random samples from a normal distribution
+	// defined by the mean and stddev of that bin.
+	
+	std::mt19937 gen(common_params.DataMutateSeed + 1337);  // Seeded RNG for reproducibility
+	
+	for (size_t bin_idx = 0; bin_idx < sequenceRecordsForAgg.bincount; bin_idx++) {
+		uint32_t current_fill = sim_bins_agg.bin_fill_count[bin_idx];
+		
+		if (current_fill < g_bincount_full && current_fill > 0) {
+			// Get the mean and stddev for this bin
+			double mean = sim_bins_agg.bin_error_parameters_mean[bin_idx];
+			double stddev = sim_bins_agg.bin_error_parameters_stddev[bin_idx];
+			
+			// If stddev is 0 or very small, use a small default to avoid degenerate distribution
+			if (stddev < 1e-9) {
+				stddev = 0.01;
+			}
+			
+			std::normal_distribution<double> normal_dist(mean, stddev);
+			
+			// Fill remaining entries
+			for (uint32_t fill_idx = current_fill; fill_idx < g_bincount_full; fill_idx++) {
+				double sampled_value = normal_dist(gen);
+				
+				// Clamp to valid range [0.0, 1.0] since these are error rates
+				sampled_value = std::max(0.0, std::min(1.0, sampled_value));
+				
+				sim_bins_agg.bin_error_parameters[bin_idx][fill_idx] = sampled_value;
+				sim_bins_agg.bin_fill_count[bin_idx]++;
+			}
+		}
+		else if (current_fill == 0) {
+
+			//Todo: Add the part where in angular similarity, we geniuinely have empty bins from 0 to 49
+
+
+			// Bin is completely empty - use bin center as mean with small stddev
+			double bin_center = sequenceRecordsForAgg.binstart + (bin_idx + 0.5) * sequenceRecordsForAgg.binsize;
+			double default_stddev = sequenceRecordsForAgg.binsize / 4.0;  // Quarter of bin width
+			
+			std::normal_distribution<double> normal_dist(bin_center, default_stddev);
+			
+			for (uint32_t fill_idx = 0; fill_idx < g_bincount_full; fill_idx++) {
+				double sampled_value = normal_dist(gen);
+				sampled_value = std::max(0.0, std::min(1.0, sampled_value));
+				
+				sim_bins_agg.bin_error_parameters[bin_idx][fill_idx] = sampled_value;
+				sim_bins_agg.bin_fill_count[bin_idx]++;
+			}
+			
+			// Update mean and stddev for this bin
+			sim_bins_agg.bin_error_parameters_mean[bin_idx] = bin_center;
+			sim_bins_agg.bin_error_parameters_stddev[bin_idx] = default_stddev;
+		}
+	}
+
+
+	sequenceRecordsForAgg.Records.clear();
+	sequenceRecordsForAgg.Records.shrink_to_fit();  // Actually releases the memory
+	
+	return sim_bins_agg;
+}
+
+template <typename hashtype>
+bool LSHCollisionTestInnerInner(uint32_t N_seq, uint32_t N_hash, HashFn hash, seed_t HashSeed, common_params_struct &common_params, sim_bins_struct &sim_bins, std::ofstream &out_file){
+	
+	printf("Inside LSHCollisionTestInnerInner\n");
+
+	seed_t seed_offset = 42;	// Coz its the answer to everything!
+	SequenceRecordsWithMetadataStruct sequenceRecordsforTest;
+	sequenceRecordsforTest.OriginalSequenceLength = common_params.seqLen;
+	sequenceRecordsforTest.DistanceClass = common_params.distanceClass;
+	sequenceRecordsforTest.isBasesDrawnFromUniformDist = common_params.isBasesDrawnFromUniformDist;
+	sequenceRecordsforTest.DatagenSeed = common_params.DatagenSeed + seed_offset;
+	sequenceRecordsforTest.DataMutateSeed = common_params.DataMutateSeed + seed_offset;
+	// sequenceRecordsforTest.tokenlength = common_params.tokenlength;
+	sequenceRecordsforTest.KeyCount = N_seq;
+	sequenceRecordsforTest.HashCount = N_hash;
+	
+	SequenceDataGenerator dataGenTest(&sequenceRecordsforTest);
+
+	// For each of the sequence pair, draw a random mutation parameter from the bin statistics. Then store it in the mutation record. and mutate it.
+	seed_t bin_sampling_seed = common_params.DataMutateSeed + 3*seed_offset;
+	seed_t bin_params_sampling_seed = common_params.DataMutateSeed + 7*seed_offset;
+	
+	Rand rng_bin_sampler(bin_sampling_seed);
+	Rand rng_bin_params_sampler(bin_params_sampling_seed);
+
+	for(uint32_t idx = 0; idx < N_seq; idx++){
+		uint32_t sampled_binid = rng_bin_sampler.rand_range(100);	// Sample bin id between 0-99 i think 100 is exclusive.	
+		// What if the sampled bin is empty?
+
+		// Now sample a random error parameter from the selected bin.
+		uint32_t bin_fill_count = sim_bins.bin_fill_count[sampled_binid];
+		if(bin_fill_count == 0){
+			sequenceRecordsforTest.Records[idx].snpRate = 0.0; // No mutations <== Need to work on this more later.
+		}
+		else{
+			uint32_t rand_param_idx = rng_bin_params_sampler.rand_range(bin_fill_count);
+			double sampled_error_param = sim_bins.bin_error_parameters[sampled_binid][rand_param_idx];
+			sequenceRecordsforTest.Records[idx].snpRate = sampled_error_param;
+		}
+	}
+	
+	SequenceDataMutatorSubstitutionOnly dataMutTest(&sequenceRecordsforTest);
+
+	//for each sequence pair, compute N_hash hashes and store them as, mean and stddev.
+	std::vector<double> AverageCollision(N_seq, 0.0);
+	// std::vector<double> StddevCollision(N_seq, 0.0);
+
+	for(uint32_t rec_idx = 0; rec_idx < N_seq; rec_idx++){
+		SequenceRecordUnit &record = sequenceRecordsforTest.Records[rec_idx];
+		
+		uint32_t collision_count = 0;
+		for(uint32_t hash_idx = 0; hash_idx < N_hash; hash_idx++){
+			// Compute hash for original sequence
+
+			hashtype hash_val_org;
+			hashtype hash_val_mut;
+			
+			//if tokenised, we need to perform tokenization here before hashing.
+
+			hash((const uint8_t*)record.SeqASCIIOrg.c_str(), record.OriginalLength, HashSeed + hash_idx, &hash_val_org);
+			hash((const uint8_t*)record.SeqASCIIMut.c_str(), record.MutatedLength, HashSeed + hash_idx, &hash_val_mut);
+			if(hash_val_org == hash_val_mut){
+				collision_count++;
+			}
+		}
+		// Compute average and stddev of collisions for this sequence pair.
+		double avg_collision = static_cast<double>(collision_count) / static_cast<double>(N_hash);
+		AverageCollision[rec_idx] = avg_collision;
+
+		// // For stddev, since each hash is a Bernoulli trial (collision or no collision), we can use the formula for stddev of a Bernoulli distribution.
+		// double stddev_collision = std::sqrt(avg_collision * (1.0 - avg_collision) / static_cast<double>(N_hash));
+		// StddevCollision[rec_idx] = stddev_collision;
+	}
+
+	// Print Similarity values
+	out_file << ":4:";
+	for (size_t i = 0; i < N_seq; i++) {
+		if (i == N_seq - 1)
+			out_file << sequenceRecordsforTest.Records[i].similarity << "\n";
+		else
+			out_file << sequenceRecordsforTest.Records[i].similarity << ",";
+	}
+	// Print param values
+	out_file << ":5:";
+	for (size_t i = 0; i < N_seq; i++) {
+		if (i == N_seq - 1)
+			out_file << sequenceRecordsforTest.Records[i].snpRate << "\n";
+		else
+			out_file << sequenceRecordsforTest.Records[i].snpRate << ",";
+	}
+
+	// Print Average Collision values
+	out_file << ":6:";
+	for (size_t i = 0; i < N_seq; i++) {
+		if (i == N_seq - 1)
+			out_file << AverageCollision[i] << "\n";
+		else
+			out_file << AverageCollision[i] << ",";
+	}
+	
 	return true;
 }
 
 template <typename hashtype>
-static bool LSHCollisionTestInner( const HashInfo * hinfo, const uint32_t seqLen, flags_t flags, std::ofstream &out_file) {
+static bool LSHCollisionTestInner( const HashInfo * hinfo, const seed_t baseSeed, const uint32_t seqLen, flags_t flags, std::ofstream &out_file) {
 
 	bool result = true;	//TODO: Update this based on test results.
 
-	const uint32_t keybytes = seqLen; //Since 8 bytes = 1 base.
-
-	const int tokenlength = GetLSHTokenLength();  		// Get runtime token length
+	const uint32_t tokenlength = GetTokenLength();  		// Get runtime token length
 
 	HashFn hash = hinfo->hashFn(g_hashEndian);
 
-	const seed_t seed = hinfo->Seed(g_seed);
+	const seed_t hash_seed = hinfo->Seed(baseSeed);
 
-	const unsigned keycount = 1000;	// Number of keys to generate and test.
-	
-    const size_t hashcount = 1000;	// Number of hashes(from the hash family) to compute per key
+	bool isBasesDrawnFromUniformDist = true;
 
 	// File header
 	out_file << ":1:LSH Collision Test Results\n";
-	out_file << ":2:" << "Hashname," << "SequenceLength," << "TokenLength" << std::endl;
-	out_file << ":3:" << hinfo->name << "," << seqLen << "," << tokenlength << std::endl;
-    
+	out_file << ":2:" << "Hashname," << "SequenceLength," << "TokenLength,"<< "Distance Metric" << std::endl;
+	out_file << ":3:" << hinfo->name << "," << seqLen << "," << tokenlength << "," << setDistanceClassForHashInfo(hinfo) << std::endl;
+
+	seed_t DatagenSeed = baseSeed + 17;		// Seed for data generation
+	seed_t DataMutateSeed = baseSeed + 29;	// Seed for data mutation
+	seed_t HashSeed = hash_seed;			// Seed for hash family generation
+
 	if (!REPORT(VERBOSE, flags)) {
-		printf("LSH Collision Test: Key Size = %3u bits (%2u bytes), Keys = %8u, Hashes per Key = %4zu\n",
-           keybits, (unsigned)keybytes, keycount, hashcount);
+		// printf("LSH Collision Test: Key Size = %3u bits (%2u bytes), Keys = %8u, Hashes per Key = %4zu\n",
+        //    keybits, (unsigned)keybytes, keycount, hashcount);
 
 		printf("Hash Function: %s\n", hinfo->name);
 		printf("Hash Bits: %u\n", hinfo->bits);
     }
 
-	SequenceRecordsWithMetadata sequenceRecordsWithMetadata;
+	//--------------------------------------------//
+	common_params_struct common_params;
+	common_params.seqLen = seqLen;
+	common_params.DatagenSeed = DatagenSeed;
+	common_params.DataMutateSeed = DataMutateSeed;
+	common_params.tokenlength = tokenlength;
+	common_params.isBasesDrawnFromUniformDist = isBasesDrawnFromUniformDist;
+	common_params.distanceClass = setDistanceClassForHashInfo(hinfo);
+	//--------------------------------------------//
+
+
+
+	//--------------------------------------------//
+	uint32_t N_agg = 400000;	// Number of sequences to generate for testing
+	sim_bins_struct sim_bins = LSHCollisionTestInnerAgg(N_agg, common_params);
 	
-	sequenceRecordsWithMetadata.OriginalSequenceLength = seqLen;
-	sequenceRecordsWithMetadata.DistanceClass = setDistanceClassForHashInfo(hinfo);		//TODO: Add more distance classes.
-
-	sequenceRecordsWithMetadata.A_percentage = 0.25;
-    sequenceRecordsWithMetadata.C_percentage = 0.25;
-    sequenceRecordsWithMetadata.G_percentage = 0.25;
-    sequenceRecordsWithMetadata.T_percentage = 0.25;
-
-	sequenceRecordsWithMetadata.KeyCount = keycount; // 1 million sequences
-	sequenceRecordsWithMetadata.HashCount = hashcount; // 100 hashes per sequence
-
-    sequenceRecordsWithMetadata.DatagenSeed = 42;
-    sequenceRecordsWithMetadata.DataMutateSeed = 43;
-
-
-	/*-------------------------------------------------------------------------------*/
-	/*						Similarity and Distance Computation						 */
-	/*-------------------------------------------------------------------------------*/
-	printf("Using Distance Class: %u\n", sequenceRecordsWithMetadata.DistanceClass);
-
-	sequenceRecordsWithMetadata.binsize = 0.01f;	// Bin size for distance metrics
-	sequenceRecordsWithMetadata.binstart = 0.0f;	// Bin start
-	sequenceRecordsWithMetadata.binend = 1.01f;		// Bin end
-	sequenceRecordsWithMetadata.bincount = static_cast<uint32_t>(std::ceil((sequenceRecordsWithMetadata.binend - sequenceRecordsWithMetadata.binstart) / sequenceRecordsWithMetadata.binsize));
-	
-	printf("Number of bins for distance metrics: %u\n", sequenceRecordsWithMetadata.bincount);
-	
-	// fprint the simrates in one line in the output file.
-	out_file << ":4:" ;
-	float temp_binstart = sequenceRecordsWithMetadata.binstart;
-	for (size_t i = 0; i <= sequenceRecordsWithMetadata.bincount; i++) {
-		if (i == sequenceRecordsWithMetadata.bincount)
-			out_file << (temp_binstart + (i * sequenceRecordsWithMetadata.binsize)) << "\n";
-		else
-			out_file << (temp_binstart + (i * sequenceRecordsWithMetadata.binsize)) << ",";
+	//print bin means and stddevs using	
+	for (size_t bin_idx = 0; bin_idx < sim_bins.bin_error_parameters_mean.size(); bin_idx++) {
+		printf("Bin %zu: Count %d, Mean = %0.2f, Stddev = %0.2f\n", bin_idx, sim_bins.bin_fill_count[bin_idx], sim_bins.bin_error_parameters_mean[bin_idx], sim_bins.bin_error_parameters_stddev[bin_idx]);
 	}
+	
+	//--------------------------------------------//
+	uint32_t N_seq = 2000;		// Number of sequences to generate for testing
+	uint32_t N_hash = 512;	// Number of hashes to compute per sequence
+	LSHCollisionTestInnerInner<hashtype>(N_seq, N_hash, hash, HashSeed, common_params, sim_bins, out_file);
 
-	LSHCollisionTestInnerInner<hashtype>(&sequenceRecordsWithMetadata, hash, seed, out_file);
+	//--------------------------------------------//
 
     return result;	//TODO: For now, the result is always true. We need to add logic to find where the test fails.
 }
 
 
+
 //----------------------------------------------------------------------------//
 template <typename hashtype>
-bool LSHCollisionTest( const HashInfo * hinfo, bool extra, flags_t flags ) {
+bool LSHCollisionTest( const HashInfo * hinfo, bool extra, flags_t flags) {
 	
 	printf("[[[ LSH Collision Tests ]]]\n\n");
 	if(extra){
@@ -221,14 +405,17 @@ bool LSHCollisionTest( const HashInfo * hinfo, bool extra, flags_t flags ) {
 	std::vector<uint32_t> tokenlengths;
 	if(hinfo->hasTokenisationProperty()){
 		printf("Hash %s has tokenisation property. Testing multiple token lengths.\n", hinfo->name);
-		tokenlengths = {4 ,7, 13, 21, 31, 33}; //create_tokens();
+		tokenlengths = {7};//{4 ,7, 13, 21, 31, 33}; //create_tokens();
 	}
 	else{
 		tokenlengths = {0}; // No tokenization
 	}
 	
-	std::vector<uint32_t> sequenceLengths = {16, 24, 32, 48, 64, 80, 96, 128, 256, 512, 1024, 2048, 4096, 8192};
+	std::vector<uint32_t> sequenceLengths = {512}; //{16, 24, 32, 48, 64, 80, 96, 128, 256, 512, 1024, 2048, 4096, 8192};
 
+	seed_t baseSeed = g_GoldenRatio; // Base seed for reproducibility
+	
+	seed_t flagsSeedOffset = 101; // Offset to change the seed based on flags
 	for(const auto & toklen : tokenlengths){
 		
 		SetIsTestActive(true);
@@ -270,15 +457,18 @@ bool LSHCollisionTest( const HashInfo * hinfo, bool extra, flags_t flags ) {
 						continue;
 					}
 				}
+
+				g_TokenLength = toklen;	// Set global token length for testing
 			}
 
+			baseSeed += flagsSeedOffset;
 			printf("\nTesting hash: %s with keybits: %u (sequence length: %u), token length: %d\n", hinfo->name, keybits, seqLen, toklen);
-			result &= LSHCollisionTestInner<hashtype>(hinfo, seqLen, flags, out_file);
+			result &= LSHCollisionTestInner<hashtype>(hinfo, baseSeed, seqLen, flags, out_file);
 		}
 	}
 		
     // Cleanup: Reset LSH global variables after test completion
-    SetLSHTestActive(false);
+    SetIsTestActive(false);
 
     printf("%s\n", result ? "" : g_failstr);
 	out_file.close();
