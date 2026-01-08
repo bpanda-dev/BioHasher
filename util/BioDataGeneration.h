@@ -31,6 +31,14 @@ static constexpr size_t NUM_BASES = std::size(bases);
 
 typedef uint64_t  seed_t; // Seed type for random number generators
 
+struct UnionBitVectorsStruct {
+    std::vector<char> vec_a;
+    std::vector<char> vec_b;
+    std::vector<std::string> universe;
+};
+
+UnionBitVectorsStruct CreateUnionBitVectors(const std::string& seq1, const std::string& seq2, int k);
+
 struct SequenceRecordUnit{
 	uint32_t OriginalLength;
 	uint32_t MutatedLength;
@@ -109,13 +117,12 @@ struct SequenceRecordsWithMetadataStruct{
 		binsize(0.01f), binstart(0.0f), binend(1.0f), bincount(100) {}
 };
 
+
 class SequenceDataGenerator {
 	public:
 		// Constructor to initialise and generate random sequences.
 		SequenceDataGenerator(SequenceRecordsWithMetadataStruct *sequenceRecordsWithMetadata);
 		
-		// Destructor
-		~SequenceDataGenerator();
 		
 		static void decodeSequencesToASCII(const std::vector<uint8_t>& seqTwoBit, std::string& seqASCII, uint32_t sequenceLength);
 };

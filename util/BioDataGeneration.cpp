@@ -4,7 +4,6 @@
 #include "Platform.h"
 #include "Random.h"
 
-
 bool simulateSNP(SequenceRecordUnit &record, const uint32_t pos, Rand rng) {
 	
 	char currentBase = record.SeqASCIIMut[pos];
@@ -89,6 +88,67 @@ double ComputeJaccardSimilarity(const std::string& seq1, const std::string& seq2
     size_t union_size = set1.size() + set2.size() - intersection_size;
 
     return static_cast<double>(intersection_size) / union_size;
+}
+
+double ComputeCosineSimilarity(const std::string& seq1, const std::string& seq2, int k) {
+	// 1. Tokenize sequences into sets of k-mers
+	std::set<std::string> set1 = get_kmers(seq1, k);
+	std::set<std::string> set2 = get_kmers(seq2, k);
+
+	if (set1.empty() || set2.empty()) return 0.0;
+
+	// 2. Find the intersection
+	std::vector<std::string> intersect;
+	std::set_intersection(set1.begin(), set1.end(),
+						  set2.begin(), set2.end(),
+						  std::back_inserter(intersect));
+
+	size_t intersection_size = intersect.size();
+
+	// Cosine similarity = |A ∩ B| / sqrt(|A| * |B|)
+	return static_cast<double>(intersection_size) / 
+		   std::sqrt(static_cast<double>(set1.size()) * static_cast<double>(set2.size()));
+}
+
+double ComputeAngularSimilarity(const std::string& seq1, const std::string& seq2, int k) {
+	double cosine_sim = ComputeCosineSimilarity(seq1, seq2, k);
+	// Angular similarity = 1 - (angle / π) where angle = arccos(cosine_similarity)
+	return 1 - (std::acos(cosine_sim) / M_PI);
+}
+
+UnionBitVectorsStruct CreateUnionBitVectors(const std::string& seq1, const std::string& seq2, int k) {
+	// Tokenize sequences into sets of k-mers
+	std::set<std::string> kmer_set_a = get_kmers(seq1, k);
+	std::set<std::string> kmer_set_b = get_kmers(seq2, k);
+
+	if (kmer_set_a.empty() || kmer_set_b.empty()) return {std::vector<char>(), std::vector<char>(), std::vector<std::string>()};	//return empty vectors if either set is empty
+
+    // 1. Create the Universe (Union of both sets)
+    // std::set_union requires sorted ranges. std::set is already sorted.
+    std::vector<std::string> union_kmers;
+    std::set_union(kmer_set_a.begin(), kmer_set_a.end(),
+                   kmer_set_b.begin(), kmer_set_b.end(),
+                   std::back_inserter(union_kmers));
+
+    // 2. Pre-allocate vectors
+    size_t n = union_kmers.size();
+	std::vector<char> vec_a(n, '0');
+	std::vector<char> vec_b(n, '0');
+
+    // 3. Fill the vectors
+    for (size_t i = 0; i < n; ++i) {
+        const std::string& kmer = union_kmers[i];
+        
+        // Use set::count to check for existence (O(log N))
+        if (kmer_set_a.count(kmer)) {
+            vec_a[i] = '1';
+        }
+        if (kmer_set_b.count(kmer)) {
+            vec_b[i] = '1';
+        }
+    }
+
+    return {std::move(vec_a), std::move(vec_b), std::vector<std::string>()};
 }
 
 /*#-----------------------------------------------------#*/
@@ -195,11 +255,6 @@ SequenceDataGenerator::SequenceDataGenerator(SequenceRecordsWithMetadataStruct *
 	std::cout << "DataGeneration: SequenceLength = " << sequenceRecordsWithMetadata->OriginalSequenceLength << ", KeyCount = " << sequenceRecordsWithMetadata->KeyCount << std::endl;
 }
 
-SequenceDataGenerator::~SequenceDataGenerator() {
-	// Destructor - no dynamic resources owned by this class
-	// The sequenceRecordsWithMetadata pointer is not owned, so we don't delete it
-}
-
 void SequenceDataGenerator::decodeSequencesToASCII(const std::vector<uint8_t>& seqTwoBit, std::string& seqASCII, const uint32_t sequenceLength) {
     assert(seqASCII.size() == sequenceLength);
     for (uint32_t pos = 0; pos < sequenceLength; pos++) {
@@ -256,6 +311,20 @@ SequenceDataMutatorSubstitutionOnly::SequenceDataMutatorSubstitutionOnly(Sequenc
 		}
 		std::cout << "DataMutation: Applied SNP mutations only. Distance Class = Jaccard." << std::endl;
 	}
+	if(sequenceRecordsWithMetadata->DistanceClass == 3){	// Cosine
+		for(uint32_t rec_idx = 0; rec_idx < sequenceRecordsWithMetadata->KeyCount; rec_idx++) {
+			auto& record = sequenceRecordsWithMetadata->Records[rec_idx];
+			record.similarity = ComputeCosineSimilarity(record.SeqASCIIOrg, record.SeqASCIIMut, g_TokenLength);
+		}
+		std::cout << "DataMutation: Applied SNP mutations only. Distance Class = Cosine." << std::endl;
+	}
+	if(sequenceRecordsWithMetadata->DistanceClass == 4){	// Angular
+		for(uint32_t rec_idx = 0; rec_idx < sequenceRecordsWithMetadata->KeyCount; rec_idx++) {
+			auto& record = sequenceRecordsWithMetadata->Records[rec_idx];
+			record.similarity = ComputeAngularSimilarity(record.SeqASCIIOrg, record.SeqASCIIMut, g_TokenLength);
+		}
+		std::cout << "DataMutation: Applied SNP mutations only. Distance Class = Angular." << std::endl;
+	}
 
 	// Debugging output
     // for(uint32_t rec_idx = 0; rec_idx < std::min(sequenceRecordsWithMetadata->KeyCount, 10u); rec_idx++) {
@@ -271,6 +340,7 @@ SequenceDataMutatorSubstitutionOnly::SequenceDataMutatorSubstitutionOnly(Sequenc
     //     }
     // }	
 }
+
 
 // void SequenceDataMutator::ApplyMutations(SequenceRecordsWithMetadata *sequenceRecordsWithMetadata) {
 	

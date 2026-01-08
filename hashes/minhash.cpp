@@ -129,7 +129,6 @@ REGISTER_FAMILY(MinHash,
    $.src_status = HashFamilyInfo::SRC_ACTIVE
  );
 
-//The bitwise version is for the encoded form of the data. 
 REGISTER_HASH(MinHash_32,
    $.desc            = "MinHash 32-bit version",
    $.hash_flags      = FLAG_HASH_LOCALITY_SENSITIVE | FLAG_HASH_TOKENISATION_PROPERTY | FLAG_HASH_JACCARD_SIMILARITY,

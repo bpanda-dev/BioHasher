@@ -185,27 +185,31 @@ sim_bins_struct LSHCollisionTestInnerAgg(uint32_t N_agg, common_params_struct &c
 			//Todo: Add the part where in angular similarity, we geniuinely have empty bins from 0 to 49
 
 
-			// Bin is completely empty - use bin center as mean with small stddev
-			double bin_center = sequenceRecordsForAgg.binstart + (bin_idx + 0.5) * sequenceRecordsForAgg.binsize;
-			double default_stddev = sequenceRecordsForAgg.binsize / 4.0;  // Quarter of bin width
+			// // Bin is completely empty - use bin center as mean with small stddev
+			// double bin_center = sequenceRecordsForAgg.binstart + (bin_idx + 0.5) * sequenceRecordsForAgg.binsize;
+			// double default_stddev = sequenceRecordsForAgg.binsize / 4.0;  // Quarter of bin width
 			
-			std::normal_distribution<double> normal_dist(bin_center, default_stddev);
+			// std::normal_distribution<double> normal_dist(bin_center, default_stddev);
 			
-			for (uint32_t fill_idx = 0; fill_idx < g_bincount_full; fill_idx++) {
-				double sampled_value = normal_dist(gen);
-				sampled_value = std::max(0.0, std::min(1.0, sampled_value));
+			// for (uint32_t fill_idx = 0; fill_idx < g_bincount_full; fill_idx++) {
+			// 	double sampled_value = normal_dist(gen);
+			// 	sampled_value = std::max(0.0, std::min(1.0, sampled_value));
 				
-				sim_bins_agg.bin_error_parameters[bin_idx][fill_idx] = sampled_value;
-				sim_bins_agg.bin_fill_count[bin_idx]++;
-			}
+			// 	sim_bins_agg.bin_error_parameters[bin_idx][fill_idx] = sampled_value;
+			// 	sim_bins_agg.bin_fill_count[bin_idx]++;
+			// }
 			
-			// Update mean and stddev for this bin
-			sim_bins_agg.bin_error_parameters_mean[bin_idx] = bin_center;
-			sim_bins_agg.bin_error_parameters_stddev[bin_idx] = default_stddev;
+			// // Update mean and stddev for this bin
+			// sim_bins_agg.bin_error_parameters_mean[bin_idx] = bin_center;
+			// sim_bins_agg.bin_error_parameters_stddev[bin_idx] = default_stddev;
+
+			sim_bins_agg.bin_fill_count[bin_idx] = 0;
+			sim_bins_agg.bin_error_parameters_mean[bin_idx] = 0.0;
+			sim_bins_agg.bin_error_parameters_stddev[bin_idx] = 0.0;
+			
 		}
 	}
-
-
+	// Clean up
 	sequenceRecordsForAgg.Records.clear();
 	sequenceRecordsForAgg.Records.shrink_to_fit();  // Actually releases the memory
 	
@@ -213,7 +217,7 @@ sim_bins_struct LSHCollisionTestInnerAgg(uint32_t N_agg, common_params_struct &c
 }
 
 template <typename hashtype>
-bool LSHCollisionTestInnerInner(uint32_t N_seq, uint32_t N_hash, HashFn hash, seed_t HashSeed, common_params_struct &common_params, sim_bins_struct &sim_bins, std::ofstream &out_file){
+bool LSHCollisionTestInnerInner(const HashInfo * hinfo, uint32_t N_seq, uint32_t N_hash, HashFn hash, seed_t HashSeed, common_params_struct &common_params, sim_bins_struct &sim_bins, std::ofstream &out_file){
 	
 	printf("Inside LSHCollisionTestInnerInner\n");
 
@@ -237,20 +241,42 @@ bool LSHCollisionTestInnerInner(uint32_t N_seq, uint32_t N_hash, HashFn hash, se
 	Rand rng_bin_sampler(bin_sampling_seed);
 	Rand rng_bin_params_sampler(bin_params_sampling_seed);
 
-	for(uint32_t idx = 0; idx < N_seq; idx++){
-		uint32_t sampled_binid = rng_bin_sampler.rand_range(100);	// Sample bin id between 0-99 i think 100 is exclusive.	
-		// What if the sampled bin is empty?
+	// for(uint32_t idx = 0; idx < N_seq; idx++){
+	// 	uint32_t bin_fill_count = 0;
+	// 	uint32_t sampled_binid = -1;
 
-		// Now sample a random error parameter from the selected bin.
-		uint32_t bin_fill_count = sim_bins.bin_fill_count[sampled_binid];
+	// 	while(bin_fill_count == 0){
+	// 		// Sample a bin id based on similarity values.
+	// 		uint32_t sampled_binid = rng_bin_sampler.rand_range(100);	// Sample bin id between 0-99 i think 100 is exclusive.	
+	// 		bin_fill_count = sim_bins.bin_fill_count[sampled_binid];
+	// 	}
+	// 	// Now, sample a random parameter from this bin.
+	// 	uint32_t rand_param_idx = rng_bin_params_sampler.rand_range(bin_fill_count);
+	// 	double sampled_error_param = sim_bins.bin_error_parameters[sampled_binid][rand_param_idx];
+	// 	sequenceRecordsforTest.Records[idx].snpRate = sampled_error_param;
+	// }
+
+	for(uint32_t idx = 0; idx < N_seq; idx++){
+		uint32_t bin_fill_count = 0;
+		int sampled_binid = -1;
+		uint32_t attempts = 0;
+		const uint32_t max_attempts = 1000;
+
+		while(bin_fill_count == 0 && attempts < max_attempts){
+			sampled_binid = rng_bin_sampler.rand_range(100);
+			bin_fill_count = sim_bins.bin_fill_count[sampled_binid];
+			attempts++;
+		}
+		
 		if(bin_fill_count == 0){
-			sequenceRecordsforTest.Records[idx].snpRate = 0.0; // No mutations <== Need to work on this more later.
+			printf("Warning: Could not find non-empty bin after %u attempts\n", max_attempts);
+			// sequenceRecordsforTest.Records[idx].snpRate = 1.0; // Assign a default value
+			continue;  // Skip this sequence or handle error
 		}
-		else{
-			uint32_t rand_param_idx = rng_bin_params_sampler.rand_range(bin_fill_count);
-			double sampled_error_param = sim_bins.bin_error_parameters[sampled_binid][rand_param_idx];
-			sequenceRecordsforTest.Records[idx].snpRate = sampled_error_param;
-		}
+		
+		uint32_t rand_param_idx = rng_bin_params_sampler.rand_range(bin_fill_count);
+		double sampled_error_param = sim_bins.bin_error_parameters[sampled_binid][rand_param_idx];
+		sequenceRecordsforTest.Records[idx].snpRate = sampled_error_param;
 	}
 	
 	SequenceDataMutatorSubstitutionOnly dataMutTest(&sequenceRecordsforTest);
@@ -266,13 +292,41 @@ bool LSHCollisionTestInnerInner(uint32_t N_seq, uint32_t N_hash, HashFn hash, se
 		for(uint32_t hash_idx = 0; hash_idx < N_hash; hash_idx++){
 			// Compute hash for original sequence
 
+			if(rec_idx % 200 == 0 && hash_idx == 0){
+				printf("Processing sequence %u / %u\n", rec_idx, N_seq);
+			}
+
 			hashtype hash_val_org;
 			hashtype hash_val_mut;
 			
-			//if tokenised, we need to perform tokenization here before hashing.
+			if(hinfo->hasUniverseVectorOptimisation() == true){
 
-			hash((const uint8_t*)record.SeqASCIIOrg.c_str(), record.OriginalLength, HashSeed + hash_idx, &hash_val_org);
-			hash((const uint8_t*)record.SeqASCIIMut.c_str(), record.MutatedLength, HashSeed + hash_idx, &hash_val_mut);
+				UnionBitVectorsStruct unionBitVectors = CreateUnionBitVectors(record.SeqASCIIOrg, record.SeqASCIIMut, common_params.tokenlength);
+
+				// print the sequences
+				// std::cout << record.SeqASCIIOrg << "\n";
+				// std::cout << record.SeqASCIIMut << "\n";
+				// std::cout << "Universe: ";
+				// for (auto& k : unionBitVectors.universe) std::cout << k << " ";
+				// std::cout << "\nVec A:    ";
+				// for (char v : unionBitVectors.vec_a) std::cout << v << "   ";
+				// std::cout << "\nVec B:    ";
+				// for (char v : unionBitVectors.vec_b) std::cout << v << "   ";
+				// std::cout << std::endl;
+				
+				// printf("Union vector sizes: VecA = %zu, VecB = %zu, Universe = %zu\n", unionBitVectors.vec_a.size(), unionBitVectors.vec_b.size(), unionBitVectors.universe.size());
+
+				// std::cout<< unionBitVectors.vec_a[0] << std::endl;
+
+				// printf("Union vector sizes: VecA = %zu, VecB = %zu, Universe = %zu\n", unionBitVectors.vec_a.size(), unionBitVectors.vec_b.size(), unionBitVectors.universe.size());
+
+				hash(unionBitVectors.vec_a.data(), unionBitVectors.vec_a.size(), HashSeed + hash_idx, &hash_val_org);
+				hash(unionBitVectors.vec_b.data(), unionBitVectors.vec_b.size(), HashSeed + hash_idx, &hash_val_mut);
+			}
+			else{
+				hash((const uint8_t*)record.SeqASCIIOrg.c_str(), record.OriginalLength, HashSeed + hash_idx, &hash_val_org);
+				hash((const uint8_t*)record.SeqASCIIMut.c_str(), record.MutatedLength, HashSeed + hash_idx, &hash_val_mut);
+			}
 			if(hash_val_org == hash_val_mut){
 				collision_count++;
 			}
@@ -358,7 +412,7 @@ static bool LSHCollisionTestInner( const HashInfo * hinfo, const seed_t baseSeed
 
 
 	//--------------------------------------------//
-	uint32_t N_agg = 400000;	// Number of sequences to generate for testing
+	uint32_t N_agg = 500000;	// Number of sequences to generate for testing
 	sim_bins_struct sim_bins = LSHCollisionTestInnerAgg(N_agg, common_params);
 	
 	//print bin means and stddevs using	
@@ -367,9 +421,9 @@ static bool LSHCollisionTestInner( const HashInfo * hinfo, const seed_t baseSeed
 	}
 	
 	//--------------------------------------------//
-	uint32_t N_seq = 2000;		// Number of sequences to generate for testing
-	uint32_t N_hash = 512;	// Number of hashes to compute per sequence
-	LSHCollisionTestInnerInner<hashtype>(N_seq, N_hash, hash, HashSeed, common_params, sim_bins, out_file);
+	uint32_t N_seq = 10000;		// Number of sequences to generate for testing
+	uint32_t N_hash = 2000;	// Number of hashes to compute per sequence
+	LSHCollisionTestInnerInner<hashtype>(hinfo, N_seq, N_hash, hash, HashSeed, common_params, sim_bins, out_file);
 
 	//--------------------------------------------//
 
@@ -405,7 +459,7 @@ bool LSHCollisionTest( const HashInfo * hinfo, bool extra, flags_t flags) {
 	std::vector<uint32_t> tokenlengths;
 	if(hinfo->hasTokenisationProperty()){
 		printf("Hash %s has tokenisation property. Testing multiple token lengths.\n", hinfo->name);
-		tokenlengths = {7};//{4 ,7, 13, 21, 31, 33}; //create_tokens();
+		tokenlengths = {13};//{4 ,7, 13, 21, 31, 33}; //create_tokens();
 	}
 	else{
 		tokenlengths = {0}; // No tokenization

@@ -88,6 +88,6 @@ set(HASH_SRC_FILES
   hashes/museair.cpp
   hashes/onebasesamplinghash.cpp
   hashes/minhash.cpp
-  # hashes/simhash.cpp
+  hashes/simhash.cpp
   
 )

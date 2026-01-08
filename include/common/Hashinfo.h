@@ -42,7 +42,8 @@
     FLAG_EXPAND(HASH_ANGULAR_SIMILARITY)    \
     FLAG_EXPAND(HASH_EDIT_SIMILARITY)    \
     FLAG_EXPAND(HASH_OVERLAPPING_TOKENS) \
-    FLAG_EXPAND(HASH_NONOVERLAPPING_TOKENS)
+    FLAG_EXPAND(HASH_NONOVERLAPPING_TOKENS) \
+    FLAG_EXPAND(HASH_UNIVERSE_VECTOR_OPTIMISATION)
 
 #define IMPL_FLAGS                          \
     FLAG_EXPAND(IMPL_SANITY_FAILS)          \
@@ -281,6 +282,10 @@ class HashInfo {
     FORCE_INLINE bool hasEditSimilarity( void ) const {
         return !!(hash_flags & FLAG_HASH_EDIT_SIMILARITY);
     }
+    FORCE_INLINE bool hasUniverseVectorOptimisation( void ) const {
+        return !!(hash_flags & FLAG_HASH_UNIVERSE_VECTOR_OPTIMISATION);
+    }
+    
 
 }; // class HashInfo
 
