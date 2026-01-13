@@ -15,6 +15,11 @@ bool g_IsTestActive = false;     // Whether test is currently running
 
 const uint32_t g_GoldenRatio = 0x9e3779b1;	
 
+
+
+const uint32_t g_subseqHash1_subseq_len = 12; // Default subsequence length for SubseqHash1
+const uint32_t g_subseqHash1_d = 11;           // Default 'p' value for SubseqHash1
+
 // Setter functions (called by LSHCollision test)
 void SetTokenLength(uint32_t length) {
     g_TokenLength = length;
@@ -40,3 +45,5 @@ uint32_t GetTokenLength() {
 bool IsTestActive() {
     return g_IsTestActive;
 }
+
+

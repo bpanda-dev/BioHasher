@@ -151,6 +151,48 @@ UnionBitVectorsStruct CreateUnionBitVectors(const std::string& seq1, const std::
     return {std::move(vec_a), std::move(vec_b), std::vector<std::string>()};
 }
 
+int min1(int x,int y,int z){
+	int min_xy = (x<y)? x:y;
+    if(min_xy>z)
+        return z;
+    else 
+        return min_xy;
+}
+
+double ComputeEditSimilarity(const std::string& seq1, const std::string& seq2) {
+
+	//write your code here
+	const int n = seq1.size();
+	const int m = seq2.size();
+
+	std::vector<std::vector<int>> D(n + 1, std::vector<int>(m + 1, 0));
+	
+	// Initialize base cases
+    for (int i = 0; i <= n; i++) {
+        D[i][0] = static_cast<int>(i);
+    }
+    for (int j = 0; j <= m; j++) {
+        D[0][j] = static_cast<int>(j);
+    }
+    
+	// Fill DP table
+    for (int i = 1; i <= n; i++) {
+        for (int j = 1; j <= m; j++) {
+            int insert_cost = D[i][j - 1] + 1;
+            int delete_cost = D[i - 1][j] + 1;
+            int match_cost  = D[i - 1][j - 1] + (seq1[i - 1] == seq2[j - 1] ? 0 : 1);
+            
+            D[i][j] = std::min({insert_cost, delete_cost, match_cost});
+        }
+    }
+  
+	int edit_dist = D[n][m];
+	double max_len = static_cast<double>(std::max(n, m));
+    
+    return 1.0 - (static_cast<double>(edit_dist) / max_len);
+}
+
+
 /*#-----------------------------------------------------#*/
 /*#					Data Generation						#*/
 /*#-----------------------------------------------------#*/
@@ -325,21 +367,113 @@ SequenceDataMutatorSubstitutionOnly::SequenceDataMutatorSubstitutionOnly(Sequenc
 		}
 		std::cout << "DataMutation: Applied SNP mutations only. Distance Class = Angular." << std::endl;
 	}
+	if(sequenceRecordsWithMetadata->DistanceClass == 5){	// Edit Distance
+		for(uint32_t rec_idx = 0; rec_idx < sequenceRecordsWithMetadata->KeyCount; rec_idx++) {
+			auto& record = sequenceRecordsWithMetadata->Records[rec_idx];
+			record.similarity = ComputeEditSimilarity(record.SeqASCIIOrg, record.SeqASCIIMut);
+		}
+		std::cout << "DataMutation: Applied SNP mutations only. Distance Class = Edit Similarity." << std::endl;
+	}
 
 	// Debugging output
-    // for(uint32_t rec_idx = 0; rec_idx < std::min(sequenceRecordsWithMetadata->KeyCount, 10u); rec_idx++) {
-    //     auto& record = sequenceRecordsWithMetadata->Records[rec_idx];
-    //     if (rec_idx < 10) {
-    //         std::cout << "\n=== Record " << rec_idx << " ===" << std::endl;
-    //         std::cout << "Original Length: " << record.OriginalLength << std::endl;
-    //         std::cout << "Mutated Length:  " << record.MutatedLength << std::endl;
-    //         std::cout << "Original: " << record.SeqASCIIOrg << std::endl;
-    //         std::cout << "Mutated:  " << record.SeqASCIIMut << std::endl;
-	// 		std::cout << "SNP Rate: " << record.snpRate << std::endl;
-	// 		std::cout << "Similarity: " << record.similarity << std::endl;
-    //     }
-    // }	
+    for(uint32_t rec_idx = 0; rec_idx < std::min(sequenceRecordsWithMetadata->KeyCount, 10u); rec_idx++) {
+        auto& record = sequenceRecordsWithMetadata->Records[rec_idx];
+        if (rec_idx < 10) {
+            std::cout << "\n=== Record " << rec_idx << " ===" << std::endl;
+            std::cout << "Original Length: " << record.OriginalLength << std::endl;
+            std::cout << "Mutated Length:  " << record.MutatedLength << std::endl;
+            std::cout << "Original: " << record.SeqASCIIOrg << std::endl;
+            std::cout << "Mutated:  " << record.SeqASCIIMut << std::endl;
+			std::cout << "SNP Rate: " << record.snpRate << std::endl;
+			std::cout << "Similarity: " << record.similarity << std::endl;
+        }
+    }	
 }
+
+
+
+// SequenceDataMutatorGeometricMutatorOnly::SequenceDataMutatorGeometricMutatorOnly(SequenceRecordsWithMetadataStruct *sequenceRecordsWithMetadata){
+// 	assert(sequenceRecordsWithMetadata != nullptr);
+// 	assert(sequenceRecordsWithMetadata->Records.size() > 0);
+
+// 	// Initialise seed and reserve memory.
+//     Rand rng(sequenceRecordsWithMetadata->DataMutateSeed);
+
+// 	for(uint32_t rec_idx = 0; rec_idx < sequenceRecordsWithMetadata->KeyCount; rec_idx++) {
+
+// 		auto& record = sequenceRecordsWithMetadata->Records[rec_idx];
+// 		assert((record.snpRate >= 0.0) && (record.snpRate <= 1.0) && "SNP rate should be between 0 and 1");
+	
+// 		// Initialising the mutated sequences with original sequences
+// 		record.MutatedLength = record.OriginalLength;
+// 		record.SeqASCIIMut.resize(record.MutatedLength, 'A');
+// 		record.SeqASCIIMut = record.SeqASCIIOrg;	// Copy original ASCII sequence
+
+// 		// NOTE: Use a while loop or track position carefully since length changes
+// 		for (int pos = record.OriginalLength - 1; pos >= 0; --pos) {
+// 			uint32_t rand_val = rng.rand_range(1000);
+// 			double sample = static_cast<double>(rand_val) / 1000.0;	// snp or indel
+// 			bool isSnp = (sample < record.snpRate);
+// 			if (isSnp) {
+//                 simulateSNP(record, pos, rng);
+//             }
+//         }
+// 	}
+
+// 	if(sequenceRecordsWithMetadata->DistanceClass == 1){	// Hamming
+// 		for(uint32_t rec_idx = 0; rec_idx < sequenceRecordsWithMetadata->KeyCount; rec_idx++) {
+// 			auto& record = sequenceRecordsWithMetadata->Records[rec_idx];
+// 			record.similarity = ComputeHammingSimilarity(record.SeqASCIIOrg, record.SeqASCIIMut, record.OriginalLength);
+// 		}
+// 		std::cout << "DataMutation: Applied SNP mutations only. Distance Class = Hamming." << std::endl;
+// 	}
+// 	if(sequenceRecordsWithMetadata->DistanceClass == 2){	// Jaccard
+// 		for(uint32_t rec_idx = 0; rec_idx < sequenceRecordsWithMetadata->KeyCount; rec_idx++) {
+// 			auto& record = sequenceRecordsWithMetadata->Records[rec_idx];
+// 			record.similarity = ComputeJaccardSimilarity(record.SeqASCIIOrg, record.SeqASCIIMut, g_TokenLength);
+// 			// printf("Record %u: Jaccard Similarity = %f\n", rec_idx, record.similarity);
+// 		}
+// 		std::cout << "DataMutation: Applied SNP mutations only. Distance Class = Jaccard." << std::endl;
+// 	}
+// 	if(sequenceRecordsWithMetadata->DistanceClass == 3){	// Cosine
+// 		for(uint32_t rec_idx = 0; rec_idx < sequenceRecordsWithMetadata->KeyCount; rec_idx++) {
+// 			auto& record = sequenceRecordsWithMetadata->Records[rec_idx];
+// 			record.similarity = ComputeCosineSimilarity(record.SeqASCIIOrg, record.SeqASCIIMut, g_TokenLength);
+// 		}
+// 		std::cout << "DataMutation: Applied SNP mutations only. Distance Class = Cosine." << std::endl;
+// 	}
+// 	if(sequenceRecordsWithMetadata->DistanceClass == 4){	// Angular
+// 		for(uint32_t rec_idx = 0; rec_idx < sequenceRecordsWithMetadata->KeyCount; rec_idx++) {
+// 			auto& record = sequenceRecordsWithMetadata->Records[rec_idx];
+// 			record.similarity = ComputeAngularSimilarity(record.SeqASCIIOrg, record.SeqASCIIMut, g_TokenLength);
+// 		}
+// 		std::cout << "DataMutation: Applied SNP mutations only. Distance Class = Angular." << std::endl;
+// 	}
+// 	if(sequenceRecordsWithMetadata->DistanceClass == 5){	// Edit Distance
+// 		for(uint32_t rec_idx = 0; rec_idx < sequenceRecordsWithMetadata->KeyCount; rec_idx++) {
+// 			auto& record = sequenceRecordsWithMetadata->Records[rec_idx];
+// 			record.similarity = ComputeEditSimilarity(record.SeqASCIIOrg, record.SeqASCIIMut);
+// 		}
+// 		std::cout << "DataMutation: Applied SNP mutations only. Distance Class = Edit Similarity." << std::endl;
+// 	}
+
+// 	// Debugging output
+//     for(uint32_t rec_idx = 0; rec_idx < std::min(sequenceRecordsWithMetadata->KeyCount, 10u); rec_idx++) {
+//         auto& record = sequenceRecordsWithMetadata->Records[rec_idx];
+//         if (rec_idx < 10) {
+//             std::cout << "\n=== Record " << rec_idx << " ===" << std::endl;
+//             std::cout << "Original Length: " << record.OriginalLength << std::endl;
+//             std::cout << "Mutated Length:  " << record.MutatedLength << std::endl;
+//             std::cout << "Original: " << record.SeqASCIIOrg << std::endl;
+//             std::cout << "Mutated:  " << record.SeqASCIIMut << std::endl;
+// 			std::cout << "SNP Rate: " << record.snpRate << std::endl;
+// 			std::cout << "Similarity: " << record.similarity << std::endl;
+//         }
+//     }	
+// }
+
+
+
 
 
 // void SequenceDataMutator::ApplyMutations(SequenceRecordsWithMetadata *sequenceRecordsWithMetadata) {

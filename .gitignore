@@ -23,6 +23,8 @@ depend.internal
 SMHasher3
 misc/exactcoll
 
+extras/*
+
 extras/datasketch
 
 .gdbinit

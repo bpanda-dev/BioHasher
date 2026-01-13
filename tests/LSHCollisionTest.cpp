@@ -12,6 +12,8 @@
 #include "LSHCollisionTest.h"
 #include "fstream"
 #include <iostream>
+#include <filesystem>
+
 
 
 struct common_params_struct{
@@ -386,6 +388,9 @@ static bool LSHCollisionTestInner( const HashInfo * hinfo, const seed_t baseSeed
 	out_file << ":1:LSH Collision Test Results\n";
 	out_file << ":2:" << "Hashname," << "SequenceLength," << "TokenLength,"<< "Distance Metric" << std::endl;
 	out_file << ":3:" << hinfo->name << "," << seqLen << "," << tokenlength << "," << setDistanceClassForHashInfo(hinfo) << std::endl;
+	if(std::string(hinfo->name) == "SubseqHash-64"){
+		out_file << ":3.1:" << g_subseqHash1_subseq_len << "," << g_subseqHash1_d << std::endl;
+	}
 
 	seed_t DatagenSeed = baseSeed + 17;		// Seed for data generation
 	seed_t DataMutateSeed = baseSeed + 29;	// Seed for data mutation
@@ -409,20 +414,43 @@ static bool LSHCollisionTestInner( const HashInfo * hinfo, const seed_t baseSeed
 	common_params.distanceClass = setDistanceClassForHashInfo(hinfo);
 	//--------------------------------------------//
 
+	uint32_t N_agg = 0;
+	sim_bins_struct sim_bins;
+
+	uint32_t N_seq = 0;		// Number of sequences to generate for testing
+	uint32_t N_hash = 0;	// Number of hashes to compute per sequence
+
+
 
 
 	//--------------------------------------------//
-	uint32_t N_agg = 500000;	// Number of sequences to generate for testing
-	sim_bins_struct sim_bins = LSHCollisionTestInnerAgg(N_agg, common_params);
-	
-	//print bin means and stddevs using	
-	for (size_t bin_idx = 0; bin_idx < sim_bins.bin_error_parameters_mean.size(); bin_idx++) {
-		printf("Bin %zu: Count %d, Mean = %0.2f, Stddev = %0.2f\n", bin_idx, sim_bins.bin_fill_count[bin_idx], sim_bins.bin_error_parameters_mean[bin_idx], sim_bins.bin_error_parameters_stddev[bin_idx]);
+	if(hinfo->isVerySlow()){
+		N_agg = 50000;	// Number of sequences to generate for testing
+		sim_bins = LSHCollisionTestInnerAgg(N_agg, common_params);
+		
+		//print bin means and stddevs using	
+		for (size_t bin_idx = 0; bin_idx < sim_bins.bin_error_parameters_mean.size(); bin_idx++) {
+			printf("Bin %zu: Count %d, Mean = %0.2f, Stddev = %0.2f\n", bin_idx, sim_bins.bin_fill_count[bin_idx], sim_bins.bin_error_parameters_mean[bin_idx], sim_bins.bin_error_parameters_stddev[bin_idx]);
+		}
+		
+		//--------------------------------------------//
+		N_seq = 5000;		// Number of sequences to generate for testing
+		N_hash = 500;	// Number of hashes to compute per sequence
+	}
+	else{
+		N_agg = 500000;	// Number of sequences to generate for testing
+		sim_bins = LSHCollisionTestInnerAgg(N_agg, common_params);
+		
+		//print bin means and stddevs using	
+		for (size_t bin_idx = 0; bin_idx < sim_bins.bin_error_parameters_mean.size(); bin_idx++) {
+			printf("Bin %zu: Count %d, Mean = %0.2f, Stddev = %0.2f\n", bin_idx, sim_bins.bin_fill_count[bin_idx], sim_bins.bin_error_parameters_mean[bin_idx], sim_bins.bin_error_parameters_stddev[bin_idx]);
+		}
+		
+		//--------------------------------------------//
+		N_seq = 10000;		// Number of sequences to generate for testing
+		N_hash = 2000;	// Number of hashes to compute per sequence
 	}
 	
-	//--------------------------------------------//
-	uint32_t N_seq = 10000;		// Number of sequences to generate for testing
-	uint32_t N_hash = 2000;	// Number of hashes to compute per sequence
 	LSHCollisionTestInnerInner<hashtype>(hinfo, N_seq, N_hash, hash, HashSeed, common_params, sim_bins, out_file);
 
 	//--------------------------------------------//
@@ -444,7 +472,14 @@ bool LSHCollisionTest( const HashInfo * hinfo, bool extra, flags_t flags) {
 	bool result = true;
 
 	// Create a output file for storing the results.
-	std::ofstream out_file("../results/collisionResults_" + std::string(hinfo->name)  +".csv");
+	std::string filename = "../results/collisionResults_" + std::string(hinfo->name) + ".csv";
+
+	std::ios_base::openmode mode = std::ios::trunc;  // Default: replace
+	if (std::filesystem::exists(filename)) {
+		mode = std::ios::app;  // File exists: append
+	}
+
+	std::ofstream out_file(filename, mode);
 	if (!out_file.is_open()) {
 		std::cerr << "Error: Could not open output file" << std::endl;
 		exit(EXIT_FAILURE);
@@ -465,7 +500,16 @@ bool LSHCollisionTest( const HashInfo * hinfo, bool extra, flags_t flags) {
 		tokenlengths = {0}; // No tokenization
 	}
 	
-	std::vector<uint32_t> sequenceLengths = {512}; //{16, 24, 32, 48, 64, 80, 96, 128, 256, 512, 1024, 2048, 4096, 8192};
+
+	std::vector<uint32_t> sequenceLengths;
+
+	if(hinfo->isVerySlow()){
+		printf("Hash %s is marked as very slow. Limiting test parameters for practicality.\n", hinfo->name);
+		sequenceLengths = {20,30,40}; //{512};
+	}
+	else{
+		sequenceLengths = {512}; //{16, 24, 32, 48, 64, 80, 96, 128, 256, 512, 1024, 2048, 4096, 8192};
+	}
 
 	seed_t baseSeed = g_GoldenRatio; // Base seed for reproducibility
 	

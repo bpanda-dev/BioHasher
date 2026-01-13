@@ -89,5 +89,6 @@ set(HASH_SRC_FILES
   hashes/onebasesamplinghash.cpp
   hashes/minhash.cpp
   hashes/simhash.cpp
+  hashes/subseqhash1/ssh1.cpp
   
 )
