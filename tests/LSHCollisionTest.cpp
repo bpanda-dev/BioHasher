@@ -15,7 +15,6 @@
 #include <filesystem>
 
 
-
 struct common_params_struct{
 	uint32_t seqLen;
 	seed_t DatagenSeed;
@@ -74,14 +73,40 @@ sim_bins_struct LSHCollisionTestInnerAgg(uint32_t N_agg, common_params_struct &c
     std::vector<double> rand_error_param(N_agg, 0.0);
 	std::vector<double> similarity_values(N_agg, 0.0);
 	
-	for(uint32_t idx = 0; idx < N_agg; idx++){
-		uint32_t rand_val = rng.rand_range(sequenceRecordsForAgg.bincount);
-		rand_error_param[idx] = (double)rand_val/(sequenceRecordsForAgg.bincount);	// Random error parameter for this sequence pair.
-		sequenceRecordsForAgg.Records[idx].snpRate = rand_error_param[idx];
+	if(g_mutation_model == MUTATION_MODEL_SIMPLE_SNP_ONLY){
+		for(uint32_t idx = 0; idx < N_agg; idx++){
+			uint32_t rand_val = rng.rand_range(sequenceRecordsForAgg.bincount);
+			rand_error_param[idx] = (double)rand_val/(sequenceRecordsForAgg.bincount);	// Random error parameter for this sequence pair.
+			sequenceRecordsForAgg.Records[idx].snpRate = rand_error_param[idx];
+		}
+		
+		SequenceDataMutatorSubstitutionOnly dataMutAgg(&sequenceRecordsForAgg);
 	}
+	else if(g_mutation_model == MUTATION_MODEL_GEOMETRIC_MUTATOR){
+		for(uint32_t idx = 0; idx < N_agg; idx++){
 
-	SequenceDataMutatorSubstitutionOnly dataMutAgg(&sequenceRecordsForAgg);
+			uint32_t mutation_expression_type = g_mutation_expression_type; 	// Change the expression type here as needed.
+
+			uint32_t rand_value = rng.rand_range(sequenceRecordsForAgg.bincount);
+			double P_sub = (double)rand_value/(sequenceRecordsForAgg.bincount);	// Random error parameter for this sequence pair.
+			double P_del = mutation_expression(P_sub,mutation_expression_type);	// Example: deletion rate is equal of substitution rate
+
+			while(is_valid_mutation_parameters(P_sub, P_del) == false){
+				// Redraw
+				rand_value = rng.rand_range(sequenceRecordsForAgg.bincount);
+				P_sub = (double)rand_value/(sequenceRecordsForAgg.bincount);
+				P_del = mutation_expression(P_sub,mutation_expression_type);
+			}
+			rand_error_param[idx] = P_sub;	// Random error parameter for this sequence pair.
+			sequenceRecordsForAgg.Records[idx].snpRate = P_sub;
+			sequenceRecordsForAgg.Records[idx].delRate = mutation_expression(P_sub,mutation_expression_type);
+			sequenceRecordsForAgg.Records[idx].stayRate = 1 - sequenceRecordsForAgg.Records[idx].snpRate - sequenceRecordsForAgg.Records[idx].delRate;
+			sequenceRecordsForAgg.Records[idx].insmean = g_InsertionMean;
+		}
+		SequenceDataMutatorGeometric dataMutAgg(&sequenceRecordsForAgg);
+	}
 	
+	// Extract similarity values
 	for(uint32_t idx = 0; idx < N_agg; idx++){
 		similarity_values[idx] = sequenceRecordsForAgg.Records[idx].similarity;
 	}
@@ -279,10 +304,23 @@ bool LSHCollisionTestInnerInner(const HashInfo * hinfo, uint32_t N_seq, uint32_t
 		uint32_t rand_param_idx = rng_bin_params_sampler.rand_range(bin_fill_count);
 		double sampled_error_param = sim_bins.bin_error_parameters[sampled_binid][rand_param_idx];
 		sequenceRecordsforTest.Records[idx].snpRate = sampled_error_param;
+
+		// The values below are only needed for geometric mutator. It will not be used for simple SNP only.
+		uint32_t mutation_expression_type = g_mutation_expression_type; 	// Change the expression type here as needed.
+		sequenceRecordsforTest.Records[idx].delRate = mutation_expression(sampled_error_param,mutation_expression_type);
+		sequenceRecordsforTest.Records[idx].stayRate = 1 - sequenceRecordsforTest.Records[idx].snpRate - sequenceRecordsforTest.Records[idx].delRate;
+		sequenceRecordsforTest.Records[idx].insmean = g_InsertionMean;
+	}
+
+	if(g_mutation_model == MUTATION_MODEL_SIMPLE_SNP_ONLY){
+		SequenceDataMutatorSubstitutionOnly dataMutTest(&sequenceRecordsforTest);
+		printf("Completed mutation using simple SNP only model.\n");
+	}
+	else if(g_mutation_model == MUTATION_MODEL_GEOMETRIC_MUTATOR){
+		SequenceDataMutatorGeometric dataMutTest(&sequenceRecordsforTest);
+		printf("Completed mutation using geometric mutator model.\n");
 	}
 	
-	SequenceDataMutatorSubstitutionOnly dataMutTest(&sequenceRecordsforTest);
-
 	//for each sequence pair, compute N_hash hashes and store them as, mean and stddev.
 	std::vector<double> AverageCollision(N_seq, 0.0);
 	// std::vector<double> StddevCollision(N_seq, 0.0);
@@ -333,32 +371,20 @@ bool LSHCollisionTestInnerInner(const HashInfo * hinfo, uint32_t N_seq, uint32_t
 				collision_count++;
 			}
 		}
+
 		// Compute average and stddev of collisions for this sequence pair.
 		double avg_collision = static_cast<double>(collision_count) / static_cast<double>(N_hash);
 		AverageCollision[rec_idx] = avg_collision;
-
-		// // For stddev, since each hash is a Bernoulli trial (collision or no collision), we can use the formula for stddev of a Bernoulli distribution.
-		// double stddev_collision = std::sqrt(avg_collision * (1.0 - avg_collision) / static_cast<double>(N_hash));
-		// StddevCollision[rec_idx] = stddev_collision;
 	}
 
 	// Print Similarity values
-	out_file << ":4:";
+	out_file << ":5:";
 	for (size_t i = 0; i < N_seq; i++) {
 		if (i == N_seq - 1)
 			out_file << sequenceRecordsforTest.Records[i].similarity << "\n";
 		else
 			out_file << sequenceRecordsforTest.Records[i].similarity << ",";
 	}
-	// Print param values
-	out_file << ":5:";
-	for (size_t i = 0; i < N_seq; i++) {
-		if (i == N_seq - 1)
-			out_file << sequenceRecordsforTest.Records[i].snpRate << "\n";
-		else
-			out_file << sequenceRecordsforTest.Records[i].snpRate << ",";
-	}
-
 	// Print Average Collision values
 	out_file << ":6:";
 	for (size_t i = 0; i < N_seq; i++) {
@@ -366,6 +392,38 @@ bool LSHCollisionTestInnerInner(const HashInfo * hinfo, uint32_t N_seq, uint32_t
 			out_file << AverageCollision[i] << "\n";
 		else
 			out_file << AverageCollision[i] << ",";
+	}
+	// Print param values
+	out_file << ":7:";
+	for (size_t i = 0; i < N_seq; i++) {
+		if (i == N_seq - 1)
+			out_file << sequenceRecordsforTest.Records[i].snpRate << "\n";
+		else
+			out_file << sequenceRecordsforTest.Records[i].snpRate << ",";
+	}
+	
+	if(g_mutation_model == MUTATION_MODEL_GEOMETRIC_MUTATOR){	
+		out_file << ":8:";
+		for (size_t i = 0; i < N_seq; i++) {
+			if (i == N_seq - 1)
+				out_file << sequenceRecordsforTest.Records[i].delRate << "\n";
+			else
+				out_file << sequenceRecordsforTest.Records[i].delRate << ",";
+		}
+		out_file << ":9:";
+		for (size_t i = 0; i < N_seq; i++) {
+			if (i == N_seq - 1)
+				out_file << sequenceRecordsforTest.Records[i].insmean << "\n";
+			else
+				out_file << sequenceRecordsforTest.Records[i].insmean << ",";
+		}
+		out_file << ":10:";
+		for (size_t i = 0; i < N_seq; i++) {
+			if (i == N_seq - 1)
+				out_file << sequenceRecordsforTest.Records[i].stayRate << "\n";
+			else
+				out_file << sequenceRecordsforTest.Records[i].stayRate << ",";
+		}
 	}
 	
 	return true;
@@ -386,10 +444,10 @@ static bool LSHCollisionTestInner( const HashInfo * hinfo, const seed_t baseSeed
 
 	// File header
 	out_file << ":1:LSH Collision Test Results\n";
-	out_file << ":2:" << "Hashname," << "SequenceLength," << "TokenLength,"<< "Distance Metric" << std::endl;
-	out_file << ":3:" << hinfo->name << "," << seqLen << "," << tokenlength << "," << setDistanceClassForHashInfo(hinfo) << std::endl;
+	out_file << ":2:" << "Hashname," << "SequenceLength," << "TokenLength,"<< "Distance Metric," << "Mutation Model,"<< "Mutation Expression" << std::endl;
+	out_file << ":3:" << hinfo->name << "," << seqLen << "," << tokenlength << "," << setDistanceClassForHashInfo(hinfo) << "," << g_mutation_model << "," << g_mutation_expression_type << std::endl;
 	if(std::string(hinfo->name) == "SubseqHash-64"){
-		out_file << ":3.1:" << g_subseqHash1_subseq_len << "," << g_subseqHash1_d << std::endl;
+		out_file << ":4:" << g_subseqHash1_subseq_len << "," << g_subseqHash1_d << std::endl;
 	}
 
 	seed_t DatagenSeed = baseSeed + 17;		// Seed for data generation
@@ -426,6 +484,7 @@ static bool LSHCollisionTestInner( const HashInfo * hinfo, const seed_t baseSeed
 	//--------------------------------------------//
 	if(hinfo->isVerySlow()){
 		N_agg = 50000;	// Number of sequences to generate for testing
+		// N_agg = 5000;	// Number of sequences to generate for testing
 		sim_bins = LSHCollisionTestInnerAgg(N_agg, common_params);
 		
 		//print bin means and stddevs using	
@@ -436,6 +495,9 @@ static bool LSHCollisionTestInner( const HashInfo * hinfo, const seed_t baseSeed
 		//--------------------------------------------//
 		N_seq = 5000;		// Number of sequences to generate for testing
 		N_hash = 500;	// Number of hashes to compute per sequence
+
+		// N_seq = 500;		// Number of sequences to generate for testing
+		// N_hash = 50;	// Number of hashes to compute per sequence
 	}
 	else{
 		N_agg = 500000;	// Number of sequences to generate for testing
@@ -447,8 +509,10 @@ static bool LSHCollisionTestInner( const HashInfo * hinfo, const seed_t baseSeed
 		}
 		
 		//--------------------------------------------//
-		N_seq = 10000;		// Number of sequences to generate for testing
+		N_seq = 5000;		// Number of sequences to generate for testing
 		N_hash = 2000;	// Number of hashes to compute per sequence
+		// N_seq = 1000;		// Number of sequences to generate for testing
+		// N_hash = 100;	// Number of hashes to compute per sequence
 	}
 	
 	LSHCollisionTestInnerInner<hashtype>(hinfo, N_seq, N_hash, hash, HashSeed, common_params, sim_bins, out_file);
@@ -457,7 +521,6 @@ static bool LSHCollisionTestInner( const HashInfo * hinfo, const seed_t baseSeed
 
     return result;	//TODO: For now, the result is always true. We need to add logic to find where the test fails.
 }
-
 
 
 //----------------------------------------------------------------------------//
@@ -484,6 +547,16 @@ bool LSHCollisionTest( const HashInfo * hinfo, bool extra, flags_t flags) {
 		std::cerr << "Error: Could not open output file" << std::endl;
 		exit(EXIT_FAILURE);
 	}
+
+
+	// Check the hash function and see if is hamming. If hamming then set the mutation model to simple SNP only.
+	if(hinfo->hash_flags & FLAG_HASH_HAMMING_SIMILARITY){
+		printf("Hash %s uses Hamming similarity. Setting mutation model to simple SNP only for testing.\n", hinfo->name);
+		g_mutation_model = MUTATION_MODEL_SIMPLE_SNP_ONLY;
+	}
+
+
+
 
 	// Create a code for generating an output file name based on hash name.
 	

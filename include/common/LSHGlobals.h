@@ -1,6 +1,19 @@
 #pragma once
 #include <cstdint>
 
+
+
+#define MUTATION_MODEL_SIMPLE_SNP_ONLY 0
+#define MUTATION_MODEL_GEOMETRIC_MUTATOR 1
+
+
+
+
+#define MUTATION_EXPRESSION_DEL_EQUAL_SUB 0
+#define MUTATION_EXPRESSION_DEL_HALF_SUB 1
+#define MUTATION_EXPRESSION_DEL_DOUBLE_SUB 2
+#define MUTATION_EXPRESSION_DEL_ZERO 3
+
 // Global variables for runtime communication
 extern uint32_t g_TokenLength;
 // extern uint32_t g_NumSignatures;
@@ -8,6 +21,12 @@ extern bool g_IsTestActive;
 extern const uint32_t g_GoldenRatio;	
 
 extern const uint32_t g_bincount_full;
+
+
+extern  uint32_t g_mutation_model; // 0: Simple SNP only, 1: Geometric Mutator
+extern const uint32_t g_mutation_expression_type;
+extern const double g_InsertionMean;
+
 
 extern const uint32_t g_subseqHash1_subseq_len; // Default subsequence length for SubseqHash1 : this is k
 extern const uint32_t g_subseqHash1_d;           // Default 'p' value for SubseqHash1	: this is d
@@ -21,3 +40,10 @@ void SetIsTestActive(bool active);
 uint32_t GetTokenLength();
 // uint32_t GetNumSignatures();
 bool IsTestActive();
+
+
+
+
+double mutation_expression(double P_sub, uint32_t expression_type);
+
+bool is_valid_mutation_parameters(double P_sub, double P_del);

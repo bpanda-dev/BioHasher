@@ -58,25 +58,11 @@ struct SequenceRecordUnit{
 	std::string GlobalCIGARString;
 
 	// Mutation Parameters
-	// Per-base probability for SNPs and small-scale indels.
     double snpRate;
-    // double smallIndelRate;
 
-    // Minimal and maximal size for small indels.  Indels will be simulated uniformly in this range.  The range is
-    // stored internally as [min, max) but given as [min, max] from the command line.
-    // int minSmallIndelSize;
-    // int maxSmallIndelSize;
-
-    // // Per-base probability for having a structural variation.
-    // double svIndelRate;
-    // double svInversionRate;
-    // double svTranslocationRate;
-    // double svDuplicationRate;
-
-    // // Minimal and maximal size for structural variations.  SVs will be simulated uniformly in this range.  The range is
-    // // stored internally as [min, max) but given as [min, max] from the command line.
-    // int minSVSize;
-    // int maxSVSize;
+	double delRate;
+	double stayRate;
+	double insmean;
 };
 
 struct sim_bins_struct{
@@ -134,6 +120,15 @@ class SequenceDataMutatorSubstitutionOnly{
 		// bool simulateSNP(SequenceRecordUnit &record, const uint32_t pos, std::mt19937 &randGen);
 	public:
 		SequenceDataMutatorSubstitutionOnly(SequenceRecordsWithMetadataStruct *sequenceRecordsWithMetadata);
+};
+
+class SequenceDataMutatorGeometric{
+	private:
+		// uint8_t GetBaseAtPosition(const std::vector<uint8_t>& seq, uint32_t pos);	// Helper: Get base at position
+		// void SetBaseAtPosition(std::vector<uint8_t>& seq, uint32_t pos, uint8_t base);	// Helper: Set base at position
+		// bool simulateSNP(SequenceRecordUnit &record, const uint32_t pos, std::mt19937 &randGen);
+	public:
+		SequenceDataMutatorGeometric(SequenceRecordsWithMetadataStruct *sequenceRecordsWithMetadata);
 };
 
 
