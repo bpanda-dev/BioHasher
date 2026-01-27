@@ -9,8 +9,10 @@
  *
  */
 #include "Platform.h"
-#include "Hashlib.h"
 #include "LSHGlobals.h"
+
+#include "Hashlib.h"
+
 #include "../util/Random.h"
 
 #include <vector>

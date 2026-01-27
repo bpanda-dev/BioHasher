@@ -1,5 +1,6 @@
 #include "LSHGlobals.h"
-
+#include "Platform.h"
+#include "Hashinfo.h"
 
 /*
 Currently the num_signatures variable is not used anywhere. It can be useful in future
@@ -82,4 +83,27 @@ bool is_valid_mutation_parameters(double P_sub, double P_del){
     else{
         return false;
     }
+}
+
+
+uint32_t setDistanceClassForHashInfo(const uint64_t hash_flags) {
+	// Determine the distance class based on the hash function's properties
+	if (hash_flags & FLAG_HASH_HAMMING_SIMILARITY) {
+		return 1U; // Hamming distance
+	} 
+	else if (hash_flags & FLAG_HASH_JACCARD_SIMILARITY) {
+		return 2U; // Jaccard distance
+	}
+	else if(hash_flags & FLAG_HASH_COSINE_SIMILARITY){
+		return 3U; // Cosine similarity
+	}
+	else if(hash_flags & FLAG_HASH_ANGULAR_SIMILARITY){
+		return 4U; // angular similarity
+	}
+	else if(hash_flags & FLAG_HASH_EDIT_SIMILARITY){
+		return 5U; // Edit similarity
+	}
+	else {
+		return 0U; // Default or unknown or distance not supported.
+	}
 }

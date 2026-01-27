@@ -27,27 +27,6 @@ struct common_params_struct{
 /*-------------------------------------------------------------------------------*/
 /*									Collision Test		 						 */
 /*-------------------------------------------------------------------------------*/
-uint32_t setDistanceClassForHashInfo(const HashInfo * hinfo) {
-	// Determine the distance class based on the hash function's properties
-	if (hinfo->hash_flags & FLAG_HASH_HAMMING_SIMILARITY) {
-		return 1U; // Hamming distance
-	} 
-	else if (hinfo->hash_flags & FLAG_HASH_JACCARD_SIMILARITY) {
-		return 2U; // Jaccard distance
-	}
-	else if(hinfo->hash_flags & FLAG_HASH_COSINE_SIMILARITY){
-		return 3U; // Cosine similarity
-	}
-	else if(hinfo->hash_flags & FLAG_HASH_ANGULAR_SIMILARITY){
-		return 4U; // angular similarity
-	}
-	else if(hinfo->hash_flags & FLAG_HASH_EDIT_SIMILARITY){
-		return 5U; // Edit similarity
-	}
-	else {
-		return 0U; // Default or unknown or distance not supported.
-	}
-}
 
 
 sim_bins_struct LSHCollisionTestInnerAgg(uint32_t N_agg, common_params_struct &common_params){
@@ -445,7 +424,7 @@ static bool LSHCollisionTestInner( const HashInfo * hinfo, const seed_t baseSeed
 	// File header
 	out_file << ":1:LSH Collision Test Results\n";
 	out_file << ":2:" << "Hashname," << "SequenceLength," << "TokenLength,"<< "Distance Metric," << "Mutation Model,"<< "Mutation Expression" << std::endl;
-	out_file << ":3:" << hinfo->name << "," << seqLen << "," << tokenlength << "," << setDistanceClassForHashInfo(hinfo) << "," << g_mutation_model << "," << g_mutation_expression_type << std::endl;
+	out_file << ":3:" << hinfo->name << "," << seqLen << "," << tokenlength << "," << setDistanceClassForHashInfo(hinfo->hash_flags) << "," << g_mutation_model << "," << g_mutation_expression_type << std::endl;
 	if(std::string(hinfo->name) == "SubseqHash-64"){
 		out_file << ":4:" << g_subseqHash1_subseq_len << "," << g_subseqHash1_d << std::endl;
 	}
@@ -469,7 +448,7 @@ static bool LSHCollisionTestInner( const HashInfo * hinfo, const seed_t baseSeed
 	common_params.DataMutateSeed = DataMutateSeed;
 	common_params.tokenlength = tokenlength;
 	common_params.isBasesDrawnFromUniformDist = isBasesDrawnFromUniformDist;
-	common_params.distanceClass = setDistanceClassForHashInfo(hinfo);
+	common_params.distanceClass = setDistanceClassForHashInfo(hinfo->hash_flags);
 	//--------------------------------------------//
 
 	uint32_t N_agg = 0;

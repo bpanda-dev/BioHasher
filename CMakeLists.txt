@@ -257,6 +257,7 @@ add_library(
   tests/PerlinNoiseTest.cpp
   tests/SpeedTest.cpp
   tests/LSHCollisionTest.cpp
+  tests/LSHCollisionAndOrTest.cpp
 )
 target_include_directories(SMHasher3Tests PRIVATE util PUBLIC include/common)
 

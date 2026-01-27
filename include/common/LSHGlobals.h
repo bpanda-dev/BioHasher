@@ -1,4 +1,5 @@
 #pragma once
+
 #include <cstdint>
 
 
@@ -47,3 +48,5 @@ bool IsTestActive();
 double mutation_expression(double P_sub, uint32_t expression_type);
 
 bool is_valid_mutation_parameters(double P_sub, double P_del);
+
+uint32_t setDistanceClassForHashInfo(const uint64_t hash_flags);

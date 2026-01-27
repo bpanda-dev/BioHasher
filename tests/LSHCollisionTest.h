@@ -49,10 +49,6 @@
 
 #include "BioDataGeneration.h"
 
-uint32_t setDistanceClassForHashInfo(const HashInfo * hinfo);
-
-void FillDistanceVectorFromSimilarity(const std::vector<float>& simrates, uint32_t sequenceLength, uint32_t distanceClass, std::vector<uint32_t>& distances);
-
 template <typename hashtype>
 bool LSHCollisionTest( const HashInfo * info, bool extra, flags_t flags );
 
