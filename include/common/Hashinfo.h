@@ -49,6 +49,7 @@
     FLAG_EXPAND(IMPL_SANITY_FAILS)          \
     FLAG_EXPAND(IMPL_SLOW)                  \
     FLAG_EXPAND(IMPL_VERY_SLOW)             \
+    FLAG_EXPAND(IMPL_SMALL_SEQUENCE_LENGTH) \
     FLAG_EXPAND(IMPL_READ_PAST_EOB)         \
     FLAG_EXPAND(IMPL_TYPE_PUNNING)          \
     FLAG_EXPAND(IMPL_INCREMENTAL)           \
@@ -257,6 +258,10 @@ class HashInfo {
 
     FORCE_INLINE bool isVerySlow( void ) const {
         return !!(impl_flags & FLAG_IMPL_VERY_SLOW);
+    }
+    
+    FORCE_INLINE bool isSmallSequenceLength( void ) const {
+        return !!(impl_flags & FLAG_IMPL_SMALL_SEQUENCE_LENGTH);
     }
 
     FORCE_INLINE bool isLocalSensitive( void ) const {

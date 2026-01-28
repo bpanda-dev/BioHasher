@@ -15,6 +15,12 @@
 #include <filesystem>
 
 
+
+/*-------------------------------------------------------------------------------*/
+/*									Collision Test		 						 */
+/*-------------------------------------------------------------------------------*/
+
+
 struct common_params_struct{
 	uint32_t seqLen;
 	seed_t DatagenSeed;
@@ -24,9 +30,6 @@ struct common_params_struct{
 	uint32_t distanceClass;
 };
 
-/*-------------------------------------------------------------------------------*/
-/*									Collision Test		 						 */
-/*-------------------------------------------------------------------------------*/
 
 static sim_bins_struct LSHCollisionTestInnerAgg(uint32_t N_agg, common_params_struct &common_params){
 	
@@ -721,7 +724,7 @@ bool LSHCollisionAndOrTest( const HashInfo * hinfo, bool extra, flags_t flags) {
 
 	std::vector<uint32_t> sequenceLengths;
 
-	if(hinfo->isVerySlow()){
+	if(hinfo->isSmallSequenceLength()){
 		printf("Hash %s is marked as very slow. Limiting test parameters for practicality.\n", hinfo->name);
 		sequenceLengths = {20,30,40}; //{512};
 	}

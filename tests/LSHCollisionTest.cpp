@@ -15,6 +15,10 @@
 #include <filesystem>
 
 
+/*-------------------------------------------------------------------------------*/
+/*									Collision Test		 						 */
+/*-------------------------------------------------------------------------------*/
+
 struct common_params_struct{
 	uint32_t seqLen;
 	seed_t DatagenSeed;
@@ -24,12 +28,8 @@ struct common_params_struct{
 	uint32_t distanceClass;
 };
 
-/*-------------------------------------------------------------------------------*/
-/*									Collision Test		 						 */
-/*-------------------------------------------------------------------------------*/
 
-
-sim_bins_struct LSHCollisionTestInnerAgg(uint32_t N_agg, common_params_struct &common_params){
+static sim_bins_struct LSHCollisionTestInnerAgg(uint32_t N_agg, common_params_struct &common_params){
 	
 	printf("Inside get_params_aggregated_in_bins\n");
 
@@ -223,7 +223,7 @@ sim_bins_struct LSHCollisionTestInnerAgg(uint32_t N_agg, common_params_struct &c
 }
 
 template <typename hashtype>
-bool LSHCollisionTestInnerInner(const HashInfo * hinfo, uint32_t N_seq, uint32_t N_hash, HashFn hash, seed_t HashSeed, common_params_struct &common_params, sim_bins_struct &sim_bins, std::ofstream &out_file){
+static bool LSHCollisionTestInnerInner(const HashInfo * hinfo, uint32_t N_seq, uint32_t N_hash, HashFn hash, seed_t HashSeed, common_params_struct &common_params, sim_bins_struct &sim_bins, std::ofstream &out_file){
 	
 	printf("Inside LSHCollisionTestInnerInner\n");
 
@@ -339,12 +339,21 @@ bool LSHCollisionTestInnerInner(const HashInfo * hinfo, uint32_t N_seq, uint32_t
 
 				// printf("Union vector sizes: VecA = %zu, VecB = %zu, Universe = %zu\n", unionBitVectors.vec_a.size(), unionBitVectors.vec_b.size(), unionBitVectors.universe.size());
 
-				hash(unionBitVectors.vec_a.data(), unionBitVectors.vec_a.size(), HashSeed + hash_idx, &hash_val_org);
-				hash(unionBitVectors.vec_b.data(), unionBitVectors.vec_b.size(), HashSeed + hash_idx, &hash_val_mut);
+				// This seeding pattern is bad. Slightly higher collision rate for simhash.
+				// hash(unionBitVectors.vec_a.data(), unionBitVectors.vec_a.size(), HashSeed + hash_idx, &hash_val_org);
+				// hash(unionBitVectors.vec_b.data(), unionBitVectors.vec_b.size(), HashSeed + hash_idx, &hash_val_mut);
+
+				// // The best performing seeding pattern so far.
+				hash(unionBitVectors.vec_a.data(), unionBitVectors.vec_a.size(), HashSeed*19 + hash_idx, &hash_val_org);
+				hash(unionBitVectors.vec_b.data(), unionBitVectors.vec_b.size(), HashSeed*19 + hash_idx, &hash_val_mut);
+
+				// This seeding pattern is also not good.
+				// hash(unionBitVectors.vec_a.data(), unionBitVectors.vec_a.size(), 42 * 19 + hash_idx, &hash_val_org);
+				// hash(unionBitVectors.vec_b.data(), unionBitVectors.vec_b.size(), 42 * 19 + hash_idx, &hash_val_mut);
 			}
 			else{
-				hash((const uint8_t*)record.SeqASCIIOrg.c_str(), record.OriginalLength, HashSeed + hash_idx, &hash_val_org);
-				hash((const uint8_t*)record.SeqASCIIMut.c_str(), record.MutatedLength, HashSeed + hash_idx, &hash_val_mut);
+				hash((const uint8_t*)record.SeqASCIIOrg.c_str(), record.OriginalLength, HashSeed*19 + hash_idx, &hash_val_org);
+				hash((const uint8_t*)record.SeqASCIIMut.c_str(), record.MutatedLength, HashSeed*19 + hash_idx, &hash_val_mut);
 			}
 			if(hash_val_org == hash_val_mut){
 				collision_count++;
@@ -364,16 +373,8 @@ bool LSHCollisionTestInnerInner(const HashInfo * hinfo, uint32_t N_seq, uint32_t
 		else
 			out_file << sequenceRecordsforTest.Records[i].similarity << ",";
 	}
-	// Print Average Collision values
-	out_file << ":6:";
-	for (size_t i = 0; i < N_seq; i++) {
-		if (i == N_seq - 1)
-			out_file << AverageCollision[i] << "\n";
-		else
-			out_file << AverageCollision[i] << ",";
-	}
 	// Print param values
-	out_file << ":7:";
+	out_file << ":6:";
 	for (size_t i = 0; i < N_seq; i++) {
 		if (i == N_seq - 1)
 			out_file << sequenceRecordsforTest.Records[i].snpRate << "\n";
@@ -382,27 +383,38 @@ bool LSHCollisionTestInnerInner(const HashInfo * hinfo, uint32_t N_seq, uint32_t
 	}
 	
 	if(g_mutation_model == MUTATION_MODEL_GEOMETRIC_MUTATOR){	
-		out_file << ":8:";
+		out_file << ":7:";
 		for (size_t i = 0; i < N_seq; i++) {
 			if (i == N_seq - 1)
 				out_file << sequenceRecordsforTest.Records[i].delRate << "\n";
 			else
 				out_file << sequenceRecordsforTest.Records[i].delRate << ",";
 		}
-		out_file << ":9:";
+		out_file << ":8:";
 		for (size_t i = 0; i < N_seq; i++) {
 			if (i == N_seq - 1)
 				out_file << sequenceRecordsforTest.Records[i].insmean << "\n";
 			else
 				out_file << sequenceRecordsforTest.Records[i].insmean << ",";
 		}
-		out_file << ":10:";
+		out_file << ":9:";
 		for (size_t i = 0; i < N_seq; i++) {
 			if (i == N_seq - 1)
 				out_file << sequenceRecordsforTest.Records[i].stayRate << "\n";
 			else
 				out_file << sequenceRecordsforTest.Records[i].stayRate << ",";
 		}
+	}
+
+	out_file << ":10:" << "AND," << "OR" << std::endl;
+	out_file << ":11:" << 1 << "," << 1 << std::endl;
+	// Print Average Collision values
+	out_file << ":12:";
+	for (size_t i = 0; i < N_seq; i++) {
+		if (i == N_seq - 1)
+			out_file << AverageCollision[i] << "\n";
+		else
+			out_file << AverageCollision[i] << ",";
 	}
 	
 	return true;
@@ -462,8 +474,9 @@ static bool LSHCollisionTestInner( const HashInfo * hinfo, const seed_t baseSeed
 
 	//--------------------------------------------//
 	if(hinfo->isVerySlow()){
+		printf("Hash %s is marked as very slow. Limiting test parameters for practicality.\n", hinfo->name);
 		N_agg = 50000;	// Number of sequences to generate for testing
-		// N_agg = 5000;	// Number of sequences to generate for testing
+		// N_agg = 10000;	// Number of sequences to generate for testing
 		sim_bins = LSHCollisionTestInnerAgg(N_agg, common_params);
 		
 		//print bin means and stddevs using	
@@ -472,8 +485,8 @@ static bool LSHCollisionTestInner( const HashInfo * hinfo, const seed_t baseSeed
 		}
 		
 		//--------------------------------------------//
-		N_seq = 5000;		// Number of sequences to generate for testing
-		N_hash = 500;	// Number of hashes to compute per sequence
+		N_seq = 2000;		// Number of sequences to generate for testing
+		N_hash = 2000;	// Number of hashes to compute per sequence
 
 		// N_seq = 500;		// Number of sequences to generate for testing
 		// N_hash = 50;	// Number of hashes to compute per sequence
@@ -555,7 +568,7 @@ bool LSHCollisionTest( const HashInfo * hinfo, bool extra, flags_t flags) {
 
 	std::vector<uint32_t> sequenceLengths;
 
-	if(hinfo->isVerySlow()){
+	if(hinfo->isSmallSequenceLength()){
 		printf("Hash %s is marked as very slow. Limiting test parameters for practicality.\n", hinfo->name);
 		sequenceLengths = {20,30,40}; //{512};
 	}

@@ -47,7 +47,7 @@ static void simHash32(const void* in , const size_t len, const seed_t seed, void
 
       const char* data = static_cast<const char*>(in);
       
-      //print the data
+      // //print the data
       // printf("Inside Hash: ");
       // for(int i =0; i< (int)len; i++){
       //       std::cout << data[i] << " ";
@@ -56,9 +56,9 @@ static void simHash32(const void* in , const size_t len, const seed_t seed, void
 
       auto hyperplane = GenerateNormalHyperplane(len, seed);
 
-      double temp_hash = 0;
+      double temp_hash = 0.0;
       for(int i = 0; i < static_cast<int>(len); i++) {
-            if(data[i] == '0') continue; // Skip zero bytes to optimize
+            if(data[i] == '0') continue; // Skip zero bytes to optimize. Note that the data is in character therefore there is a need for the quotes.
             else{
                   temp_hash += static_cast<double>(hyperplane[i]);
             }
@@ -78,7 +78,7 @@ REGISTER_FAMILY(SimHash,
 REGISTER_HASH(SimHash_Cos_32,
    $.desc            = "Simhash Cosine 32-bit version",
    $.hash_flags      = FLAG_HASH_LOCALITY_SENSITIVE | FLAG_HASH_TOKENISATION_PROPERTY | FLAG_HASH_COSINE_SIMILARITY | FLAG_HASH_UNIVERSE_VECTOR_OPTIMISATION,
-   $.impl_flags      = FLAG_IMPL_MULTIPLY | FLAG_IMPL_SLOW,        // Simhash is computationally expensive
+   $.impl_flags      = FLAG_IMPL_MULTIPLY | FLAG_IMPL_VERY_SLOW,        // Simhash is computationally expensive
    $.bits            = 32,
    $.verification_LE = 0x0,
    $.verification_BE = 0x0,
@@ -89,7 +89,7 @@ REGISTER_HASH(SimHash_Cos_32,
 REGISTER_HASH(SimHash_Ang_32,
    $.desc            = "Simhash Angular 32-bit version",
    $.hash_flags      = FLAG_HASH_LOCALITY_SENSITIVE | FLAG_HASH_TOKENISATION_PROPERTY | FLAG_HASH_ANGULAR_SIMILARITY | FLAG_HASH_UNIVERSE_VECTOR_OPTIMISATION,
-   $.impl_flags      = FLAG_IMPL_MULTIPLY | FLAG_IMPL_SLOW,        // Simhash is computationally expensive
+   $.impl_flags      = FLAG_IMPL_MULTIPLY | FLAG_IMPL_VERY_SLOW,        // Simhash is computationally expensive
    $.bits            = 32,
    $.verification_LE = 0x0,
    $.verification_BE = 0x0,
