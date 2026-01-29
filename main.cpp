@@ -904,10 +904,11 @@ int main( int argc, const char ** argv ) {
                     printf("Error parsing cpu number \"%s\"\n", &arg[7]);
                     exit(1);
                 }
-                if (Ncpu > 32) {
-                    printf("WARNING: limiting to 32 threads\n");
-                    Ncpu = 32;
-                }
+                // if (Ncpu > 32) {
+                //     printf("WARNING: limiting to 32 threads\n");
+                //     Ncpu = 32;
+                // }
+                
                 g_NCPU = Ncpu;
                 continue;
 #else
