@@ -23,7 +23,7 @@
 
 
 
-void ExtractTokensMinhash(const uint8_t *src, size_t startBase, size_t baseLen, uint8_t *dst){
+static void ExtractTokensMinhash(const uint8_t *src, size_t startBase, size_t baseLen, uint8_t *dst){
       // Extracts a k-mer (token) from the source sequence starting at startBase position
       // and copies it to the destination buffer.
       // src: Pointer to the source sequence (1-byte per base representation)

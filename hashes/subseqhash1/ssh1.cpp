@@ -10,26 +10,27 @@
 #include <cstring>
 #include <algorithm>
 
+// Thread-safe structure to hold all computation state
+struct SubseqHashState {
+    double f_max[100][100][101];
+    double f_min[100][100][101];
+    bool h[100][100][101];
+    double word[100][4][100];
+    int sign[100][4];
+    int sign1[100][4][100];
+    int sign2[100][4][100];
+	int dict[256];  // Use array instead of map for speed // Memory intensive but faster
 
-double f_max[100][100][101];
-double f_min[100][100][101];
-bool h[100][100][101];
+    SubseqHashState() {
+        memset(dict, 0, sizeof(dict));
+        dict['A'] = 0;
+        dict['C'] = 1;
+        dict['G'] = 2;
+        dict['T'] = 3;
+    }
+};
 
-std::map<char, int> dict;
-
-double word[100][4][100];
-int sign[100][4];
-int sign1[100][4][100];
-int sign2[100][4][100];
-
-int p=g_subseqHash1_d;   //TODO: Make 'p' configurable by the caller  // This is d in paper.
-
-void init(int blen, seed_t seed){
-   dict['A'] = 0;
-	dict['C'] = 1;
-	dict['G'] = 2;
-	dict['T'] = 3;
-
+static void init_state(SubseqHashState& state, int blen, int p, seed_t seed){
 	std::vector<int> pos;
 	std::vector<int> possign;
 
@@ -46,14 +47,13 @@ void init(int blen, seed_t seed){
 	{
 		for(int j = 0; j < 4; j++)
 			for(int q = 0; q < p; q++)
-				word[i][j][q] = distribution(generator);
+				state.word[i][j][q] = distribution(generator);
 
-      seed_t internal_seed_1 = seed + 7*i + 7; // simple way to change seed for different shuffles
+      	seed_t internal_seed_1 = seed + 7*i + 7; // simple way to change seed for different shuffles
 		std::shuffle(pos.begin(), pos.end(), std::default_random_engine(internal_seed_1));
 
 		for(int j = 0; j < 4; j++)
-			sign[i][j] = pos[j];
-
+			state.sign[i][j] = pos[j];
 
 		for(int q = 0; q < p; q++)
 		{  
@@ -61,109 +61,113 @@ void init(int blen, seed_t seed){
 			std::shuffle(possign.begin(), possign.end(), std::default_random_engine(internal_seed_2));
 			for(int j = 0; j < 4; j++)
 			{
-				sign1[i][j][q] = (possign[j] % 2) ? 1: -1;
-				sign2[i][j][q] = (possign[j] / 2) ? 1: -1;
+				state.sign1[i][j][q] = (possign[j] % 2) ? 1: -1;
+				state.sign2[i][j][q] = (possign[j] / 2) ? 1: -1;
 			}
 		}
 	}
-
 }
 
-double DP(int blen, std::string s)
+static double DP_state(SubseqHashState& state, int blen, int p, const char* s, size_t len)
 {
-	int len = s.length();
-	int del = len - blen;
+	int del = (int)len - blen;
 
-	memset(h, 0, sizeof(h));
+	memset(state.h, 0, sizeof(state.h));
 
 	double v = 0;
 
-	f_max[0][0][0] = f_min[0][0][0] = v;
-	h[0][0][0] = 1;
-	for(int i = 1; i <= len; i++)
+	state.f_max[0][0][0] = state.f_min[0][0][0] = v;
+	state.h[0][0][0] = 1;
+	for(size_t i = 1; i <= len; i++)
 	{
-		f_max[i][0][0] = v;
-		f_min[i][0][0] = v;
-		h[i][0][0] = 1;
+		state.f_max[i][0][0] = v;
+		state.f_min[i][0][0] = v;
+		state.h[i][0][0] = 1;
 	}
 
-	f_min[1][1][sign[0][dict[s[0]]]] = f_max[1][1][sign[0][dict[s[0]]]] = v * sign1[0][dict[s[0]]][sign[0][dict[s[0]]]] + sign2[0][dict[s[0]]][sign[0][dict[s[0]]]] * word[0][dict[s[0]]][sign[0][dict[s[0]]]];
-	h[1][1][sign[0][dict[s[0]]]] = 1;
+	int char0 = state.dict[(unsigned char)s[0]];
+    int sign0 = state.sign[0][char0];
+    state.f_min[1][1][sign0] = state.f_max[1][1][sign0] = 
+        v * state.sign1[0][char0][sign0] + 
+        state.sign2[0][char0][sign0] * state.word[0][char0][sign0];
+    state.h[1][1][sign0] = 1;
+
+	// state.f_min[1][1][state.sign[0][state.dict[s[0]]]] = state.f_max[1][1][state.sign[0][state.dict[s[0]]]] = v * state.sign1[0][state.dict[s[0]]][state.sign[0][state.dict[s[0]]]] + state.sign2[0][state.dict[s[0]]][state.sign[0][state.dict[s[0]]]] * state.word[0][state.dict[s[0]]][state.sign[0][state.dict[s[0]]]];
+	// state.h[1][1][state.sign[0][state.dict[s[0]]]] = 1;
 
 	double v1, v2;
-	for(int i = 2; i <= len; i++)
+	for(size_t i = 2; i <= len; i++)
 	{
-		int minj = std::max(1, i - del);
-		int maxj = std::min(i, blen);
+		int minj = std::max(1, (int)i - del);
+		int maxj = std::min((int)i, blen);
 
 		for(int j = minj; j <= maxj; j++)
 		{
-			int now = dict[s[i - 1]];
-			int v = sign[j-1][now];
+			int now = state.dict[(unsigned char)s[i - 1]];
+			int vv = state.sign[j-1][now];
 
 			for(int k = 0; k < p; k++)
 			{
-				int z = (k + v) % p;
-				if(h[i][j][z] == 0)
+				int z = (k + vv) % p;
+				if(state.h[i][j][z] == 0)
 				{
-					f_min[i][j][z] = 1e15;
-					f_max[i][j][z] = -1e15;
+					state.f_min[i][j][z] = 1e15;
+					state.f_max[i][j][z] = -1e15;
 				}
 
-				if(h[i-1][j][z] == 1)
+				if(state.h[i-1][j][z] == 1)
 				{
-					f_min[i][j][z] = std::min(f_min[i][j][z], f_min[i-1][j][z]);
-					f_max[i][j][z] = std::max(f_max[i][j][z], f_max[i-1][j][z]);
-					h[i][j][z] = 1;
+					state.f_min[i][j][z] = std::min(state.f_min[i][j][z], state.f_min[i-1][j][z]);
+					state.f_max[i][j][z] = std::max(state.f_max[i][j][z], state.f_max[i-1][j][z]);
+					state.h[i][j][z] = 1;
 				}
 
-				if(h[i-1][j-1][k])
+				if(state.h[i-1][j-1][k])
 				{
-					if(sign1[j-1][now][z] == -1)
+					if(state.sign1[j-1][now][z] == -1)
 					{
-						v1 = -f_min[i-1][j-1][k];
-						v2 = -f_max[i-1][j-1][k];
+						v1 = -state.f_min[i-1][j-1][k];
+						v2 = -state.f_max[i-1][j-1][k];
 
-						if(sign2[j-1][now][z] == -1)
+						if(state.sign2[j-1][now][z] == -1)
 						{
-							v1 -= word[j-1][now][z];
-							v2 -= word[j-1][now][z];
+							v1 -= state.word[j-1][now][z];
+							v2 -= state.word[j-1][now][z];
 						}
 						else
 						{
-							v1 += word[j-1][now][z];
-							v2 += word[j-1][now][z];
+							v1 += state.word[j-1][now][z];
+							v2 += state.word[j-1][now][z];
 						}
 
-						if(v1 > f_max[i][j][z])
-							f_max[i][j][z] = v1;
-						if(v2 < f_min[i][j][z])
-							f_min[i][j][z] = v2;
+						if(v1 > state.f_max[i][j][z])
+							state.f_max[i][j][z] = v1;
+						if(v2 < state.f_min[i][j][z])
+							state.f_min[i][j][z] = v2;
 					}
-
 					else
 					{
-						v1 = f_min[i-1][j-1][k];
-						v2 = f_max[i-1][j-1][k];
+						v1 = state.f_min[i-1][j-1][k];
+						v2 = state.f_max[i-1][j-1][k];
 
-						if(sign2[j-1][now][z] == -1)
+						if(state.sign2[j-1][now][z] == -1)
 						{
-							v1 -= word[j-1][now][z];
-							v2 -= word[j-1][now][z];
+							v1 -= state.word[j-1][now][z];
+							v2 -= state.word[j-1][now][z];
 						}
 						else
 						{
-							v1 += word[j-1][now][z];
-							v2 += word[j-1][now][z];
+							v1 += state.word[j-1][now][z];
+							v2 += state.word[j-1][now][z];
 						}
 
-						if(v1 < f_min[i][j][z])
-							f_min[i][j][z] = v1;
-						if(v2 > f_max[i][j][z])
-							f_max[i][j][z] = v2;
+						if(v1 < state.f_min[i][j][z])
+							state.f_min[i][j][z] = v1;
+						if(v2 > state.f_max[i][j][z])
+							state.f_max[i][j][z] = v2;
 					}
 
-					h[i][j][z] = 1;
+					state.h[i][j][z] = 1;
 				}
 			}
 		}
@@ -171,10 +175,10 @@ double DP(int blen, std::string s)
 
 	double ans = 0;
 	for(int i = 0; i < p; i++)
-		if(h[len][blen][i])
+		if(state.h[len][blen][i])
 		{
-			ans = std::max(ans, fabs(f_min[len][blen][i]));
-			ans = std::max(ans, f_max[len][blen][i]);
+			ans = std::max(ans, fabs(state.f_min[len][blen][i]));
+			ans = std::max(ans, state.f_max[len][blen][i]);
 
 			if(ans > 0)
 				return ans;
@@ -183,23 +187,22 @@ double DP(int blen, std::string s)
 	return ans;
 }
 
-
-
-
 template <bool bswap>
-static void SubseqHash64(const void* in , const size_t len, const seed_t seed, void* out) {
+static void SubseqHash64(const void* in, const size_t len, const seed_t seed, void* out) {
 
-   uint32_t subseq_len = g_subseqHash1_subseq_len;   //TODO: Make 'subseq_len' configurable by the caller
+   uint32_t subseq_len = g_subseqHash1_subseq_len;  //TODO: Make 'subseq_len' configurable by the caller
+   int p = g_subseqHash1_d; //TODO: Make 'p' configurable by the caller  // This is d in paper.
 
-   init(subseq_len, seed);
+    // Thread-local heap allocation - persists across calls, no stack overflow
+    thread_local std::unique_ptr<SubseqHashState> state_ptr;
+    if (!state_ptr) {
+        state_ptr = std::make_unique<SubseqHashState>();
+    }
+    SubseqHashState& state = *state_ptr;
 
-   //convert the input to string
-   std::string s((const char*)in, len);
+   init_state(state, subseq_len, p, seed);
 
-   double res = DP(subseq_len, s);
-
-   uint64_t double_bits;
-   memcpy(&double_bits, &res, sizeof(double));
+   double res = DP_state(state, subseq_len, p, (const char*)in, len);
 
    // Copy double bits directly to output
     uint64_t hash;
@@ -207,7 +210,6 @@ static void SubseqHash64(const void* in , const size_t len, const seed_t seed, v
 
     PUT_U64<bswap>(hash, (uint8_t*)out, 0);
 }
-
 
 REGISTER_FAMILY(SubseqHash,
    $.src_url    = "https://github.com/Shao-Group/subseqhash",

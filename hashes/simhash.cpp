@@ -1,5 +1,5 @@
 /* * SIMHASH
- * Copyright (C) 2022 IISc
+ * Copyright (C) 2026 IISc
  * ###YOURLICENSETEXT
  * */
 
@@ -14,7 +14,7 @@
 #include <iostream>
 
 //mean = 0.0, stddev = 1.0
-std::vector<double> GenerateNormalHyperplane(int n, seed_t seed) {
+static std::vector<double> GenerateNormalHyperplane(int n, seed_t seed) {
       // 1. Initialize the engine with a specific seed for reproducibility
       std::mt19937 gen(seed); 
       

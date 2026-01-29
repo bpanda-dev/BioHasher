@@ -33,10 +33,9 @@ struct common_params_struct{
 
 
 template <typename hashtype>
-static void LSHCollisionTestInnerInnerWorker(const HashInfo * hinfo, uint32_t N_seq, uint32_t N_hash, HashFn hash, seed_t HashSeed, common_params_struct &common_params, SequenceRecordsWithMetadataStruct &sequenceRecordsforTest, double * AverageCollision,int start, int end){
+static void LSHCollisionTestInnerInnerWorker(const HashInfo * hinfo, uint32_t N_seq, uint32_t N_hash, HashFn hash, seed_t HashSeed, common_params_struct &common_params, SequenceRecordsWithMetadataStruct &sequenceRecordsforTest,const std::vector<UnionBitVectorsStruct> *precomputedVectors, double * AverageCollision,int start, int end){
 
 	const bool useUniverseOpt = hinfo->hasUniverseVectorOptimisation();
-    const uint32_t tokenLen = common_params.tokenlength;
 
 	for(int rec_idx = start; rec_idx < end; rec_idx++){
 		SequenceRecordUnit &record = sequenceRecordsforTest.Records[rec_idx];
@@ -45,9 +44,9 @@ static void LSHCollisionTestInnerInnerWorker(const HashInfo * hinfo, uint32_t N_
 		// --- OPTIMIZATION START ---
         // We prepare the data ONCE per sequence, not N_hash times.
         // This prevents millions of memory allocations and lock contentions.
-        if (useUniverseOpt) {
+        if (useUniverseOpt && precomputedVectors != nullptr) {
             // Allocate vectors once
-            UnionBitVectorsStruct unionBitVectors = CreateUnionBitVectors(record.SeqASCIIOrg, record.SeqASCIIMut, tokenLen);
+            const UnionBitVectorsStruct &unionBitVectors = (*precomputedVectors)[rec_idx];
             
             // Constant pointers to data for speed
             const void* vecA_ptr = unionBitVectors.vec_a.data();
@@ -160,8 +159,33 @@ static bool LSHCollisionTestInnerInnerParallel(const HashInfo * hinfo, uint32_t 
 	}
 	
 	//for each sequence pair, compute N_hash hashes and store them as, mean and stddev.
+	const bool useUniverseOpt = hinfo->hasUniverseVectorOptimisation();
+    const uint32_t tokenLen = common_params.tokenlength;
+	// === PRE-COMPUTE ALL UNION VECTORS BEFORE PARALLELIZATION ===
+    // This eliminates heap contention during the parallel phase
+	std::vector<UnionBitVectorsStruct> precomputedVectors;
+    if (useUniverseOpt) {
+        printf("Pre-computing union vectors for %u sequences...\n", N_seq);
+        auto precompute_start = std::chrono::high_resolution_clock::now();
+        
+        precomputedVectors.resize(N_seq);
+        for (uint32_t i = 0; i < N_seq; i++) {
+            precomputedVectors[i] = CreateUnionBitVectors(
+                sequenceRecordsforTest.Records[i].SeqASCIIOrg,
+                sequenceRecordsforTest.Records[i].SeqASCIIMut,
+                tokenLen
+            );
+        }
+        
+        auto precompute_end = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> elapsed = precompute_end - precompute_start;
+        printf("Pre-computation took %.3f seconds.\n", elapsed.count());
+    }
+	// === END PRE-COMPUTE ALL UNION VECTORS BEFORE PARALLELIZATION ===
 
-	std::vector<double> AverageCollision(N_seq, 0.0);
+	alignas(64) std::vector<double> AverageCollision(N_seq, 0.0);
+
+	const std::vector<UnionBitVectorsStruct> *vecPtr = useUniverseOpt ? &precomputedVectors : nullptr;
 
 	if (g_NCPU == 1) {
 		printf("Starting collision computation with %u thread...\n", g_NCPU);
@@ -170,7 +194,8 @@ static bool LSHCollisionTestInnerInnerParallel(const HashInfo * hinfo, uint32_t 
         // Single threaded fallback
         LSHCollisionTestInnerInnerWorker<hashtype>(
             hinfo, N_seq, N_hash, hash, HashSeed, 
-            common_params, sequenceRecordsforTest, 
+            common_params, sequenceRecordsforTest,
+			vecPtr,
             AverageCollision.data(), 0, N_seq
         );
 		auto end_seq = std::chrono::high_resolution_clock::now();
@@ -195,6 +220,7 @@ static bool LSHCollisionTestInnerInnerParallel(const HashInfo * hinfo, uint32_t 
 					hinfo, N_seq, N_hash, hash, HashSeed, 
 					std::ref(common_params), 
 					std::ref(sequenceRecordsforTest), 
+					vecPtr,
 					AverageCollision.data(), 
 					start, end
 				);
@@ -711,7 +737,7 @@ static bool LSHCollisionTestInner( const HashInfo * hinfo, const seed_t baseSeed
 	//--------------------------------------------//
 	if(hinfo->isVerySlow()){
 		printf("Hash %s is marked as very slow. Limiting test parameters for practicality.\n", hinfo->name);
-		N_agg = 50000;	// Number of sequences to generate for testing
+		N_agg = 500000;	// Number of sequences to generate for testing
 		// N_agg = 10000;	// Number of sequences to generate for testing
 		sim_bins = LSHCollisionTestInnerAgg(N_agg, common_params);
 		
@@ -721,11 +747,11 @@ static bool LSHCollisionTestInner( const HashInfo * hinfo, const seed_t baseSeed
 		}
 		
 		//--------------------------------------------//
-		N_seq = 1000;		// Number of sequences to generate for testing
-		N_hash = 200;	// Number of hashes to compute per sequence
-
-		// N_seq = 500;		// Number of sequences to generate for testing
-		// N_hash = 50;	// Number of hashes to compute per sequence
+		// N_seq = 2000;		// Number of sequences to generate for testing
+		// N_hash = 2000;	// Number of hashes to compute per sequence
+		
+		N_seq = 2000;		// Number of sequences to generate for testing
+		N_hash = 2000;	// Number of hashes to compute per sequence
 	}
 	else{
 		N_agg = 500000;	// Number of sequences to generate for testing

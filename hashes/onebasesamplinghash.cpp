@@ -29,15 +29,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
 //-----------------------------------------------------------------------------
 // Helper function to extract a single bit from a byte array
 static inline uint8_t extractBit(const uint8_t* data, size_t bitPosition) {
