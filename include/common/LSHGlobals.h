@@ -9,11 +9,18 @@
 
 
 
+#define MUTATION_EXPRESSION_BALANCED 0
+#define MUTATION_EXPRESSION_SUB_ONLY 1
+#define MUTATION_EXPRESSION_DEL_LITE 2
+#define MUTATION_EXPRESSION_INS_LITE 3
+#define MUTATION_EXPRESSION_SUB_LITE 4
 
-#define MUTATION_EXPRESSION_DEL_EQUAL_SUB 0
-#define MUTATION_EXPRESSION_DEL_HALF_SUB 1
-#define MUTATION_EXPRESSION_DEL_DOUBLE_SUB 2
-#define MUTATION_EXPRESSION_DEL_ZERO 3
+
+
+// #define MUTATION_EXPRESSION_DEL_EQUAL_SUB 0
+// #define MUTATION_EXPRESSION_DEL_HALF_SUB 1
+// #define MUTATION_EXPRESSION_DEL_DOUBLE_SUB 2
+// #define MUTATION_EXPRESSION_DEL_ZERO 3
 
 // Global variables for runtime communication
 extern uint32_t g_TokenLength;
@@ -26,7 +33,7 @@ extern const uint32_t g_bincount_full;
 
 extern  uint32_t g_mutation_model; // 0: Simple SNP only, 1: Geometric Mutator
 extern const uint32_t g_mutation_expression_type;
-extern const double g_InsertionMean;
+
 
 
 extern const uint32_t g_subseqHash1_subseq_len; // Default subsequence length for SubseqHash1 : this is k
@@ -45,7 +52,7 @@ bool IsTestActive();
 
 
 
-double mutation_expression(double P_sub, uint32_t expression_type);
+void mutation_expression(double g_mean, uint32_t expression_type, double *P_sub_out, double *P_del_out);
 
 bool is_valid_mutation_parameters(double P_sub, double P_del);
 

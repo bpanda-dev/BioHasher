@@ -58,11 +58,12 @@ struct SequenceRecordUnit{
 	std::string GlobalCIGARString;
 
 	// Mutation Parameters
-    double snpRate;
-
+    double foundationalParameter;
+	double snpRate;
 	double delRate;
 	double stayRate;
 	double insmean;
+	double insRate; //For 1 length.
 };
 
 struct sim_bins_struct{
@@ -93,7 +94,7 @@ struct SequenceRecordsWithMetadataStruct{
 	float binsize = 0.01f;	// Bin size for distance metrics
 	float binstart = 0.0f;	// Bin start
 	float binend = 1.0f;		// Bin end
-	uint32_t bincount = 100;	// Number of bins
+	uint32_t bincount = 100;	// Number of bins	// This is similarity bins
 
 	// Array of sequence records (AoS)
     std::vector<SequenceRecordUnit> Records;
@@ -119,6 +120,7 @@ class SequenceDataMutatorSubstitutionOnly{
 		// void SetBaseAtPosition(std::vector<uint8_t>& seq, uint32_t pos, uint8_t base);	// Helper: Set base at position
 		// bool simulateSNP(SequenceRecordUnit &record, const uint32_t pos, std::mt19937 &randGen);
 	public:
+		SequenceDataMutatorSubstitutionOnly(SequenceRecordsWithMetadataStruct *sequenceRecordsWithMetadata, std::vector<double> *rand_error_param);
 		SequenceDataMutatorSubstitutionOnly(SequenceRecordsWithMetadataStruct *sequenceRecordsWithMetadata);
 };
 
@@ -128,6 +130,7 @@ class SequenceDataMutatorGeometric{
 		// void SetBaseAtPosition(std::vector<uint8_t>& seq, uint32_t pos, uint8_t base);	// Helper: Set base at position
 		// bool simulateSNP(SequenceRecordUnit &record, const uint32_t pos, std::mt19937 &randGen);
 	public:
+		SequenceDataMutatorGeometric(SequenceRecordsWithMetadataStruct *sequenceRecordsWithMetadata, std::vector<double> *rand_error_param);
 		SequenceDataMutatorGeometric(SequenceRecordsWithMetadataStruct *sequenceRecordsWithMetadata);
 };
 

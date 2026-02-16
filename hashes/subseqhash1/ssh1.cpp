@@ -30,6 +30,25 @@ struct SubseqHashState {
     }
 };
 
+// struct SubseqHashState {
+//     double f_max[100][100][101];
+//     double f_min[100][100][101];
+//     bool h[100][100][101];
+//     double word[100][4][100];
+//     int sign[100][4];
+//     int sign1[100][4][100];
+//     int sign2[100][4][100];
+// 	int dict[256];  // Use array instead of map for speed // Memory intensive but faster
+
+//     SubseqHashState() {
+//         memset(dict, 0, sizeof(dict));
+//         dict['A'] = 0;
+//         dict['C'] = 1;
+//         dict['G'] = 2;
+//         dict['T'] = 3;
+//     }
+// };
+
 static void init_state(SubseqHashState& state, int blen, int p, seed_t seed){
 	std::vector<int> pos;
 	std::vector<int> possign;

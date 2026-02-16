@@ -4,7 +4,8 @@
 #include "Platform.h"
 #include "Random.h"
 
-bool simulateSNP(SequenceRecordUnit &record, const uint32_t pos, Rand rng) {
+
+bool simulateSNP(SequenceRecordUnit &record, const uint32_t pos, Rand& rng) {
 	
 	char currentBase = record.SeqASCIIMut[pos];
 	uint8_t currentBaseid = (currentBase >> 1) & 0x03; // Map ASCII to 2-bit (A=0,C=1,T=2,G=3)
@@ -13,11 +14,12 @@ bool simulateSNP(SequenceRecordUnit &record, const uint32_t pos, Rand rng) {
 
 	// Randomly select a new base
 	// Generate a different base (ensure it's not the same as original)
-	uint32_t newBaseid_int = rng.rand_range(2);
-	uint8_t newBaseid = newBaseid_int & 0x03;
+	uint32_t newBaseid_int = rng.rand_range(3);
+    uint8_t newBaseid = static_cast<uint8_t>(newBaseid_int & 0x03);
 	if (currentBaseid <= newBaseid)
 		newBaseid += 1;
 
+	// printf("newBaseid_int = %u\n", newBaseid);
 	assert(currentBaseid != newBaseid && "New base should be different from current base");
 	assert(newBaseid <= 3 && "Base ID should be between 0 and 3");
 
@@ -310,18 +312,34 @@ void SequenceDataGenerator::decodeSequencesToASCII(const std::vector<uint8_t>& s
 /*#-----------------------------------------------------#*/
 /*#					Data Mutation						#*/
 /*#-----------------------------------------------------#*/
-SequenceDataMutatorSubstitutionOnly::SequenceDataMutatorSubstitutionOnly(SequenceRecordsWithMetadataStruct *sequenceRecordsWithMetadata){
+
+// For Agg
+SequenceDataMutatorSubstitutionOnly::SequenceDataMutatorSubstitutionOnly(SequenceRecordsWithMetadataStruct *sequenceRecordsWithMetadata, std::vector<double> *rand_error_param){
 	assert(sequenceRecordsWithMetadata != nullptr);
 	assert(sequenceRecordsWithMetadata->Records.size() > 0);
 
 	// Initialise seed and reserve memory.
-    Rand rng(sequenceRecordsWithMetadata->DataMutateSeed);
+	Rand rng_snp_rate(sequenceRecordsWithMetadata->DataMutateSeed);
+    Rand rng_mut(sequenceRecordsWithMetadata->DataMutateSeed);
+	// Rand rng_nuc(sequenceRecordsWithMetadata->DatagenSeed);
 
 	for(uint32_t rec_idx = 0; rec_idx < sequenceRecordsWithMetadata->KeyCount; rec_idx++) {
 
 		auto& record = sequenceRecordsWithMetadata->Records[rec_idx];
-		assert((record.snpRate >= 0.0) && (record.snpRate <= 1.0) && "SNP rate should be between 0 and 1");
-	
+		
+		uint32_t snp_value = rng_snp_rate.rand_range(1000);
+		double snp_rate = static_cast<double>(snp_value) / static_cast<double>(1000);	// snp or indel
+		rand_error_param->at(rec_idx) = snp_rate;
+
+		sequenceRecordsWithMetadata->Records[rec_idx].foundationalParameter = snp_rate;
+		sequenceRecordsWithMetadata->Records[rec_idx].snpRate = snp_rate;
+		sequenceRecordsWithMetadata->Records[rec_idx].delRate = 0.0;	// No indels in this mutator
+		sequenceRecordsWithMetadata->Records[rec_idx].stayRate = 1 - snp_rate;	// No indels in this mutator
+		sequenceRecordsWithMetadata->Records[rec_idx].insmean = 0.0;	// No indels in this mutator
+		sequenceRecordsWithMetadata->Records[rec_idx].insRate = 0.0;	// No indels in this mutator
+		
+		
+
 		// Initialising the mutated sequences with original sequences
 		record.MutatedLength = record.OriginalLength;
 		record.SeqASCIIMut.resize(record.MutatedLength, 'A');
@@ -329,11 +347,99 @@ SequenceDataMutatorSubstitutionOnly::SequenceDataMutatorSubstitutionOnly(Sequenc
 
 		// NOTE: Use a while loop or track position carefully since length changes
 		for (int pos = record.OriginalLength - 1; pos >= 0; --pos) {
-			uint32_t rand_val = rng.rand_range(1000);
+			uint32_t rand_val = rng_mut.rand_range(1000);
 			double sample = static_cast<double>(rand_val) / 1000.0;	// snp or indel
 			bool isSnp = (sample < record.snpRate);
 			if (isSnp) {
-                simulateSNP(record, pos, rng);
+                simulateSNP(record, pos, rng_mut);
+            }
+        }
+	}
+
+	if(sequenceRecordsWithMetadata->DistanceClass == 1){	// Hamming
+		for(uint32_t rec_idx = 0; rec_idx < sequenceRecordsWithMetadata->KeyCount; rec_idx++) {
+			auto& record = sequenceRecordsWithMetadata->Records[rec_idx];
+			record.similarity = ComputeHammingSimilarity(record.SeqASCIIOrg, record.SeqASCIIMut, record.OriginalLength);
+		}
+		std::cout << "DataMutation: Applied SNP mutations only. Distance Class = Hamming." << std::endl;
+	}
+	if(sequenceRecordsWithMetadata->DistanceClass == 2){	// Jaccard
+		for(uint32_t rec_idx = 0; rec_idx < sequenceRecordsWithMetadata->KeyCount; rec_idx++) {
+			auto& record = sequenceRecordsWithMetadata->Records[rec_idx];
+			record.similarity = ComputeJaccardSimilarity(record.SeqASCIIOrg, record.SeqASCIIMut, g_TokenLength);
+			// printf("Record %u: Jaccard Similarity = %f\n", rec_idx, record.similarity);
+		}
+		std::cout << "DataMutation: Applied SNP mutations only. Distance Class = Jaccard." << std::endl;
+	}
+	if(sequenceRecordsWithMetadata->DistanceClass == 3){	// Cosine
+		for(uint32_t rec_idx = 0; rec_idx < sequenceRecordsWithMetadata->KeyCount; rec_idx++) {
+			auto& record = sequenceRecordsWithMetadata->Records[rec_idx];
+			record.similarity = ComputeCosineSimilarity(record.SeqASCIIOrg, record.SeqASCIIMut, g_TokenLength);
+		}
+		std::cout << "DataMutation: Applied SNP mutations only. Distance Class = Cosine." << std::endl;
+	}
+	if(sequenceRecordsWithMetadata->DistanceClass == 4){	// Angular
+		for(uint32_t rec_idx = 0; rec_idx < sequenceRecordsWithMetadata->KeyCount; rec_idx++) {
+			auto& record = sequenceRecordsWithMetadata->Records[rec_idx];
+			record.similarity = ComputeAngularSimilarity(record.SeqASCIIOrg, record.SeqASCIIMut, g_TokenLength);
+		}
+		std::cout << "DataMutation: Applied SNP mutations only. Distance Class = Angular." << std::endl;
+	}
+	if(sequenceRecordsWithMetadata->DistanceClass == 5){	// Edit Distance
+		for(uint32_t rec_idx = 0; rec_idx < sequenceRecordsWithMetadata->KeyCount; rec_idx++) {
+			auto& record = sequenceRecordsWithMetadata->Records[rec_idx];
+			record.similarity = ComputeEditSimilarity(record.SeqASCIIOrg, record.SeqASCIIMut);
+		}
+		std::cout << "DataMutation: Applied SNP mutations only. Distance Class = Edit Similarity." << std::endl;
+	}
+
+	// Debugging output
+    for(uint32_t rec_idx = 0; rec_idx < std::min(sequenceRecordsWithMetadata->KeyCount, 10u); rec_idx++) {
+        auto& record = sequenceRecordsWithMetadata->Records[rec_idx];
+        if (rec_idx < 10) {
+            std::cout << "\n=== Record " << rec_idx << " ===" << std::endl;
+            std::cout << "Original Length: " << record.OriginalLength << std::endl;
+            std::cout << "Mutated Length:  " << record.MutatedLength << std::endl;
+            std::cout << "Original: " << record.SeqASCIIOrg << std::endl;
+            std::cout << "Mutated:  " << record.SeqASCIIMut << std::endl;
+			std::cout << "SNP Rate: " << record.snpRate << std::endl;
+			std::cout << "Similarity: " << record.similarity << std::endl;
+        }
+    }	
+}
+
+// For test
+SequenceDataMutatorSubstitutionOnly::SequenceDataMutatorSubstitutionOnly(SequenceRecordsWithMetadataStruct *sequenceRecordsWithMetadata){
+	assert(sequenceRecordsWithMetadata != nullptr);
+	assert(sequenceRecordsWithMetadata->Records.size() > 0);
+
+	// Initialise seed and reserve memory.
+    Rand rng_snp(sequenceRecordsWithMetadata->DataMutateSeed);
+	// Rand rng_nuc(sequenceRecordsWithMetadata->DataMutateSeed);
+
+	for(uint32_t rec_idx = 0; rec_idx < sequenceRecordsWithMetadata->KeyCount; rec_idx++) {
+
+		auto& record = sequenceRecordsWithMetadata->Records[rec_idx];
+		
+		double snp_rate = record.foundationalParameter;
+		record.snpRate = snp_rate;
+		record.delRate = 0.0;	// No indels in this mutator
+		record.stayRate = 1 - snp_rate;	// No indels in this mutator
+		record.insmean = 0.0;	// No indels in this mutator
+		record.insRate = 0.0;	// No indels in this mutator
+
+		// Initialising the mutated sequences with original sequences
+		record.MutatedLength = record.OriginalLength;
+		record.SeqASCIIMut.resize(record.MutatedLength, 'A');
+		record.SeqASCIIMut = record.SeqASCIIOrg;	// Copy original ASCII sequence
+
+		// NOTE: Use a while loop or track position carefully since length changes
+		for (int pos = record.OriginalLength - 1; pos >= 0; --pos) {
+			uint32_t rand_val = rng_snp.rand_range(1000);
+			double sample = static_cast<double>(rand_val) / 1000.0;	// snp or indel
+			bool isSnp = (sample < record.snpRate);
+			if (isSnp) {
+                simulateSNP(record, pos, rng_snp);
             }
         }
 	}
@@ -391,19 +497,214 @@ SequenceDataMutatorSubstitutionOnly::SequenceDataMutatorSubstitutionOnly(Sequenc
 }
 
 
+
+// For Agg
+SequenceDataMutatorGeometric::SequenceDataMutatorGeometric(SequenceRecordsWithMetadataStruct *sequenceRecordsWithMetadata, std::vector<double> *rand_error_param){
+	assert(sequenceRecordsWithMetadata != nullptr);
+	assert(rand_error_param != nullptr);
+	assert(sequenceRecordsWithMetadata->Records.size() > 0);
+
+	// Initialise seed and reserve memory.
+    Rand rng_gmean(sequenceRecordsWithMetadata->DataMutateSeed);	// For drawing the geometric mean.
+	Rand rng_sub_del((sequenceRecordsWithMetadata->DataMutateSeed + 1));	// For drawing the substitution and deletion marks.
+	std::mt19937 gen(sequenceRecordsWithMetadata->DataMutateSeed  + 2);	// For drawing the length of the insertion.
+	// Rand rng_nucgen(sequenceRecordsWithMetadata->DatagenSeed + agg_seed + 3);	// For drawing the nucleotides. substitution and insertions
+	
+
+	// Mutations to be sampled here.
+	uint32_t mutation_expression_type = g_mutation_expression_type; 	// Change the expression type here as needed.
+
+	for(uint32_t rec_idx = 0; rec_idx < sequenceRecordsWithMetadata->KeyCount; rec_idx++) {
+		double g_mean = static_cast<double>(rng_gmean.rand_range(300))/1000.0;	// Sample a mean value between 0 and 0.1 for geometric mutator. We can change this range as needed.
+		double P_sub, P_del;
+		mutation_expression(g_mean, mutation_expression_type, &P_sub, &P_del);
+
+		// printf("Record %u: %f Initial P_sub = %f, P_del = %f\n", rec_idx,g_mean, P_sub, P_del);
+
+		while(is_valid_mutation_parameters(P_sub, P_del) == false){
+			// Redraw
+			g_mean = static_cast<double>(rng_gmean.rand_range(300))/1000.0;	// Sample a mean value between 0 and 0.1 for geometric mutator. We can change this range as needed.
+			mutation_expression(g_mean, mutation_expression_type, &P_sub, &P_del);
+		}
+		rand_error_param->at(rec_idx) = g_mean;
+		sequenceRecordsWithMetadata->Records[rec_idx].foundationalParameter = g_mean;
+		sequenceRecordsWithMetadata->Records[rec_idx].snpRate = P_sub;
+		sequenceRecordsWithMetadata->Records[rec_idx].delRate = P_del;
+		sequenceRecordsWithMetadata->Records[rec_idx].stayRate = 1 - P_sub - P_del;
+		sequenceRecordsWithMetadata->Records[rec_idx].insmean = g_mean;
+		sequenceRecordsWithMetadata->Records[rec_idx].insRate = (1-(1/(1+g_mean)))*(1/(1+g_mean));  // Probability of insertion being of length 1 drawn from a geometric distribution with mean g_mean.
+
+
+		auto& record = sequenceRecordsWithMetadata->Records[rec_idx];
+		
+		record.MutatedLength = record.OriginalLength;	// Initialising the mutated sequences with original sequences
+		record.SeqASCIIMut.resize(record.MutatedLength, 'A');
+		// record.SeqASCIIMut = record.SeqASCIIOrg;	// Copy original ASCII sequence
+		
+		// create an array of length of original sequence to mark positions for mutation(1=P_sub,2=P_del,0=P_stay)
+		std::vector<uint32_t> mutation_marks(record.OriginalLength, 0);
+		std::vector<uint32_t> ins_lengths(record.OriginalLength, 0); // To store insertion lengths at each position
+
+		// Precompute cumulative probabilities
+		std::vector<double> cumulative_probs = {
+			record.snpRate,	// P_sub
+			record.snpRate + record.delRate,	// P_del
+			1.0 // P_stay
+		};
+
+		// Draw and store if its P_sub, P_del or P_stay for each position
+		for (uint32_t pos = 0; pos < record.OriginalLength; pos++) {
+			double rand_val = static_cast<double>(rng_sub_del.rand_range(100)) / 100.0;	// Convert to 0 to 1
+			if (rand_val < cumulative_probs[0]) {
+				mutation_marks[pos] = 1; // P_sub
+			} else if (rand_val < cumulative_probs[1]) {
+				mutation_marks[pos] = 2; // P_del
+			} else {
+				mutation_marks[pos] = 0; // P_stay
+			}
+		}
+
+		if(g_mutation_expression_type == MUTATION_EXPRESSION_SUB_ONLY){
+			for (uint32_t pos = 0; pos < record.OriginalLength; pos++) {
+				ins_lengths[pos] = 0;
+			}
+		}
+		else{
+			// Draw insertion lengths for each position based on geometric distribution
+			double p = 1.0 / (record.insmean + 1.0);
+			std::geometric_distribution<uint32_t> geom_dist(p);
+			for (uint32_t pos = 0; pos < record.OriginalLength; pos++) {
+				uint32_t ins_length = geom_dist(gen);
+				ins_lengths[pos] = ins_length;
+				// printf("Record %u, Position %u: Insertion Length = %u\n", rec_idx, pos, ins_length);
+			}
+		}
+		
+
+		// Compute the memory required.
+		record.MutatedLength = record.OriginalLength;  // Start with original
+		for (uint32_t pos = 0; pos < record.OriginalLength; pos++) {
+			if (mutation_marks[pos] == 2) { // Deletion
+				record.MutatedLength -= 1;
+			} 
+			// Insertions
+			record.MutatedLength += ins_lengths[pos];
+		}
+		record.SeqASCIIMut.resize(record.MutatedLength, 'A');	// Resize mutated sequence based on computed length
+		
+		// if(record.MutatedLength > record.OriginalLength){
+		// 	std::cout << "Record " << rec_idx << ": Original Length = " << record.OriginalLength << ", Mutated Length = " << record.MutatedLength << std::endl;
+		// }
+
+		// Apply mutations based on precomputed marks
+		uint32_t mpos = 0;	// Position in mutated sequence
+		for(uint32_t pos = 0; pos < record.OriginalLength; pos++) {
+			
+			if(mutation_marks[pos]==1){
+				//SNP
+				record.SeqASCIIMut[mpos] = record.SeqASCIIOrg[pos];
+				simulateSNP(record, mpos, rng_sub_del);
+				mpos++;
+			}
+			else if(mutation_marks[pos]==2){
+				//Deletion
+				//Skip this base in mutated sequence
+				//mpos is not incremented
+			}
+			else{	//mutation_marks[pos]==0
+				record.SeqASCIIMut[mpos] = record.SeqASCIIOrg[pos];
+				mpos++;
+			}
+
+			for(uint32_t ins_idx=0; ins_idx<ins_lengths[pos]; ins_idx++){
+				//Randomly select a base for insertion
+				uint8_t base = rng_sub_del.rand_range(4);
+				record.SeqASCIIMut[mpos] = bases[base];
+				mpos++;
+			}
+		}
+		assert(mpos == record.MutatedLength && "Mismatch between computed and actual mutated length");
+
+	}
+
+
+	if(sequenceRecordsWithMetadata->DistanceClass == 1){	// Hamming
+		//TODO:Print an error since geometric mutator cannot maintain Hamming distance due to change in length.
+		std::cout << "DataMutation Error: Hamming distance is not suitable for geometric mutations due to variable sequence lengths. Please set a different distance class for your Hash." << std::endl;
+		exit(1);
+	}
+	if(sequenceRecordsWithMetadata->DistanceClass == 2){	// Jaccard
+		for(uint32_t rec_idx = 0; rec_idx < sequenceRecordsWithMetadata->KeyCount; rec_idx++) {
+			auto& record = sequenceRecordsWithMetadata->Records[rec_idx];
+			record.similarity = ComputeJaccardSimilarity(record.SeqASCIIOrg, record.SeqASCIIMut, g_TokenLength);
+			// printf("Record %u: Jaccard Similarity = %f\n", rec_idx, record.similarity);
+		}
+		std::cout << "DataMutation: Applied Geometric mutations only. Distance Class = Jaccard." << std::endl;
+	}
+	if(sequenceRecordsWithMetadata->DistanceClass == 3){	// Cosine
+		for(uint32_t rec_idx = 0; rec_idx < sequenceRecordsWithMetadata->KeyCount; rec_idx++) {
+			auto& record = sequenceRecordsWithMetadata->Records[rec_idx];
+			record.similarity = ComputeCosineSimilarity(record.SeqASCIIOrg, record.SeqASCIIMut, g_TokenLength);
+		}
+		std::cout << "DataMutation: Applied Geometric mutations only. Distance Class = Cosine." << std::endl;
+	}
+	if(sequenceRecordsWithMetadata->DistanceClass == 4){	// Angular
+		for(uint32_t rec_idx = 0; rec_idx < sequenceRecordsWithMetadata->KeyCount; rec_idx++) {
+			auto& record = sequenceRecordsWithMetadata->Records[rec_idx];
+			record.similarity = ComputeAngularSimilarity(record.SeqASCIIOrg, record.SeqASCIIMut, g_TokenLength);
+		}
+		std::cout << "DataMutation: Applied Geometric mutations only. Distance Class = Angular." << std::endl;
+	}
+	if(sequenceRecordsWithMetadata->DistanceClass == 5){	// Edit Distance
+		for(uint32_t rec_idx = 0; rec_idx < sequenceRecordsWithMetadata->KeyCount; rec_idx++) {
+			auto& record = sequenceRecordsWithMetadata->Records[rec_idx];
+			record.similarity = ComputeEditSimilarity(record.SeqASCIIOrg, record.SeqASCIIMut);
+		}
+		std::cout << "DataMutation: Applied Geometric mutations only. Distance Class = Edit Similarity." << std::endl;
+	}
+
+	// Debugging output
+    for(uint32_t rec_idx = 0; rec_idx < std::min(sequenceRecordsWithMetadata->KeyCount, 10u); rec_idx++) {
+        auto& record = sequenceRecordsWithMetadata->Records[rec_idx];
+        if (rec_idx < 10) {
+            std::cout << "\n=== Record " << rec_idx << " ===" << std::endl;
+            std::cout << "Original Length: " << record.OriginalLength << std::endl;
+            std::cout << "Mutated Length:  " << record.MutatedLength << std::endl;
+            std::cout << "Original: " << record.SeqASCIIOrg << std::endl;
+            std::cout << "Mutated:  " << record.SeqASCIIMut << std::endl;
+			std::cout << "SNP Rate: " << record.snpRate << std::endl;
+			std::cout << "Similarity: " << record.similarity << std::endl;
+        }
+    }	
+}
+
+
+// For test
 SequenceDataMutatorGeometric::SequenceDataMutatorGeometric(SequenceRecordsWithMetadataStruct *sequenceRecordsWithMetadata){
 	assert(sequenceRecordsWithMetadata != nullptr);
 	assert(sequenceRecordsWithMetadata->Records.size() > 0);
 
 	// Initialise seed and reserve memory.
-    Rand rng(sequenceRecordsWithMetadata->DataMutateSeed);
-	std::mt19937 gen(sequenceRecordsWithMetadata->DataMutateSeed);	// For geometric distribution
-		
+    Rand rng_sub_del(sequenceRecordsWithMetadata->DataMutateSeed + 1);
+	std::mt19937 gen(sequenceRecordsWithMetadata->DataMutateSeed + 2);	// For geometric distribution
+	// Rand rng_nucgen(sequenceRecordsWithMetadata->DatagenSeed + test_seed + 3);	// For drawing the nucleotides. substitution and insertions
+	
+	uint32_t mutation_expression_type = g_mutation_expression_type; 	// Change the expression type here as needed.
 
 	for(uint32_t rec_idx = 0; rec_idx < sequenceRecordsWithMetadata->KeyCount; rec_idx++) {
 
 		auto& record = sequenceRecordsWithMetadata->Records[rec_idx];
-		assert((record.snpRate >= 0.0) && (record.snpRate <= 1.0) && "SNP rate should be between 0 and 1");	// A redundant check. 
+
+		double g_mean = record.foundationalParameter;
+		double P_sub, P_del;
+		mutation_expression(g_mean, mutation_expression_type, &P_sub, &P_del);
+
+		sequenceRecordsWithMetadata->Records[rec_idx].snpRate = P_sub;
+		sequenceRecordsWithMetadata->Records[rec_idx].delRate = P_del;
+		sequenceRecordsWithMetadata->Records[rec_idx].stayRate = 1 - P_sub - P_del;
+		sequenceRecordsWithMetadata->Records[rec_idx].insmean = g_mean;
+		sequenceRecordsWithMetadata->Records[rec_idx].insRate = (1-(1/(1+g_mean)))*(1/(1+g_mean));  // Probability of insertion being of length 1 drawn from a geometric distribution with mean g_mean.
+		
 	
 		// Initialising the mutated sequences with original sequences
 		record.MutatedLength = record.OriginalLength;
@@ -423,7 +724,7 @@ SequenceDataMutatorGeometric::SequenceDataMutatorGeometric(SequenceRecordsWithMe
 
 		// Draw and store if its P_sub, P_del or P_stay for each position
 		for (uint32_t pos = 0; pos < record.OriginalLength; pos++) {
-			double rand_val = static_cast<double>(rng.rand_range(1000)) / 1000.0;	// Convert to 0 to 1
+			double rand_val = static_cast<double>(rng_sub_del.rand_range(100)) / 100.0;	// Convert to 0 to 1
 			if (rand_val < cumulative_probs[0]) {
 				mutation_marks[pos] = 1; // P_sub
 			} else if (rand_val < cumulative_probs[1]) {
@@ -433,15 +734,22 @@ SequenceDataMutatorGeometric::SequenceDataMutatorGeometric(SequenceRecordsWithMe
 			}
 		}
 
-		// Draw insertion lengths for each position based on geometric distribution
-		double p = 1.0 / (record.insmean + 1.0);
-		std::geometric_distribution<uint32_t> geom_dist(p);
-		for (uint32_t pos = 0; pos < record.OriginalLength; pos++) {
-			uint32_t ins_length = geom_dist(gen);
-			ins_lengths[pos] = ins_length;
-			// printf("Record %u, Position %u: Insertion Length = %u\n", rec_idx, pos, ins_length);
+		if(g_mutation_expression_type == MUTATION_EXPRESSION_SUB_ONLY){
+			for (uint32_t pos = 0; pos < record.OriginalLength; pos++) {
+				ins_lengths[pos] = 0;
+			}
 		}
-
+		else{
+			// Draw insertion lengths for each position based on geometric distribution
+			double p = 1.0 / (record.insmean + 1.0);
+			std::geometric_distribution<uint32_t> geom_dist(p);
+			for (uint32_t pos = 0; pos < record.OriginalLength; pos++) {
+				uint32_t ins_length = geom_dist(gen);
+				ins_lengths[pos] = ins_length;
+				// printf("Record %u, Position %u: Insertion Length = %u\n", rec_idx, pos, ins_length);
+			}
+		}
+		
 		// Compute the memory required.
 		record.MutatedLength = record.OriginalLength;  // Start with original
 		for (uint32_t pos = 0; pos < record.OriginalLength; pos++) {
@@ -461,7 +769,7 @@ SequenceDataMutatorGeometric::SequenceDataMutatorGeometric(SequenceRecordsWithMe
 			if(mutation_marks[pos]==1){
 				//SNP
 				record.SeqASCIIMut[mpos] = record.SeqASCIIOrg[pos];
-				simulateSNP(record, mpos, rng);
+				simulateSNP(record, mpos, rng_sub_del);
 				mpos++;
 			}
 			else if(mutation_marks[pos]==2){
@@ -476,7 +784,7 @@ SequenceDataMutatorGeometric::SequenceDataMutatorGeometric(SequenceRecordsWithMe
 
 			for(uint32_t ins_idx=0; ins_idx<ins_lengths[pos]; ins_idx++){
 				//Randomly select a base for insertion
-				uint8_t base = rng.rand_range(4);
+				uint8_t base = rng_sub_del.rand_range(4);
 				record.SeqASCIIMut[mpos] = bases[base];
 				mpos++;
 			}

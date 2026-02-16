@@ -9,7 +9,7 @@ if we want to test different number of signatures in Minhash or other LSH functi
 
 
 // Global variables for runtime communication
-const uint32_t g_bincount_full = 4000;
+const uint32_t g_bincount_full = 1000;
 
 uint32_t g_TokenLength = 0;     // Default token/kmer length
 // uint32_t gNumSignatures = 32;   // Default number of signatures	
@@ -17,13 +17,13 @@ bool g_IsTestActive = false;     // Whether test is currently running
 
 const uint32_t g_GoldenRatio = 0x9e3779b1;	
 
+// Change to MUTATION_MODEL_SIMPLE_SNP_ONLY (0) or MUTATION_MODEL_GEOMETRIC_MUTATOR (1)
+uint32_t g_mutation_model = MUTATION_MODEL_GEOMETRIC_MUTATOR; //MUTATION_MODEL_SIMPLE_SNP_ONLY;//MUTATION_MODEL_GEOMETRIC_MUTATOR; // MUTATION_MODEL_SIMPLE_SNP_ONLY; // 0: Simple SNP only, 1: Geometric Mutator   // Change the mutation model here.
+const uint32_t g_mutation_expression_type = MUTATION_EXPRESSION_INS_LITE;//MUTATION_EXPRESSION_BALANCED;	// Change the mutation expression type here as needed.
+// const double g_InsertionMean = 0.05;
 
-uint32_t g_mutation_model = MUTATION_MODEL_SIMPLE_SNP_ONLY; // MUTATION_MODEL_SIMPLE_SNP_ONLY; // 0: Simple SNP only, 1: Geometric Mutator   // Change the mutation model here.
-const uint32_t g_mutation_expression_type = MUTATION_EXPRESSION_DEL_EQUAL_SUB;
-const double g_InsertionMean = 0.05;
-
-const uint32_t g_subseqHash1_subseq_len = 12; // Default subsequence length for SubseqHash1
-const uint32_t g_subseqHash1_d = 11;           // Default 'p' value for SubseqHash1
+const uint32_t g_subseqHash1_subseq_len = 12; // Default subsequence length for SubseqHash1 This is k   (11,21,31,37)
+const uint32_t g_subseqHash1_d = 11;           // Default 'p' value for SubseqHash1 this is d
 
 // Setter functions (called by LSHCollision test)
 void SetTokenLength(uint32_t length) {
@@ -53,24 +53,41 @@ bool IsTestActive() {
 
 
 
-double mutation_expression(double P_sub, uint32_t expression_type){
+void mutation_expression(double g_mean, uint32_t expression_type, double *P_sub_out, double *P_del_out){
     // Different mutation expressions can be implemented here.
-    // For now, we implement a simple linear relationship.
     
-    if(expression_type == MUTATION_EXPRESSION_DEL_EQUAL_SUB){	// Linear: P_del = P_sub
-        return P_sub;
+    double insertion_of_len_1 = (1-(1/(1+g_mean)))*(1/(1+g_mean));  // Probability of insertion being of length 1 drawn from a geometric distribution with mean g_mean.
+
+    if(expression_type == MUTATION_EXPRESSION_BALANCED){
+        // Balanced expression: P_del = P_sub = Pr[insertion of length 1]
+        *P_sub_out = insertion_of_len_1;
+        *P_del_out = insertion_of_len_1;
     }
-    else if(expression_type == MUTATION_EXPRESSION_DEL_HALF_SUB){	// Quadratic: P_del = (P_sub)/2
-        return P_sub * 0.05;
+    else if(expression_type == MUTATION_EXPRESSION_SUB_ONLY){
+        // SUB ONLY expression: P_del = 0, P_sub = Pr[insertion of length 1]
+        *P_sub_out = insertion_of_len_1;
+        *P_del_out = 0.0;
     }
-    else if(expression_type == MUTATION_EXPRESSION_DEL_DOUBLE_SUB){	// Quadratic: P_del = (P_sub)*2
-        return P_sub * 2.0;
+    else if(expression_type == MUTATION_EXPRESSION_DEL_LITE){	
+        // Deletion lite: P_del = (P_sub)/5, P_sub = Pr[insertion of length 1]
+        *P_sub_out = insertion_of_len_1;
+        *P_del_out = insertion_of_len_1 / 5.0;
     }
-    else if(expression_type == MUTATION_EXPRESSION_DEL_ZERO){	// Quadratic: P_del = 0
-        return 0.0;
+    else if(expression_type == MUTATION_EXPRESSION_INS_LITE){
+        // INS lite expression: P_del = P_sub = Pr[insertion of length 1] * 5
+        *P_sub_out = insertion_of_len_1*5.0;
+        *P_del_out = insertion_of_len_1*5.0;
+    }
+    else if(expression_type == MUTATION_EXPRESSION_SUB_LITE){
+        // SUB lite expression: P_del = Pr[insertion of length 1] , P_sub = Pr[insertion of length 1]/5
+        *P_sub_out = insertion_of_len_1/5.0;
+        *P_del_out = insertion_of_len_1;
     }
     else{
-        return 0.0;
+        // Default to balanced if unknown expression type is provided.
+        // Balanced expression: P_del = P_sub = Pr[insertion of length 1]
+        *P_sub_out = insertion_of_len_1;
+        *P_del_out = insertion_of_len_1;
     }
 }
 

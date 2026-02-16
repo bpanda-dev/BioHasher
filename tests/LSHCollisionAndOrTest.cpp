@@ -14,12 +14,13 @@
 #include <iostream>
 #include <filesystem>
 
-
+#if defined(HAVE_THREADS)
+  #include <atomic>
+#endif
 
 /*-------------------------------------------------------------------------------*/
 /*									Collision Test		 						 */
 /*-------------------------------------------------------------------------------*/
-
 
 struct common_params_struct{
 	uint32_t seqLen;
@@ -30,6 +31,319 @@ struct common_params_struct{
 	uint32_t distanceClass;
 };
 
+
+template <typename hashtype>
+static void LSHCollisionTestInnerInnerWorker(const HashInfo * hinfo, uint32_t N_seq, uint32_t N_hash, HashFn hash, seed_t HashSeed, common_params_struct &common_params, SequenceRecordsWithMetadataStruct &sequenceRecordsforTest,const std::vector<UnionBitVectorsStruct> *precomputedVectors, double * AverageCollision,int start, int end, uint32_t and_param, uint32_t or_param){
+
+	const bool useUniverseOpt = hinfo->hasUniverseVectorOptimisation();
+
+	std::vector<hashtype> hash_val_org = std::vector<hashtype>(and_param*or_param);
+	std::vector<hashtype> hash_val_mut = std::vector<hashtype>(and_param*or_param);
+
+	std::vector<seed_t> andor_seeds = std::vector<seed_t>(and_param*or_param, 0);
+
+	for(int rec_idx = start; rec_idx < end; rec_idx++){
+		SequenceRecordUnit &record = sequenceRecordsforTest.Records[rec_idx];
+		uint32_t collision_count = 0;
+		
+		// --- OPTIMIZATION START ---
+        // We prepare the data ONCE per sequence, not N_hash times.
+        // This prevents millions of memory allocations and lock contentions.
+        if (useUniverseOpt && precomputedVectors != nullptr) {
+            // Allocate vectors once
+            const UnionBitVectorsStruct &unionBitVectors = (*precomputedVectors)[rec_idx];
+            
+            // Constant pointers to data for speed
+            const void* vecA_ptr = unionBitVectors.vec_a.data();
+            const size_t vecA_len = unionBitVectors.vec_a.size();
+            const void* vecB_ptr = unionBitVectors.vec_b.data();
+            const size_t vecB_len = unionBitVectors.vec_b.size();
+
+            for(uint32_t hash_idx = 0; hash_idx < N_hash; hash_idx++){
+                
+				std::vector<uint32_t> and_flags = std::vector<uint32_t>(or_param, 0); 
+				for(uint32_t or_i = 0; or_i < or_param; or_i++){
+					and_flags[or_i] = 1;
+					for(uint32_t and_i = 0; and_i < and_param; and_i++){
+						andor_seeds[or_i * and_param + and_i] = HashSeed + hash_idx + (or_i * and_param + and_i)*1337;
+						
+						hash(vecA_ptr, vecA_len, andor_seeds[or_i * and_param + and_i], &hash_val_org[or_i * and_param + and_i]);
+						hash(vecB_ptr, vecB_len, andor_seeds[or_i * and_param + and_i], &hash_val_mut[or_i * and_param + and_i]);
+					}
+					// ANDing
+					for(uint32_t i = 0; i < and_param; i++){
+						if(hash_val_org[or_i * and_param + i] != hash_val_mut[or_i * and_param + i]){
+							and_flags[or_i] = 0;
+							break;
+						}
+					}
+				}
+
+				//AND-ORING
+				bool flag = 0;
+				for(uint32_t i = 0; i < or_param; i++){
+					if(and_flags[i] == 1){
+						flag = 1;
+						break;
+					}
+				}
+				collision_count += flag;
+            }
+        }
+		else{
+			// Standard path (no allocation, just pointer access)
+            const uint8_t* ptrOrg = (const uint8_t*)record.SeqASCIIOrg.c_str();
+            const size_t lenOrg = record.OriginalLength;
+            const uint8_t* ptrMut = (const uint8_t*)record.SeqASCIIMut.c_str();
+            const size_t lenMut = record.MutatedLength;
+
+			for(uint32_t hash_idx = 0; hash_idx < N_hash; hash_idx++){
+				std::vector<uint32_t> and_flags = std::vector<uint32_t>(or_param, 0); 
+				for(uint32_t or_i = 0; or_i < or_param; or_i++){
+					and_flags[or_i] = 1;
+					for(uint32_t and_i = 0; and_i < and_param; and_i++){
+						andor_seeds[or_i * and_param + and_i] = HashSeed + hash_idx + (or_i * and_param + and_i)*1337;
+						
+						hash(ptrOrg, lenOrg, andor_seeds[or_i * and_param + and_i], &hash_val_org[or_i * and_param + and_i]);
+						hash(ptrMut, lenMut, andor_seeds[or_i * and_param + and_i], &hash_val_mut[or_i * and_param + and_i]);
+					}
+					// ANDing
+					for(uint32_t i = 0; i < and_param; i++){
+						if(hash_val_org[or_i * and_param + i] != hash_val_mut[or_i * and_param + i]){
+							and_flags[or_i] = 0;
+							break;
+						}
+					}
+				}
+
+				//AND-ORING
+				bool flag = 0;
+				for(uint32_t i = 0; i < or_param; i++){
+					if(and_flags[i] == 1){
+						flag = 1;
+						break;
+					}
+				}
+				collision_count += flag;
+			}
+		}
+        // --- OPTIMIZATION END ---
+
+		// Compute average and stddev of collisions for this sequence pair.
+		double avg_collision = static_cast<double>(collision_count) / static_cast<double>(N_hash);
+		AverageCollision[rec_idx] = avg_collision;
+	}
+}
+
+
+template <typename hashtype>
+static bool LSHCollisionTestInnerInnerParallel(const HashInfo * hinfo, uint32_t N_seq, uint32_t N_hash, HashFn hash, seed_t HashSeed, common_params_struct &common_params, sim_bins_struct &sim_bins, std::ofstream &out_file){
+	
+	printf("Inside LSHCollisionTestANDORInnerInner\n");
+
+	seed_t seed_offset = 42;	// Coz its the answer to everything!
+	SequenceRecordsWithMetadataStruct sequenceRecordsforTest;
+	sequenceRecordsforTest.OriginalSequenceLength = common_params.seqLen;
+	sequenceRecordsforTest.DistanceClass = common_params.distanceClass;
+	sequenceRecordsforTest.isBasesDrawnFromUniformDist = common_params.isBasesDrawnFromUniformDist;
+	sequenceRecordsforTest.DatagenSeed = common_params.DatagenSeed + seed_offset;
+	sequenceRecordsforTest.DataMutateSeed = common_params.DataMutateSeed + seed_offset;
+	// sequenceRecordsforTest.tokenlength = common_params.tokenlength;
+	sequenceRecordsforTest.KeyCount = N_seq;
+	sequenceRecordsforTest.HashCount = N_hash;
+	
+	SequenceDataGenerator dataGenTest(&sequenceRecordsforTest);
+
+	// For each of the sequence pair, draw a random mutation parameter from the bin statistics. Then store it in the mutation record. and mutate it.
+	seed_t bin_sampling_seed = common_params.DataMutateSeed + 3*seed_offset;
+	seed_t bin_params_sampling_seed = common_params.DataMutateSeed + 7*seed_offset;
+	
+	Rand rng_bin_sampler(bin_sampling_seed);
+	Rand rng_bin_params_sampler(bin_params_sampling_seed);
+
+	for(uint32_t idx = 0; idx < N_seq; idx++){
+		uint32_t bin_fill_count = 0;
+		int sampled_binid = -1;
+		uint32_t attempts = 0;
+		const uint32_t max_attempts = 1000;
+
+		while(bin_fill_count == 0 && attempts < max_attempts){
+			sampled_binid = rng_bin_sampler.rand_range(100);
+			bin_fill_count = sim_bins.bin_fill_count[sampled_binid];
+			attempts++;
+		}
+		
+		if(bin_fill_count == 0){
+			printf("Warning: Could not find non-empty bin after %u attempts\n", max_attempts);
+			// sequenceRecordsforTest.Records[idx].snpRate = 1.0; // Assign a default value
+			continue;  // Skip this sequence or handle error
+		}
+		
+		uint32_t rand_param_idx = rng_bin_params_sampler.rand_range(bin_fill_count);
+		double sampled_error_param = sim_bins.bin_error_parameters[sampled_binid][rand_param_idx];
+		sequenceRecordsforTest.Records[idx].snpRate = sampled_error_param;
+
+		// The values below are only needed for geometric mutator. It will not be used for simple SNP only.
+		uint32_t mutation_expression_type = g_mutation_expression_type; 	// Change the expression type here as needed.
+		sequenceRecordsforTest.Records[idx].delRate = mutation_expression(sampled_error_param,mutation_expression_type);
+		sequenceRecordsforTest.Records[idx].stayRate = 1 - sequenceRecordsforTest.Records[idx].snpRate - sequenceRecordsforTest.Records[idx].delRate;
+		sequenceRecordsforTest.Records[idx].insmean = g_InsertionMean;
+		// TODO: FOR GEOMETRIC MUTATOR!!!
+		
+	}
+
+	if(g_mutation_model == MUTATION_MODEL_SIMPLE_SNP_ONLY){
+		SequenceDataMutatorSubstitutionOnly dataMutTest(&sequenceRecordsforTest);
+		printf("Completed mutation using simple SNP only model.\n");
+	}
+	else if(g_mutation_model == MUTATION_MODEL_GEOMETRIC_MUTATOR){
+		SequenceDataMutatorGeometric dataMutTest(&sequenceRecordsforTest);
+		printf("Completed mutation using geometric mutator model.\n");
+	}
+	
+	// Print Similarity values
+	out_file << ":5:";
+	for (size_t i = 0; i < N_seq; i++) {
+		if (i == N_seq - 1)
+			out_file << sequenceRecordsforTest.Records[i].similarity << "\n";
+		else
+			out_file << sequenceRecordsforTest.Records[i].similarity << ",";
+	}
+	// Print param values
+	out_file << ":6:";
+	for (size_t i = 0; i < N_seq; i++) {
+		if (i == N_seq - 1)
+			out_file << sequenceRecordsforTest.Records[i].snpRate << "\n";
+		else
+			out_file << sequenceRecordsforTest.Records[i].snpRate << ",";
+	}
+	
+	if(g_mutation_model == MUTATION_MODEL_GEOMETRIC_MUTATOR){	
+		out_file << ":7:";
+		for (size_t i = 0; i < N_seq; i++) {
+			if (i == N_seq - 1)
+				out_file << sequenceRecordsforTest.Records[i].delRate << "\n";
+			else
+				out_file << sequenceRecordsforTest.Records[i].delRate << ",";
+		}
+		out_file << ":8:";
+		for (size_t i = 0; i < N_seq; i++) {
+			if (i == N_seq - 1)
+				out_file << sequenceRecordsforTest.Records[i].insmean << "\n";
+			else
+				out_file << sequenceRecordsforTest.Records[i].insmean << ",";
+		}
+		out_file << ":9:";
+		for (size_t i = 0; i < N_seq; i++) {
+			if (i == N_seq - 1)
+				out_file << sequenceRecordsforTest.Records[i].stayRate << "\n";
+			else
+				out_file << sequenceRecordsforTest.Records[i].stayRate << ",";
+		}
+	}
+
+	//for each sequence pair, compute N_hash hashes and store them as, mean and stddev.
+	const bool useUniverseOpt = hinfo->hasUniverseVectorOptimisation();
+    const uint32_t tokenLen = common_params.tokenlength;
+
+	// === PRE-COMPUTE ALL UNION VECTORS BEFORE PARALLELIZATION ===
+    // This eliminates heap contention during the parallel phase
+	std::vector<UnionBitVectorsStruct> precomputedVectors;
+	if (useUniverseOpt) {
+        printf("Pre-computing union vectors for %u sequences...\n", N_seq);
+        auto precompute_start = std::chrono::high_resolution_clock::now();
+        
+        precomputedVectors.resize(N_seq);
+        for (uint32_t i = 0; i < N_seq; i++) {
+            precomputedVectors[i] = CreateUnionBitVectors(
+                sequenceRecordsforTest.Records[i].SeqASCIIOrg,
+                sequenceRecordsforTest.Records[i].SeqASCIIMut,
+                tokenLen
+            );
+        }
+        
+        auto precompute_end = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> elapsed = precompute_end - precompute_start;
+        printf("Pre-computation took %.3f seconds.\n", elapsed.count());
+    }
+	// === END PRE-COMPUTE ALL UNION VECTORS BEFORE PARALLELIZATION ===
+
+	alignas(64) std::vector<double> AverageCollision(N_seq, 0.0);
+	
+	std::vector<std::pair<uint32_t, uint32_t>> ANDOR_params = {{2,3}};//{{1,1},{2,1},{3,2},{1,2},{2,3},{2,2}}; //{{5,5}, {11,11}, {21,21}};
+	for(auto andor_param : ANDOR_params){
+		uint32_t and_param = andor_param.first;
+		uint32_t or_param = andor_param.second;
+
+		// std::vector<seed_t> andor_seeds = std::vector<seed_t>(and_param*or_param, 0);
+
+		const std::vector<UnionBitVectorsStruct> *vecPtr = useUniverseOpt ? &precomputedVectors : nullptr;
+		
+		if (g_NCPU == 1) {
+			printf("Starting collision computation with %u thread...\n", g_NCPU);
+			
+			auto start_seq = std::chrono::high_resolution_clock::now();
+			// Single threaded fallback
+			LSHCollisionTestInnerInnerWorker<hashtype>(
+				hinfo, N_seq, N_hash, hash, HashSeed, 
+				common_params, sequenceRecordsforTest,
+				vecPtr,
+				AverageCollision.data(), 
+				0, N_seq, 
+				and_param, or_param
+			);
+			auto end_seq = std::chrono::high_resolution_clock::now();
+			std::chrono::duration<double> elapsed_seq = end_seq - start_seq;
+			printf("Sequential collision computation took %.3f seconds.\n", elapsed_seq.count());
+		}
+		else{
+			#if defined(HAVE_THREADS)
+				printf("Starting collision computation with %u threads...\n", g_NCPU);
+				std::vector<std::thread> threads(g_NCPU);
+				int block_size = N_seq / g_NCPU;
+				printf("Block size per thread: %d\n", block_size);
+
+				auto start_par = std::chrono::high_resolution_clock::now();
+
+				for(uint32_t i = 0; i < g_NCPU; i++){
+					int start = i * block_size;
+					int end = (i == g_NCPU - 1) ? N_seq : (i + 1) * block_size;
+
+					threads[i] = std::thread(
+						LSHCollisionTestInnerInnerWorker<hashtype>, 
+						hinfo, N_seq, N_hash, hash, HashSeed, 
+						std::ref(common_params), 
+						std::ref(sequenceRecordsforTest), 
+						vecPtr,
+						AverageCollision.data(), 
+						start, end,
+						and_param, or_param
+					);
+				}
+
+				for (auto& t : threads) {
+					t.join();
+				}
+				
+				auto end_par = std::chrono::high_resolution_clock::now();
+				std::chrono::duration<double> elapsed_par = end_par - start_par;
+				printf("Parallel collision computation took %.3f seconds.\n", elapsed_par.count());
+			#endif
+		}
+		out_file << ":10:" << "AND," << "OR" << std::endl;
+		out_file << ":11:" << and_param << "," << or_param << std::endl;
+		// Print Average Collision values
+		out_file << ":12:"; // Starting  line with collision curves
+		for (size_t i = 0; i < N_seq; i++) {
+			if (i == N_seq - 1)
+				out_file << AverageCollision[i] << "\n";
+			else
+				out_file << AverageCollision[i] << ",";
+		}
+	}
+	
+	return true;
+}
 
 static sim_bins_struct LSHCollisionTestInnerAgg(uint32_t N_agg, common_params_struct &common_params){
 	
@@ -310,7 +624,6 @@ static bool LSHCollisionTestInnerInner(const HashInfo * hinfo, uint32_t N_seq, u
 		else
 			out_file << sequenceRecordsforTest.Records[i].similarity << ",";
 	}
-
 	// Print param values
 	out_file << ":6:";
 	for (size_t i = 0; i < N_seq; i++) {
@@ -500,7 +813,7 @@ static bool LSHCollisionTestInnerInner(const HashInfo * hinfo, uint32_t N_seq, u
 
 		out_file << ":10:" << "AND," << "OR" << std::endl;
 		out_file << ":11:" << and_param << "," << or_param << std::endl;
-
+		// Print Average Collision values
 		out_file << ":12:"; // Starting  line with collision curves
 
 		std::vector<seed_t> andor_seeds = std::vector<seed_t>(and_param*or_param, 0);
@@ -631,8 +944,9 @@ static bool LSHCollisionTestInner( const HashInfo * hinfo, const seed_t baseSeed
 
 	//--------------------------------------------//
 	if(hinfo->isVerySlow()){
-		N_agg = 50000;	// Number of sequences to generate for testing
-		// N_agg = 5000;	// Number of sequences to generate for testing
+		printf("Hash %s is marked as very slow. Limiting test parameters for practicality.\n", hinfo->name);
+		N_agg = 500000;	// Number of sequences to generate for testing
+		// N_agg = 10000;	// Number of sequences to generate for testing
 		sim_bins = LSHCollisionTestInnerAgg(N_agg, common_params);
 		
 		//print bin means and stddevs using	
@@ -641,11 +955,13 @@ static bool LSHCollisionTestInner( const HashInfo * hinfo, const seed_t baseSeed
 		}
 		
 		//--------------------------------------------//
+		// N_seq = 1000;		// Number of sequences to generate for testing
+		// N_hash = 1000;	// Number of hashes to compute per sequence
 		N_seq = 5000;		// Number of sequences to generate for testing
-		N_hash = 500;	// Number of hashes to compute per sequence
-
-		// N_seq = 500;		// Number of sequences to generate for testing
-		// N_hash = 50;	// Number of hashes to compute per sequence
+		N_hash = 2000;	// Number of hashes to compute per sequence
+		
+		// N_seq = 5000;		// Number of sequences to generate for testing
+		// N_hash = 500;	// Number of hashes to compute per sequence
 	}
 	else{
 		N_agg = 500000;	// Number of sequences to generate for testing
@@ -658,12 +974,13 @@ static bool LSHCollisionTestInner( const HashInfo * hinfo, const seed_t baseSeed
 		
 		//--------------------------------------------//
 		N_seq = 5000;		// Number of sequences to generate for testing
-		N_hash = 2000;	// Number of hashes to compute per sequence
+		N_hash = 1000;	// Number of hashes to compute per sequence
 		// N_seq = 1000;		// Number of sequences to generate for testing
 		// N_hash = 100;	// Number of hashes to compute per sequence
 	}
 	
-	LSHCollisionTestInnerInner<hashtype>(hinfo, N_seq, N_hash, hash, HashSeed, common_params, sim_bins, out_file);
+	// LSHCollisionTestInnerInner<hashtype>(hinfo, N_seq, N_hash, hash, HashSeed, common_params, sim_bins, out_file);
+	LSHCollisionTestInnerInnerParallel<hashtype>(hinfo, N_seq, N_hash, hash, HashSeed, common_params, sim_bins, out_file);
 
 	//--------------------------------------------//
 
@@ -683,7 +1000,7 @@ bool LSHCollisionAndOrTest( const HashInfo * hinfo, bool extra, flags_t flags) {
 	bool result = true;
 
 	// Create a output file for storing the results.
-	std::string filename = "../results/collisionResults_" + std::string(hinfo->name) + ".csv";
+	std::string filename = "../results/collisionResults_" + std::string(hinfo->name) + "ANDOR.csv";
 
 	std::ios_base::openmode mode = std::ios::trunc;  // Default: replace
 	if (std::filesystem::exists(filename)) {
@@ -726,7 +1043,7 @@ bool LSHCollisionAndOrTest( const HashInfo * hinfo, bool extra, flags_t flags) {
 
 	if(hinfo->isSmallSequenceLength()){
 		printf("Hash %s is marked as very slow. Limiting test parameters for practicality.\n", hinfo->name);
-		sequenceLengths = {20,30,40}; //{512};
+		sequenceLengths = {40}; //{20,30,40}; //{512};
 	}
 	else{
 		sequenceLengths = {512}; //{16, 24, 32, 48, 64, 80, 96, 128, 256, 512, 1024, 2048, 4096, 8192};
