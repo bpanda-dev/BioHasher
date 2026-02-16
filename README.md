@@ -47,7 +47,7 @@ Every input is validated (naming rules, C++ keyword checks, URL format, etc.). T
     - Correct `PUT_U32` / `PUT_U64` output calls
 2. An updated `hashes/Hashsrc.cmake` with the new file registered
 
-> **Full documentation:** See [`createHashTemplate.README.md`](createHashTemplate.README.md) for the complete reference including validation rules, example sessions, and troubleshooting.
+> **Full documentation:** See [`createHashTemplate.md`](documents/createHashTemplate.md) for the complete reference including validation rules, example sessions, and troubleshooting.
 
 #### Option B: Manual Creation
 
@@ -104,8 +104,9 @@ static void MyHash( const void * in, const size_t len, const seed_t seed, void *
 | `FLAG_IMPL_VERY_SLOW`                    | Very slow (reduces LSH test parameters automatically) | IMPL      |
 | `FLAG_IMPL_SMALL_SEQUENCE_LENGTH`        | Uses small sequences (40 bases instead of 512)        | IMPL      |
 
-- **IMPL flags** are for controlling **test execution behaviour** — they tell the test harness how to adjust parameters (e.g., fewer iterations, shorter sequences) based on the computational cost of your hash implementation. They do not affect hash semantics.
-- **HASH flags** are for declaring the **mathematical properties and similarity semantics** of your hash function — they tell the test harness which distance metric to use when measuring collision rates, how input is tokenised, and whether LSH-specific test logic should be activated.
+- **IMPL flags** are for controlling **test execution behaviour** — they tell the testing module how to adjust parameters (e.g., fewer iterations, shorter sequences) based on the computational cost of your hash implementation. They do not affect hash semantics.
+- **HASH flags** are for declaring the **mathematical properties and similarity semantics** of your hash function. They tell the testing module which distance metric to use when measuring collision rates, how input is tokenised, and whether LSH-specific test logic should be activated.
+
 #### Example: Adding Flags in `REGISTER_HASH(...)`
 
 If your hash is a locality-sensitive MinHash that preserves Jaccard similarity using overlapping 5-mers, and it's computationally expensive:
@@ -206,7 +207,7 @@ The mutation model is set at compile time in [`util/LSHGlobals.cpp`](util/LSHGlo
 
 > **Note:** If a hash has `FLAG_HASH_HAMMING_SIMILARITY`, the mutation model is automatically forced to `MUTATION_MODEL_SIMPLE_SNP_ONLY` at runtime (since the geometric mutator changes sequence lengths, which is incompatible with Hamming distance).
 
-See [`MutationModels.md`](MutationModels.md) for full documentation on what each mutation expression does.
+See [`MutationModels.md`](documents/MutationModels.md) for full documentation on what each mutation expression does.
 
 After changing these values, rebuild:
 
@@ -240,58 +241,31 @@ For a particular Hash function, each run **appends** to the CSV if it already ex
 
 ### Part 3 — Generating Plots
 
-After running the LSH collision tests, use the Jupyter notebooks in [`analysis/python notebooks/`](analysis/python%20notebooks/) to parse the CSV results and generate plots.
-
-#### Prerequisites
+After running the LSH collision tests, we simply need to run `plot.py` script present in `analysis` directory. Prerequisites for the script are:
 
 ```bash
-pip install pandas numpy matplotlib scipy
+pip install pandas numpy matplotlib scipy argparse os sys
+
 ```
 
-#### Available Notebooks
+Now, to get the plot, just run,
 
-| Notebook                                                                           | Purpose                                                                  |
-| ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| [`analysisplots.ipynb`](analysis/python%20notebooks/analysisplots.ipynb)           | **Main analysis notebook** — reads CSV results, generates all plot types |
-| [`cleananalysisplots.ipynb`](analysis/python%20notebooks/cleananalysisplots.ipynb) | Cleaned/final version of analysis plots                                  |
+```bash
+python plot.py ../results/collisionResults_<hashname>.csv
+```
 
-| [`plots.ipynb`](analysis/python%20notebooks/plots.ipynb) | Additional plotting utilities and helper functions |
+All plots are saved in the $pwd of the script itself.
 
-| [`lsh.ipynb`](analysis/python%20notebooks/lsh.ipynb) | Standalone LSH experiments using Python `datasketch` / `simhash` |
+**Description of the Output Files**
 
-#### Step-by-Step Plotting Workflow
-
-##### Step 1: Load the CSV data
-
-The helper script [`analysis/python notebooks/plot.py`](analysis/python%20notebooks/plot.py) provides `read_collision_data_complete()` which parses the `:N:` tagged CSV format into a Pandas DataFrame:
-
-Each row in the resulting DataFrame contains:
-
-- `hashname`, `sequencelength`, `tokenlength` — test metadata
-
-- `similarity_values` — array of similarity bin centers
-
-- `collision_rates` — array of average collision rates per bin
-
-- `snp_rate`, `del_rate`, `ins_mean`, `stay_rate` — mutation parameters per bin
-
-- `AND_param`, `OR_param` — amplification parameters
-
-##### Step 2: Generate bin-averaged collision curves (overlay plot)
-
-This is the primary plot type — it shows average collision rate vs. similarity, with one curve per hash configuration:
-
-##### Output Plot Files
-
-All plots are saved to the `analysis/python notebooks/` directory:
 
 | Filename Pattern              | Description                             |
 | ----------------------------- | --------------------------------------- |
 | `*_binaveraged.png`           | Bin-averaged collision curves (overlay) |
-| `*_snpcolor_multiplot.png`    | SNP-rate colored scatter subplots       |
+| `*_snpcolor_multiplot.png`    | SNP-rate colored scatter subplots(can be changed to del-rate/ins-rate)       |
 | `*_boxplot_multiplot.png`     | Box plot subplots per similarity bin    |
-| `*_singlecolor_multiplot.png` | Single-color scatter subplots           |
-| `*_barplot_multiplot.png`     | Bar plot subplots                       |
+| `*_monocolor_multiplot.png`   | Single-color scatter subplots           |
+| `*_verificationCurves.png`    | Plots the distribution of various mutation parameters.(Useful in performing sanity check of random number generator)                       |
 
 ---
 
