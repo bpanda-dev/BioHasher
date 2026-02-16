@@ -23,8 +23,10 @@ depend.internal
 SMHasher3
 misc/exactcoll
 
-extras/*
+analysis/extras/*
 
 extras/datasketch
+
+results/backupresults/
 
 .gdbinit

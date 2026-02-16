@@ -91,5 +91,4 @@ set(HASH_SRC_FILES
   hashes/minhash.cpp
   hashes/simhash.cpp
   hashes/subseqhash1/ssh1.cpp
-  hashes/palhash.cpp
 )
