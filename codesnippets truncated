@@ -1,0 +1,549 @@
+
+// For the base testing method.
+template <typename hashtype>
+static bool LSHCollisionTestInnerInner(const HashInfo * hinfo, uint32_t N_seq, uint32_t N_hash, HashFn hash, seed_t HashSeed, common_params_struct &common_params, sim_bins_struct &sim_bins, std::ofstream &out_file){
+	
+	printf("Inside LSHCollisionTestInnerInner\n");
+
+	seed_t seed_offset = 42;	// Coz its the answer to everything!
+	SequenceRecordsWithMetadataStruct sequenceRecordsforTest;
+	sequenceRecordsforTest.OriginalSequenceLength = common_params.seqLen;
+	sequenceRecordsforTest.DistanceClass = common_params.distanceClass;
+	sequenceRecordsforTest.isBasesDrawnFromUniformDist = common_params.isBasesDrawnFromUniformDist;
+	sequenceRecordsforTest.DatagenSeed = common_params.DatagenSeed + seed_offset;
+	sequenceRecordsforTest.DataMutateSeed = common_params.DataMutateSeed + seed_offset;
+	// sequenceRecordsforTest.tokenlength = common_params.tokenlength;
+	sequenceRecordsforTest.KeyCount = N_seq;
+	sequenceRecordsforTest.HashCount = N_hash;
+	
+	SequenceDataGenerator dataGenTest(&sequenceRecordsforTest);
+
+	// For each of the sequence pair, draw a random mutation parameter from the bin statistics. Then store it in the mutation record. and mutate it.
+	seed_t bin_sampling_seed = common_params.DataMutateSeed + 3*seed_offset;
+	seed_t bin_params_sampling_seed = common_params.DataMutateSeed + 7*seed_offset;
+	
+	Rand rng_bin_sampler(bin_sampling_seed);
+	Rand rng_bin_params_sampler(bin_params_sampling_seed);
+
+	// for(uint32_t idx = 0; idx < N_seq; idx++){
+	// 	uint32_t bin_fill_count = 0;
+	// 	uint32_t sampled_binid = -1;
+
+	// 	while(bin_fill_count == 0){
+	// 		// Sample a bin id based on similarity values.
+	// 		uint32_t sampled_binid = rng_bin_sampler.rand_range(100);	// Sample bin id between 0-99 i think 100 is exclusive.	
+	// 		bin_fill_count = sim_bins.bin_fill_count[sampled_binid];
+	// 	}
+	// 	// Now, sample a random parameter from this bin.
+	// 	uint32_t rand_param_idx = rng_bin_params_sampler.rand_range(bin_fill_count);
+	// 	double sampled_error_param = sim_bins.bin_error_parameters[sampled_binid][rand_param_idx];
+	// 	sequenceRecordsforTest.Records[idx].snpRate = sampled_error_param;
+	// }
+
+	for(uint32_t idx = 0; idx < N_seq; idx++){
+		uint32_t bin_fill_count = 0;
+		int sampled_binid = -1;
+		uint32_t attempts = 0;
+		const uint32_t max_attempts = 1000;
+
+		while(bin_fill_count == 0 && attempts < max_attempts){
+			sampled_binid = rng_bin_sampler.rand_range(100);
+			bin_fill_count = sim_bins.bin_fill_count[sampled_binid];
+			attempts++;
+		}
+		
+		if(bin_fill_count == 0){
+			printf("Warning: Could not find non-empty bin after %u attempts\n", max_attempts);
+			// sequenceRecordsforTest.Records[idx].snpRate = 1.0; // Assign a default value
+			continue;  // Skip this sequence or handle error
+		}
+		
+		uint32_t rand_param_idx = rng_bin_params_sampler.rand_range(bin_fill_count);
+		double sampled_error_param = sim_bins.bin_error_parameters[sampled_binid][rand_param_idx];
+		sequenceRecordsforTest.Records[idx].foundationalParameter = sampled_error_param;
+	}
+
+	if(g_mutation_model == MUTATION_MODEL_SIMPLE_SNP_ONLY){
+		SequenceDataMutatorSubstitutionOnly dataMutTest(&sequenceRecordsforTest);
+		printf("Completed mutation using simple SNP only model.\n");
+	}
+	else if(g_mutation_model == MUTATION_MODEL_GEOMETRIC_MUTATOR){
+		SequenceDataMutatorGeometric dataMutTest(&sequenceRecordsforTest);
+		printf("Completed mutation using geometric mutator model.\n");
+	}
+	
+	//for each sequence pair, compute N_hash hashes and store them as, mean and stddev.
+	std::vector<double> AverageCollision(N_seq, 0.0);
+	// std::vector<double> StddevCollision(N_seq, 0.0);
+
+	for(uint32_t rec_idx = 0; rec_idx < N_seq; rec_idx++){
+		SequenceRecordUnit &record = sequenceRecordsforTest.Records[rec_idx];
+		
+		uint32_t collision_count = 0;
+		for(uint32_t hash_idx = 0; hash_idx < N_hash; hash_idx++){
+			// Compute hash for original sequence
+
+			if(rec_idx % 200 == 0 && hash_idx == 0){
+				printf("Processing sequence %u / %u\n", rec_idx, N_seq);
+			}
+
+			hashtype hash_val_org;
+			hashtype hash_val_mut;
+			
+			if(hinfo->hasUniverseVectorOptimisation() == true){
+
+				UnionBitVectorsStruct unionBitVectors = CreateUnionBitVectors(record.SeqASCIIOrg, record.SeqASCIIMut, common_params.tokenlength);
+
+				// print the sequences
+				// std::cout << record.SeqASCIIOrg << "\n";
+				// std::cout << record.SeqASCIIMut << "\n";
+				// std::cout << "Universe: ";
+				// for (auto& k : unionBitVectors.universe) std::cout << k << " ";
+				// std::cout << "\nVec A:    ";
+				// for (char v : unionBitVectors.vec_a) std::cout << v << "   ";
+				// std::cout << "\nVec B:    ";
+				// for (char v : unionBitVectors.vec_b) std::cout << v << "   ";
+				// std::cout << std::endl;
+				
+				// printf("Union vector sizes: VecA = %zu, VecB = %zu, Universe = %zu\n", unionBitVectors.vec_a.size(), unionBitVectors.vec_b.size(), unionBitVectors.universe.size());
+
+				// std::cout<< unionBitVectors.vec_a[0] << std::endl;
+
+				// printf("Union vector sizes: VecA = %zu, VecB = %zu, Universe = %zu\n", unionBitVectors.vec_a.size(), unionBitVectors.vec_b.size(), unionBitVectors.universe.size());
+
+				// This seeding pattern is bad. Slightly higher collision rate for simhash.
+				// hash(unionBitVectors.vec_a.data(), unionBitVectors.vec_a.size(), HashSeed + hash_idx, &hash_val_org);
+				// hash(unionBitVectors.vec_b.data(), unionBitVectors.vec_b.size(), HashSeed + hash_idx, &hash_val_mut);
+
+				// // The best performing seeding pattern so far.
+				hash(unionBitVectors.vec_a.data(), unionBitVectors.vec_a.size(), HashSeed*19 + hash_idx, &hash_val_org);
+				hash(unionBitVectors.vec_b.data(), unionBitVectors.vec_b.size(), HashSeed*19 + hash_idx, &hash_val_mut);
+
+				// This seeding pattern is also not good.
+				// hash(unionBitVectors.vec_a.data(), unionBitVectors.vec_a.size(), 42 * 19 + hash_idx, &hash_val_org);
+				// hash(unionBitVectors.vec_b.data(), unionBitVectors.vec_b.size(), 42 * 19 + hash_idx, &hash_val_mut);
+			}
+			else{
+				hash((const uint8_t*)record.SeqASCIIOrg.c_str(), record.OriginalLength, HashSeed*19 + hash_idx, &hash_val_org);
+				hash((const uint8_t*)record.SeqASCIIMut.c_str(), record.MutatedLength, HashSeed*19 + hash_idx, &hash_val_mut);
+			}
+			if(hash_val_org == hash_val_mut){
+				collision_count++;
+			}
+		}
+
+		// Compute average and stddev of collisions for this sequence pair.
+		double avg_collision = static_cast<double>(collision_count) / static_cast<double>(N_hash);
+		AverageCollision[rec_idx] = avg_collision;
+	}
+
+	// Print Similarity values
+	out_file << ":5:";
+	for (size_t i = 0; i < N_seq; i++) {
+		if (i == N_seq - 1)
+			out_file << sequenceRecordsforTest.Records[i].similarity << "\n";
+		else
+			out_file << sequenceRecordsforTest.Records[i].similarity << ",";
+	}
+	// Print param values
+	out_file << ":6:";
+	for (size_t i = 0; i < N_seq; i++) {
+		if (i == N_seq - 1)
+			out_file << sequenceRecordsforTest.Records[i].snpRate << "\n";
+		else
+			out_file << sequenceRecordsforTest.Records[i].snpRate << ",";
+	}
+	
+	if(g_mutation_model == MUTATION_MODEL_GEOMETRIC_MUTATOR){	
+		out_file << ":7:";
+		for (size_t i = 0; i < N_seq; i++) {
+			if (i == N_seq - 1)
+				out_file << sequenceRecordsforTest.Records[i].delRate << "\n";
+			else
+				out_file << sequenceRecordsforTest.Records[i].delRate << ",";
+		}
+		out_file << ":8:";
+		for (size_t i = 0; i < N_seq; i++) {
+			if (i == N_seq - 1)
+				out_file << sequenceRecordsforTest.Records[i].insmean << "\n";
+			else
+				out_file << sequenceRecordsforTest.Records[i].insmean << ",";
+		}
+		out_file << ":9:";
+		for (size_t i = 0; i < N_seq; i++) {
+			if (i == N_seq - 1)
+				out_file << sequenceRecordsforTest.Records[i].stayRate << "\n";
+			else
+				out_file << sequenceRecordsforTest.Records[i].stayRate << ",";
+		}
+	}
+
+	out_file << ":10:" << "AND," << "OR" << std::endl;
+	out_file << ":11:" << 1 << "," << 1 << std::endl;
+	// Print Average Collision values
+	out_file << ":12:";
+	for (size_t i = 0; i < N_seq; i++) {
+		if (i == N_seq - 1)
+			out_file << AverageCollision[i] << "\n";
+		else
+			out_file << AverageCollision[i] << ",";
+	}
+	
+	return true;
+}
+
+
+
+
+// From AND-OR testing.
+template <typename hashtype>
+static bool LSHCollisionTestInnerInner(const HashInfo * hinfo, uint32_t N_seq, uint32_t N_hash, HashFn hash, seed_t HashSeed, common_params_struct &common_params, sim_bins_struct &sim_bins, std::ofstream &out_file){
+	
+	printf("Inside LSHCollisionTestANDORInnerInner\n");
+
+	seed_t seed_offset = 42;	// Coz its the answer to everything!
+	SequenceRecordsWithMetadataStruct sequenceRecordsforTest;
+	sequenceRecordsforTest.OriginalSequenceLength = common_params.seqLen;
+	sequenceRecordsforTest.DistanceClass = common_params.distanceClass;
+	sequenceRecordsforTest.isBasesDrawnFromUniformDist = common_params.isBasesDrawnFromUniformDist;
+	sequenceRecordsforTest.DatagenSeed = common_params.DatagenSeed + seed_offset;
+	sequenceRecordsforTest.DataMutateSeed = common_params.DataMutateSeed + seed_offset;
+	// sequenceRecordsforTest.tokenlength = common_params.tokenlength;
+	sequenceRecordsforTest.KeyCount = N_seq;
+	sequenceRecordsforTest.HashCount = N_hash;
+	
+	SequenceDataGenerator dataGenTest(&sequenceRecordsforTest);
+
+	// For each of the sequence pair, draw a random mutation parameter from the bin statistics. Then store it in the mutation record. and mutate it.
+	seed_t bin_sampling_seed = common_params.DataMutateSeed + 3*seed_offset;
+	seed_t bin_params_sampling_seed = common_params.DataMutateSeed + 7*seed_offset;
+	
+	Rand rng_bin_sampler(bin_sampling_seed);
+	Rand rng_bin_params_sampler(bin_params_sampling_seed);
+
+	// for(uint32_t idx = 0; idx < N_seq; idx++){
+	// 	uint32_t bin_fill_count = 0;
+	// 	uint32_t sampled_binid = -1;
+
+	// 	while(bin_fill_count == 0){
+	// 		// Sample a bin id based on similarity values.
+	// 		uint32_t sampled_binid = rng_bin_sampler.rand_range(100);	// Sample bin id between 0-99 i think 100 is exclusive.	
+	// 		bin_fill_count = sim_bins.bin_fill_count[sampled_binid];
+	// 	}
+	// 	// Now, sample a random parameter from this bin.
+	// 	uint32_t rand_param_idx = rng_bin_params_sampler.rand_range(bin_fill_count);
+	// 	double sampled_error_param = sim_bins.bin_error_parameters[sampled_binid][rand_param_idx];
+	// 	sequenceRecordsforTest.Records[idx].snpRate = sampled_error_param;
+	// }
+
+	for(uint32_t idx = 0; idx < N_seq; idx++){
+		uint32_t bin_fill_count = 0;
+		int sampled_binid = -1;
+		uint32_t attempts = 0;
+		const uint32_t max_attempts = 1000;
+
+		while(bin_fill_count == 0 && attempts < max_attempts){
+			sampled_binid = rng_bin_sampler.rand_range(100);
+			bin_fill_count = sim_bins.bin_fill_count[sampled_binid];
+			attempts++;
+		}
+		
+		if(bin_fill_count == 0){
+			printf("Warning: Could not find non-empty bin after %u attempts\n", max_attempts);
+			// sequenceRecordsforTest.Records[idx].snpRate = 1.0; // Assign a default value
+			continue;  // Skip this sequence or handle error
+		}
+		
+		uint32_t rand_param_idx = rng_bin_params_sampler.rand_range(bin_fill_count);
+		double sampled_error_param = sim_bins.bin_error_parameters[sampled_binid][rand_param_idx];
+		sequenceRecordsforTest.Records[idx].snpRate = sampled_error_param;
+
+		// The values below are only needed for geometric mutator. It will not be used for simple SNP only.
+		uint32_t mutation_expression_type = g_mutation_expression_type; 	// Change the expression type here as needed.
+		sequenceRecordsforTest.Records[idx].delRate = mutation_expression(sampled_error_param,mutation_expression_type);
+		sequenceRecordsforTest.Records[idx].stayRate = 1 - sequenceRecordsforTest.Records[idx].snpRate - sequenceRecordsforTest.Records[idx].delRate;
+		sequenceRecordsforTest.Records[idx].insmean = g_InsertionMean;
+	}
+
+	if(g_mutation_model == MUTATION_MODEL_SIMPLE_SNP_ONLY){
+		SequenceDataMutatorSubstitutionOnly dataMutTest(&sequenceRecordsforTest);
+		printf("Completed mutation using simple SNP only model.\n");
+	}
+	else if(g_mutation_model == MUTATION_MODEL_GEOMETRIC_MUTATOR){
+		SequenceDataMutatorGeometric dataMutTest(&sequenceRecordsforTest);
+		printf("Completed mutation using geometric mutator model.\n");
+	}
+
+	// Print Similarity values
+	out_file << ":5:";
+	for (size_t i = 0; i < N_seq; i++) {
+		if (i == N_seq - 1)
+			out_file << sequenceRecordsforTest.Records[i].similarity << "\n";
+		else
+			out_file << sequenceRecordsforTest.Records[i].similarity << ",";
+	}
+	// Print param values
+	out_file << ":6:";
+	for (size_t i = 0; i < N_seq; i++) {
+		if (i == N_seq - 1)
+			out_file << sequenceRecordsforTest.Records[i].snpRate << "\n";
+		else
+			out_file << sequenceRecordsforTest.Records[i].snpRate << ",";
+	}
+	
+	if(g_mutation_model == MUTATION_MODEL_GEOMETRIC_MUTATOR){	
+		out_file << ":7:";
+		for (size_t i = 0; i < N_seq; i++) {
+			if (i == N_seq - 1)
+				out_file << sequenceRecordsforTest.Records[i].delRate << "\n";
+			else
+				out_file << sequenceRecordsforTest.Records[i].delRate << ",";
+		}
+		out_file << ":8:";
+		for (size_t i = 0; i < N_seq; i++) {
+			if (i == N_seq - 1)
+				out_file << sequenceRecordsforTest.Records[i].insmean << "\n";
+			else
+				out_file << sequenceRecordsforTest.Records[i].insmean << ",";
+		}
+		out_file << ":9:";
+		for (size_t i = 0; i < N_seq; i++) {
+			if (i == N_seq - 1)
+				out_file << sequenceRecordsforTest.Records[i].stayRate << "\n";
+			else
+				out_file << sequenceRecordsforTest.Records[i].stayRate << ",";
+		}
+	}
+
+	// //for each sequence pair, compute N_hash hashes and store them as, mean and stddev.
+	// // std::vector<double> AverageCollision(N_seq, 0.0);
+
+	// //Anding
+	// std::vector<uint32_t> AND_params = {1,8,16,32};
+	// for(auto and_param : AND_params){
+	// 	out_file << ":10:" << "AND," << "OR" << std::endl;
+	// 	out_file << ":11:" << and_param << "," << 1 << std::endl;
+	
+	// 	std::vector<seed_t> and_seeds = std::vector<seed_t>(and_param, 0);
+		
+	// 	std::vector<hashtype> hash_val_org = std::vector<hashtype>(and_param);
+	// 	std::vector<hashtype> hash_val_mut = std::vector<hashtype>(and_param);
+		
+	// 	out_file << ":12:"; // Starting  line with collision curves
+
+	// 	for(uint32_t rec_idx = 0; rec_idx < N_seq; rec_idx++){
+	// 		SequenceRecordUnit &record = sequenceRecordsforTest.Records[rec_idx];
+	// 		uint32_t collision_count = 0;
+	// 		for(uint32_t hash_idx = 0; hash_idx < N_hash; hash_idx++){
+	// 			if(rec_idx % 200 == 0 && hash_idx == 0){
+	// 				printf("Processing sequence %u / %u\n", rec_idx, N_seq);
+	// 			}
+
+	// 			for(uint32_t i = 0; i < and_param; i++){
+	// 				and_seeds[i] = HashSeed + hash_idx + i*1337;
+	// 				if(hinfo->hasUniverseVectorOptimisation() == true){
+	// 					UnionBitVectorsStruct unionBitVectors = CreateUnionBitVectors(record.SeqASCIIOrg, record.SeqASCIIMut, common_params.tokenlength);
+
+	// 					// print the sequences
+	// 					// std::cout << record.SeqASCIIOrg << "\n";
+	// 					// std::cout << record.SeqASCIIMut << "\n";
+	// 					// std::cout << "Universe: ";
+	// 					// for (auto& k : unionBitVectors.universe) std::cout << k << " ";
+	// 					// std::cout << "\nVec A:    ";
+	// 					// for (char v : unionBitVectors.vec_a) std::cout << v << "   ";
+	// 					// std::cout << "\nVec B:    ";
+	// 					// for (char v : unionBitVectors.vec_b) std::cout << v << "   ";
+	// 					// std::cout << std::endl;
+						
+	// 					// printf("Union vector sizes: VecA = %zu, VecB = %zu, Universe = %zu\n", unionBitVectors.vec_a.size(), unionBitVectors.vec_b.size(), unionBitVectors.universe.size());
+
+	// 					// std::cout<< unionBitVectors.vec_a[0] << std::endl;
+
+	// 					// printf("Union vector sizes: VecA = %zu, VecB = %zu, Universe = %zu\n", unionBitVectors.vec_a.size(), unionBitVectors.vec_b.size(), unionBitVectors.universe.size());
+
+	// 					hash(unionBitVectors.vec_a.data(), unionBitVectors.vec_a.size(), and_seeds[i], &hash_val_org[i]);
+	// 					hash(unionBitVectors.vec_b.data(), unionBitVectors.vec_b.size(), and_seeds[i], &hash_val_mut[i]);
+	// 				}
+	// 				else{
+	// 					hash((const uint8_t*)record.SeqASCIIOrg.c_str(), record.OriginalLength, and_seeds[i], &hash_val_org[i]);
+	// 					hash((const uint8_t*)record.SeqASCIIMut.c_str(), record.MutatedLength, and_seeds[i], &hash_val_mut[i]);
+	// 				}
+	// 			}
+
+	// 			// ANDING
+	// 			bool flag = 1;
+	// 			for(uint32_t i = 0; i < and_param; i++){
+	// 				if(hash_val_org[i] != hash_val_mut[i]){
+	// 					flag = 0;
+	// 					break;
+	// 				}
+	// 			}
+
+	// 			collision_count += flag;
+	// 		}
+	// 		double avg_collision = static_cast<double>(collision_count) / static_cast<double>(N_hash);
+			
+	// 		if (rec_idx == N_seq - 1)
+	// 			out_file << avg_collision << "\n";
+	// 		else
+	// 			out_file << avg_collision << ",";
+	// 	}
+	// }
+	
+	// //ORing
+	// std::vector<uint32_t> OR_params = {1,8,16,32};
+	// for(auto or_param : OR_params){
+	// 	out_file << ":10:" << "AND," << "OR" << std::endl;
+	// 	out_file << ":11:" << 1 << "," << or_param << std::endl;
+	
+	// 	std::vector<seed_t> or_seeds = std::vector<seed_t>(or_param, 0);
+		
+	// 	std::vector<hashtype> hash_val_org = std::vector<hashtype>(or_param);
+	// 	std::vector<hashtype> hash_val_mut = std::vector<hashtype>(or_param);
+		
+	// 	out_file << ":12:"; // Starting  line with collision curves
+
+	// 	for(uint32_t rec_idx = 0; rec_idx < N_seq; rec_idx++){
+	// 		SequenceRecordUnit &record = sequenceRecordsforTest.Records[rec_idx];
+	// 		uint32_t collision_count = 0;
+	// 		for(uint32_t hash_idx = 0; hash_idx < N_hash; hash_idx++){
+	// 			if(rec_idx % 200 == 0 && hash_idx == 0){
+	// 				printf("Processing sequence %u / %u\n", rec_idx, N_seq);
+	// 			}
+
+	// 			for(uint32_t i = 0; i < or_param; i++){
+	// 				or_seeds[i] = HashSeed + hash_idx + i*1337;
+	// 				if(hinfo->hasUniverseVectorOptimisation() == true){
+	// 					UnionBitVectorsStruct unionBitVectors = CreateUnionBitVectors(record.SeqASCIIOrg, record.SeqASCIIMut, common_params.tokenlength);
+
+	// 					// print the sequences
+	// 					// std::cout << record.SeqASCIIOrg << "\n";
+	// 					// std::cout << record.SeqASCIIMut << "\n";
+	// 					// std::cout << "Universe: ";
+	// 					// for (auto& k : unionBitVectors.universe) std::cout << k << " ";
+	// 					// std::cout << "\nVec A:    ";
+	// 					// for (char v : unionBitVectors.vec_a) std::cout << v << "   ";
+	// 					// std::cout << "\nVec B:    ";
+	// 					// for (char v : unionBitVectors.vec_b) std::cout << v << "   ";
+	// 					// std::cout << std::endl;
+						
+	// 					// printf("Union vector sizes: VecA = %zu, VecB = %zu, Universe = %zu\n", unionBitVectors.vec_a.size(), unionBitVectors.vec_b.size(), unionBitVectors.universe.size());
+
+	// 					// std::cout<< unionBitVectors.vec_a[0] << std::endl;
+
+	// 					// printf("Union vector sizes: VecA = %zu, VecB = %zu, Universe = %zu\n", unionBitVectors.vec_a.size(), unionBitVectors.vec_b.size(), unionBitVectors.universe.size());
+
+	// 					hash(unionBitVectors.vec_a.data(), unionBitVectors.vec_a.size(), or_seeds[i], &hash_val_org[i]);
+	// 					hash(unionBitVectors.vec_b.data(), unionBitVectors.vec_b.size(), or_seeds[i], &hash_val_mut[i]);
+	// 				}
+	// 				else{
+	// 					hash((const uint8_t*)record.SeqASCIIOrg.c_str(), record.OriginalLength, or_seeds[i], &hash_val_org[i]);
+	// 					hash((const uint8_t*)record.SeqASCIIMut.c_str(), record.MutatedLength, or_seeds[i], &hash_val_mut[i]);
+	// 				}
+	// 			}
+
+	// 			//ORING
+	// 			bool flag = 0;
+	// 			for(uint32_t i = 0; i < or_param; i++){
+	// 				if(hash_val_org[i] == hash_val_mut[i]){
+	// 					flag = 1;
+	// 					break;
+	// 				}
+	// 			}
+
+	// 			collision_count += flag;
+	// 		}
+	// 		double avg_collision = static_cast<double>(collision_count) / static_cast<double>(N_hash);
+			
+	// 		if (rec_idx == N_seq - 1)
+	// 			out_file << avg_collision << "\n";
+	// 		else
+	// 			out_file << avg_collision << ",";
+	// 	}
+	// }
+	// //--------------------------------------------//
+
+	//AND-ORING
+	std::vector<std::pair<uint32_t, uint32_t>> ANDOR_params = {{5,5}, {11,11}, {21,21}};
+	for(auto andor_param : ANDOR_params){
+		uint32_t and_param = andor_param.first;
+		uint32_t or_param = andor_param.second;
+
+		out_file << ":10:" << "AND," << "OR" << std::endl;
+		out_file << ":11:" << and_param << "," << or_param << std::endl;
+		// Print Average Collision values
+		out_file << ":12:"; // Starting  line with collision curves
+
+		std::vector<seed_t> andor_seeds = std::vector<seed_t>(and_param*or_param, 0);
+
+		std::vector<hashtype> hash_val_org = std::vector<hashtype>(and_param*or_param);
+		std::vector<hashtype> hash_val_mut = std::vector<hashtype>(and_param*or_param);
+
+		for(uint32_t rec_idx = 0; rec_idx < N_seq; rec_idx++){
+			SequenceRecordUnit &record = sequenceRecordsforTest.Records[rec_idx];
+			uint32_t collision_count = 0;
+			for(uint32_t hash_idx = 0; hash_idx < N_hash; hash_idx++){
+				if(rec_idx % 200 == 0 && hash_idx == 0){
+					printf("Processing sequence %u / %u\n", rec_idx, N_seq);
+				}
+
+				std::vector<uint32_t> and_flags = std::vector<uint32_t>(or_param, 0); 
+				for(uint32_t or_i = 0; or_i < or_param; or_i++){
+					and_flags[or_i] = 1;
+					for(uint32_t and_i = 0; and_i < and_param; and_i++){
+						andor_seeds[or_i * and_param + and_i] = HashSeed + hash_idx + (or_i * and_param + and_i)*1337;
+						if(hinfo->hasUniverseVectorOptimisation() == true){
+							UnionBitVectorsStruct unionBitVectors = CreateUnionBitVectors(record.SeqASCIIOrg, record.SeqASCIIMut, common_params.tokenlength);
+
+							// print the sequences
+							// std::cout << record.SeqASCIIOrg << "\n";
+							// std::cout << record.SeqASCIIMut << "\n";
+							// std::cout << "Universe: ";
+							// for (auto& k : unionBitVectors.universe) std::cout << k << " ";
+							// std::cout << "\nVec A:    ";
+							// for (char v : unionBitVectors.vec_a) std::cout << v << "   ";
+							// std::cout << "\nVec B:    ";
+							// for (char v : unionBitVectors.vec_b) std::cout << v << "   ";
+							// std::cout << std::endl;
+							
+							// printf("Union vector sizes: VecA = %zu, VecB = %zu, Universe = %zu\n", unionBitVectors.vec_a.size(), unionBitVectors.vec_b.size(), unionBitVectors.universe.size());
+
+							// std::cout<< unionBitVectors.vec_a[0] << std::endl;
+
+							// printf("Union vector sizes: VecA = %zu, VecB = %zu, Universe = %zu\n", unionBitVectors.vec_a.size(), unionBitVectors.vec_b.size(), unionBitVectors.universe.size());
+
+							hash(unionBitVectors.vec_a.data(), unionBitVectors.vec_a.size(), andor_seeds[or_i * and_param + and_i], &hash_val_org[or_i * and_param + and_i]);
+							hash(unionBitVectors.vec_b.data(), unionBitVectors.vec_b.size(), andor_seeds[or_i * and_param + and_i], &hash_val_mut[or_i * and_param + and_i]);
+						}
+						else{
+							hash((const uint8_t*)record.SeqASCIIOrg.c_str(), record.OriginalLength, andor_seeds[or_i * and_param + and_i], &hash_val_org[or_i * and_param + and_i]);
+							hash((const uint8_t*)record.SeqASCIIMut.c_str(), record.MutatedLength, andor_seeds[or_i * and_param + and_i], &hash_val_mut[or_i * and_param + and_i]);
+						}
+					}
+					for(uint32_t i = 0; i < and_param; i++){
+						if(hash_val_org[or_i * and_param + i] != hash_val_mut[or_i * and_param + i]){
+							and_flags[or_i] = 0;
+							break;
+						}
+					}
+				}
+				//AND-ORING
+				bool flag = 0;
+				for(uint32_t i = 0; i < or_param; i++){
+					if(and_flags[i] == 1){
+						flag = 1;
+						break;
+					}
+				}
+				collision_count += flag;
+			}
+			double avg_collision = static_cast<double>(collision_count) / static_cast<double>(N_hash);
+			if (rec_idx == N_seq - 1)
+				out_file << avg_collision << "\n";
+			else
+				out_file << avg_collision << ",";
+		}
+	}
+
+	return true;
+}

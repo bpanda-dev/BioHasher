@@ -22,8 +22,8 @@ uint32_t g_mutation_model = MUTATION_MODEL_GEOMETRIC_MUTATOR; //MUTATION_MODEL_S
 const uint32_t g_mutation_expression_type = MUTATION_EXPRESSION_DEL_LITE;//MUTATION_EXPRESSION_BALANCED;	// Change the mutation expression type here as needed.
 // const double g_InsertionMean = 0.05;
 
-const uint32_t g_subseqHash1_subseq_len = 12; // Default subsequence length for SubseqHash1 This is k   (11,21,31,37)
-const uint32_t g_subseqHash1_d = 11;           // Default 'p' value for SubseqHash1 this is d
+const uint32_t g_subseqHash1_subseq_len = 15; // Default subsequence length for SubseqHash1 This is k   (11,21,31,37)
+const uint32_t g_subseqHash1_d = 1;           // Default 'p' value for SubseqHash1 this is d
 
 // Setter functions (called by LSHCollision test)
 void SetTokenLength(uint32_t length) {
@@ -71,16 +71,16 @@ void mutation_expression(double g_mean, uint32_t expression_type, double *P_sub_
     else if(expression_type == MUTATION_EXPRESSION_DEL_LITE){	
         // Deletion lite: P_del = (P_sub)/5, P_sub = Pr[insertion of length 1]
         *P_sub_out = insertion_of_len_1;
-        *P_del_out = insertion_of_len_1 / 5.0;
+        *P_del_out = insertion_of_len_1 / 2.0;
     }
     else if(expression_type == MUTATION_EXPRESSION_INS_LITE){
         // INS lite expression: P_del = P_sub = Pr[insertion of length 1] * 5
-        *P_sub_out = insertion_of_len_1*5.0;
-        *P_del_out = insertion_of_len_1*5.0;
+        *P_sub_out = insertion_of_len_1*2.0;
+        *P_del_out = insertion_of_len_1*2.0;
     }
     else if(expression_type == MUTATION_EXPRESSION_SUB_LITE){
         // SUB lite expression: P_del = Pr[insertion of length 1] , P_sub = Pr[insertion of length 1]/5
-        *P_sub_out = insertion_of_len_1/5.0;
+        *P_sub_out = insertion_of_len_1/2.0;
         *P_del_out = insertion_of_len_1;
     }
     else{

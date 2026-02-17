@@ -96,7 +96,7 @@
 #include "SeedBitIndependenceTest.h"
 #include "BadSeedsTest.h"
 #include "LSHCollisionTest.h"
-// #include "LSHCollisionAndOrTest.h"
+#include "LSHCollisionAndOrTest.h"
 
 #include <cstdio>
 #include <cstdint>
@@ -146,7 +146,7 @@ static bool g_testBitflip;
 static bool g_testBIC;
 static bool g_testBadSeeds;
 static bool g_testLSHCollision;
-// static bool g_testLSHCollisionAndOr;
+static bool g_testLSHCollisionAndOr;
 
 struct TestOpts {
     bool &       var;
@@ -183,7 +183,7 @@ static TestOpts g_testopts[] = {
     { g_testBIC,              true,     false,    "BIC" },
     { g_testBadSeeds,        false,     false,    "BadSeeds" },
     { g_testLSHCollision,   false,     false,    "LSHCollision" },
-    // { g_testLSHCollisionAndOr,   false,     false,    "LSHCollisionAndOr" },
+    { g_testLSHCollisionAndOr,   false,     false,    "LSHCollisionAndOr" },
 };
 
 static void set_default_tests( bool enable ) {
@@ -642,11 +642,11 @@ static bool test( const HashInfo * hInfo, const flags_t flags ) {
     //-----------------------------------------------------------------------------
     // Test for Collision Curve for LSH family of hashes
 
-    // if (g_testLSHCollisionAndOr) {
-    //     result &= LSHCollisionAndOrTest<hashtype>(hInfo, g_testExtra, flags);
-    //     if (g_dumpAllVCodes) { DumpVCodes(); }        // This is for the purpose of debugging only by the tests in smhasher3
-    //     if (!result && g_exitOnFailure) { goto out; } 
-    // }
+    if (g_testLSHCollisionAndOr) {
+        result &= LSHCollisionAndOrTest<hashtype>(hInfo, g_testExtra, flags);
+        if (g_dumpAllVCodes) { DumpVCodes(); }        // This is for the purpose of debugging only by the tests in smhasher3
+        if (!result && g_exitOnFailure) { goto out; } 
+    }
     
     //-----------------------------------------------------------------------------
     // If All material tests were done, show a final summary of testing

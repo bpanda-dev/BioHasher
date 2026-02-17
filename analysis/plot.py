@@ -226,22 +226,24 @@ def plot_binned_average_curve(
     row,
     ax=None,
     color=None,
-    num_bins=100,
     markersize=6,
-    linewidth=1.6,
+    linewidth=2,
     alpha=1,
 ):
     """Add a single bin-averaged collision curve to ax. Returns (fig, ax)."""
     if ax is None:
-        fig, ax = plt.subplots(figsize=(16, 8))
+        # fig, ax = plt.subplots(figsize=(8, 5))
+        fig, ax = plt.subplots()
     else:
         fig = ax.figure
+    
 
     x_values = np.array(row['similarity_values'])
     y_values = np.array(row['collision_rates'])
 
-    # Fixed bins
-    bin_edges = np.linspace(0, 1.05, num_bins + 1)
+    # Define bins
+    bin_edges = np.arange(0, 1.02, 0.02)
+    num_bins = len(bin_edges) - 1         
     bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
 
     # Compute mean for each bin
@@ -307,13 +309,13 @@ def finalize_binned_average_plot(
     ax.set_ylim(-0.01, 1.01)
     ax.minorticks_on()
     ax.grid(visible=True, which="both", axis="both", alpha=0.5)
-    ax.set_xlabel(similarity_label, fontsize=12)
-    ax.set_ylabel('Average Collision Rate', fontsize=12)
-    ax.legend(fontsize=15)
+    ax.set_xlabel(similarity_label, fontsize=15)
+    ax.set_ylabel('Average Collision Rate', fontsize=15)
+    ax.legend(fontsize=18)
     ax.figure.tight_layout()
 
     if savename:
-        ax.figure.savefig(savename, dpi=600, bbox_inches='tight')
+        ax.figure.savefig(savename, dpi=300, bbox_inches='tight')
 
 # Color Scatter Plot for Subs-Only Model
 def plot_color_scatter(
@@ -789,7 +791,7 @@ def plot_verification_curves(
             final_name = f"{save_filename}_verificationCurves.png"
         else:
             final_name = save_filename
-        plt.savefig(final_name, dpi=600, bbox_inches='tight')
+        plt.savefig(final_name, dpi=300, bbox_inches='tight')
         print(f"Plot saved to {final_name}")
 
     if show_plot:
@@ -809,12 +811,12 @@ def main():
     #     help="Similarity label for axes (auto-detected from CSV if omitted)"
     # )
     parser.add_argument(
-        "--s1", type=float, default=0.96,
-        help="Upper similarity threshold for vertical line (default: 0.96)"
+        "--s1", type=float, default=0.95,
+        help="Upper similarity threshold for vertical line (default: 0.95)"
     )
     parser.add_argument(
-        "--s2", type=float, default=0.60,
-        help="Lower similarity threshold for vertical line (default: 0.60)"
+        "--s2", type=float, default=0.69,
+        help="Lower similarity threshold for vertical line (default: 0.69)"
     )
     parser.add_argument(
         "--no-verification", action="store_true",

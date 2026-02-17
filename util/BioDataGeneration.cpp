@@ -506,8 +506,8 @@ SequenceDataMutatorGeometric::SequenceDataMutatorGeometric(SequenceRecordsWithMe
 
 	// Initialise seed and reserve memory.
     Rand rng_gmean(sequenceRecordsWithMetadata->DataMutateSeed);	// For drawing the geometric mean.
-	Rand rng_sub_del((sequenceRecordsWithMetadata->DataMutateSeed + 1));	// For drawing the substitution and deletion marks.
-	std::mt19937 gen(sequenceRecordsWithMetadata->DataMutateSeed  + 2);	// For drawing the length of the insertion.
+	Rand rng_sub_del((sequenceRecordsWithMetadata->DataMutateSeed + 11));	// For drawing the substitution and deletion marks.
+	std::mt19937 gen(sequenceRecordsWithMetadata->DataMutateSeed  + 21);	// For drawing the length of the insertion.
 	// Rand rng_nucgen(sequenceRecordsWithMetadata->DatagenSeed + agg_seed + 3);	// For drawing the nucleotides. substitution and insertions
 	
 
@@ -685,8 +685,8 @@ SequenceDataMutatorGeometric::SequenceDataMutatorGeometric(SequenceRecordsWithMe
 	assert(sequenceRecordsWithMetadata->Records.size() > 0);
 
 	// Initialise seed and reserve memory.
-    Rand rng_sub_del(sequenceRecordsWithMetadata->DataMutateSeed + 1);
-	std::mt19937 gen(sequenceRecordsWithMetadata->DataMutateSeed + 2);	// For geometric distribution
+    Rand rng_sub_del(sequenceRecordsWithMetadata->DataMutateSeed + 11);
+	std::mt19937 gen(sequenceRecordsWithMetadata->DataMutateSeed + 21);	// For geometric distribution
 	// Rand rng_nucgen(sequenceRecordsWithMetadata->DatagenSeed + test_seed + 3);	// For drawing the nucleotides. substitution and insertions
 	
 	uint32_t mutation_expression_type = g_mutation_expression_type; 	// Change the expression type here as needed.

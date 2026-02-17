@@ -232,7 +232,7 @@ static void SubseqHash64(const void* in, const size_t len, const seed_t seed, vo
 
 REGISTER_FAMILY(SubseqHash,
    $.src_url    = "https://github.com/Shao-Group/subseqhash",
-   $.src_status = HashFamilyInfo::SRC_ACTIVE
+   $.src_status = HashFamilyInfo::SRC_STABLEISH
 );
 
 REGISTER_HASH(SubseqHash_64,
