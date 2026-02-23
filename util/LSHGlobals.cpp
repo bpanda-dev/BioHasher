@@ -19,11 +19,8 @@ const uint32_t g_GoldenRatio = 0x9e3779b1;
 
 // Change to MUTATION_MODEL_SIMPLE_SNP_ONLY (0) or MUTATION_MODEL_GEOMETRIC_MUTATOR (1)
 uint32_t g_mutation_model = MUTATION_MODEL_GEOMETRIC_MUTATOR; //MUTATION_MODEL_SIMPLE_SNP_ONLY;//MUTATION_MODEL_GEOMETRIC_MUTATOR; // MUTATION_MODEL_SIMPLE_SNP_ONLY; // 0: Simple SNP only, 1: Geometric Mutator   // Change the mutation model here.
-const uint32_t g_mutation_expression_type = MUTATION_EXPRESSION_DEL_LITE;//MUTATION_EXPRESSION_BALANCED;	// Change the mutation expression type here as needed.
+const uint32_t g_mutation_expression_type = MUTATION_EXPRESSION_BALANCED;//MUTATION_EXPRESSION_BALANCED;	// Change the mutation expression type here as needed.
 // const double g_InsertionMean = 0.05;
-
-const uint32_t g_subseqHash1_subseq_len = 15; // Default subsequence length for SubseqHash1 This is k   (11,21,31,37)
-const uint32_t g_subseqHash1_d = 1;           // Default 'p' value for SubseqHash1 this is d
 
 // Setter functions (called by LSHCollision test)
 void SetTokenLength(uint32_t length) {

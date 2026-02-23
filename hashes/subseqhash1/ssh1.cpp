@@ -10,23 +10,29 @@
 #include <cstring>
 #include <algorithm>
 
+const uint32_t subseqHash1_subseq_len = 21; // Default subsequence length for SubseqHash1 This is k   (11,21,31,37)
+const uint32_t subseqHash1_d = 21;           // Default 'p' value for SubseqHash1 this is d
+
+const uint32_t DP_array_size = 70;
+
+
 // Thread-safe structure to hold all computation state
 struct SubseqHashState {
-    double f_max[100][100][101];
-    double f_min[100][100][101];
-    bool h[100][100][101];
-    double word[100][4][100];
-    int sign[100][4];
-    int sign1[100][4][100];
-    int sign2[100][4][100];
+    double f_max[DP_array_size][DP_array_size][DP_array_size + 1];
+    double f_min[DP_array_size][DP_array_size][DP_array_size + 1];
+    bool h[DP_array_size][DP_array_size][DP_array_size + 1];
+    double word[DP_array_size][4][DP_array_size];
+    int sign[DP_array_size][4];
+    int sign1[DP_array_size][4][DP_array_size];
+    int sign2[DP_array_size][4][DP_array_size];
 	int dict[256];  // Use array instead of map for speed // Memory intensive but faster
 
     SubseqHashState() {
         memset(dict, 0, sizeof(dict));
-        dict['A'] = 0;
-        dict['C'] = 1;
-        dict['G'] = 2;
-        dict['T'] = 3;
+        dict[static_cast<unsigned char>('A')] = 0;
+		dict[static_cast<unsigned char>('C')] = 1;
+		dict[static_cast<unsigned char>('G')] = 2;
+		dict[static_cast<unsigned char>('T')] = 3;
     }
 };
 
@@ -209,8 +215,8 @@ static double DP_state(SubseqHashState& state, int blen, int p, const char* s, s
 template <bool bswap>
 static void SubseqHash64(const void* in, const size_t len, const seed_t seed, void* out) {
 
-   uint32_t subseq_len = g_subseqHash1_subseq_len;  //TODO: Make 'subseq_len' configurable by the caller
-   int p = g_subseqHash1_d; //TODO: Make 'p' configurable by the caller  // This is d in paper.
+   uint32_t subseq_len = subseqHash1_subseq_len;  //TODO: Make 'subseq_len' configurable by the caller
+   int p = subseqHash1_d; //TODO: Make 'p' configurable by the caller  // This is d in paper.
 
     // Thread-local heap allocation - persists across calls, no stack overflow
     thread_local std::unique_ptr<SubseqHashState> state_ptr;
@@ -243,5 +249,8 @@ REGISTER_HASH(SubseqHash_64,
    $.verification_LE = 0x0,
    $.verification_BE = 0x0,
    $.hashfn_native   = SubseqHash64<false>,
-   $.hashfn_bswap    = SubseqHash64<true>
+   $.hashfn_bswap    = SubseqHash64<true>,
+   $.parameterNames  = {"subseqlen(k)", "d"},
+   $.parameterDescriptions  = {"Subsequence length (k)", "Parameter 'd' from the paper"},
+   $.parameterDefaults = {subseqHash1_subseq_len, subseqHash1_d}
 );

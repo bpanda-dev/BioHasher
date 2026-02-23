@@ -36,8 +36,8 @@ extern const uint32_t g_mutation_expression_type;
 
 
 
-extern const uint32_t g_subseqHash1_subseq_len; // Default subsequence length for SubseqHash1 : this is k
-extern const uint32_t g_subseqHash1_d;           // Default 'p' value for SubseqHash1	: this is d
+// extern const uint32_t g_subseqHash1_subseq_len; // Default subsequence length for SubseqHash1 : this is k
+// extern const uint32_t g_subseqHash1_d;           // Default 'p' value for SubseqHash1	: this is d
 
 // Setter functions (called by LSHCollision test)
 void SetTokenLength(uint32_t length);

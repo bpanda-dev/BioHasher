@@ -19,6 +19,11 @@
 #define HAVE_HASHINFO
 #include <cstdlib>
 #include <set>
+#include <unordered_map>
+#include <string>
+#include <stdexcept>  // Add this header for std::runtime_error
+#include <ostream>  // Required for std::ostream
+#include <vector>
 
 #define HASH_FLAGS                       \
     FLAG_EXPAND(HASH_MOCK)               \
@@ -179,6 +184,11 @@ class HashInfo {
     HashFn            hashfn_bswap;
     std::set<seed_t>  badseeds;
     const char *      badseeddesc;
+    
+    // Ultra specific hash parameters
+    std::vector<std::string>    parameterNames;
+    std::vector<std::string>    parameterDescriptions;
+    std::vector<double>         parameterDefaults;
 
     HashInfo( const char * n, const char * f ) :
         name( _fixup_name( n ) ), family( f ), desc( "" ), impl( "" ),
@@ -291,6 +301,50 @@ class HashInfo {
         return !!(hash_flags & FLAG_HASH_UNIVERSE_VECTOR_OPTIMISATION);
     }
     
+    // Method to register parameters
+    void registerParameters(const std::vector<std::string>& names,
+                            const std::vector<std::string>& descriptions,
+                            const std::vector<double>& defaults) {
+        if (names.size() != descriptions.size() || names.size() != defaults.size()) {
+            throw std::runtime_error("Parameter registration mismatch: names, descriptions, and defaults must have the same size.");
+        }
+        parameterNames = names;
+        parameterDescriptions = descriptions;
+        parameterDefaults = defaults;
+    }
+
+    // Method to print all parameters
+    void printParameters(std::ostream& out) const {
+        // Print parameter names
+        out << ":4.1: ";
+        for (size_t i = 0; i < parameterNames.size(); ++i) {
+            out << parameterNames[i];
+            if (i != parameterNames.size() - 1) {
+                out << ",";
+            }
+        }
+        out << "\n";
+
+        // Print parameter descriptions
+        out << ":4.2: ";
+        for (size_t i = 0; i < parameterDescriptions.size(); ++i) {
+            out << parameterDescriptions[i];
+            if (i != parameterDescriptions.size() - 1) {
+                out << ",";
+            }
+        }
+        out << "\n";
+
+        // Print parameter default values
+        out << ":4.3: ";
+        for (size_t i = 0; i < parameterDefaults.size(); ++i) {
+            out << parameterDefaults[i];
+            if (i != parameterDefaults.size() - 1) {
+                out << ",";
+            }
+        }
+        out << "\n";
+    }
 
 }; // class HashInfo
 

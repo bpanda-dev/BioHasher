@@ -15,6 +15,7 @@
 #include <bitset>
 #include <cassert>
 #include <unordered_set>
+#include <unordered_map>
 #include <algorithm>
 #include <limits>
 #include <fstream>
@@ -105,6 +106,34 @@ struct SequenceRecordsWithMetadataStruct{
 };
 
 
+class SeedGenerator {
+private:
+    std::mt19937_64 rng;  // 64-bit Mersenne Twister
+    std::uniform_int_distribution<seed_t> dist;
+
+public:
+    explicit SeedGenerator(seed_t baseSeed) : rng(baseSeed), dist(0, UINT64_MAX) {}
+
+    seed_t nextSeed() {
+        return dist(rng);
+    }
+};
+
+class Randbin {
+private:
+    std::mt19937 rng;  // Mersenne Twister 19937 generator
+    std::uniform_int_distribution<uint32_t> dist;
+
+public:
+    explicit Randbin(seed_t seed) : rng(seed), dist(0, UINT32_MAX) {}
+
+    // Generate a random number in the range [0, range)
+    uint32_t rand_range(uint32_t range) {
+        return dist(rng) % range;
+    }
+};
+
+
 class SequenceDataGenerator {
 	public:
 		// Constructor to initialise and generate random sequences.
@@ -134,6 +163,69 @@ class SequenceDataMutatorGeometric{
 		SequenceDataMutatorGeometric(SequenceRecordsWithMetadataStruct *sequenceRecordsWithMetadata);
 };
 
+
+
+// template <typename hashtype>
+// class HashTableIndex{
+// 	private:
+// 		// Key: The LSH Hash Value (uint64_t)
+// 		// Value: Vector of starting positions in string S
+// 		std::unordered_map<uint64_t, std::vector<size_t>> hashTable;
+	
+// 		HashFn hash;
+// 		seed_t hash_seed;
+	
+// 		int windowSize;
+	
+// 	public:
+// 		HashTableIndex(int windowSize, const HashInfo * hinfo): 
+// 			windowSize(windowSize), 
+// 			hash(hinfo->hashFn(g_hashEndian)), 
+// 			hash_seed(hinfo->Seed(baseSeed)){}
+
+// 		void buildIndex(const std::string& S, seed_t seed) {
+// 			if (S.length() < (size_t)windowSize) return;
+
+// 			for (size_t i = 0; i <= S.length() - windowSize; ++i) {
+// 				std::string kmer = S.substr(i, windowSize);
+// 				hashtype hash_val;
+// 				hash(kmer.c_str(), kmer.length(), seed, &hash_val);
+// 				hashTable[hash_val].push_back(i);
+// 			}
+// 		}
+
+// 		const std::vector<size_t>* getNeighbors(const std::string& queryKmer, seed_t seed) {
+// 			hashtype hash_val;
+// 			hash(queryKmer.c_str(), queryKmer.length(), seed, &hash_val);
+// 			auto it = hashTable.find(hash_val);
+// 			if (it != hashTable.end()) {
+// 				return &(it->second);
+// 			}
+// 			return new std::vector<size_t>(); // Return an empty vector instead of nullptr
+// 		}
+
+// 		void printBucketStats() const {
+// 			std::cout << "--- Hash Table Stats ---" << std::endl;
+// 			std::cout << "Number of unique LSH buckets: " << hashTable.size() << std::endl;
+// 		}
+
+// 		void printHashTable() const {
+// 			std::cout << "--- Hash Table Contents ---" << std::endl;
+// 			for (const auto& pair : hashTable) {
+// 				uint64_t hash = pair.first;
+// 				const std::vector<size_t>& positions = pair.second;
+
+// 				std::cout << "Hash: " << hash << " -> Positions: [";
+// 				for (size_t i = 0; i < positions.size(); ++i) {
+// 					std::cout << positions[i];
+// 					if (i < positions.size() - 1) {
+// 						std::cout << ", ";
+// 					}
+// 				}
+// 				std::cout << "]" << std::endl;
+// 			}
+// 		}
+// }
 
 
 // class SequenceDataMutator {

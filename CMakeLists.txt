@@ -258,6 +258,7 @@ add_library(
   tests/SpeedTest.cpp
   tests/LSHCollisionTest.cpp
   tests/LSHCollisionAndOrTest.cpp
+  tests/ApproxNearestNeighbourTest.cpp
 )
 target_include_directories(SMHasher3Tests PRIVATE util PUBLIC include/common)
 

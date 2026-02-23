@@ -538,9 +538,9 @@ static bool LSHCollisionTestInner( const HashInfo * hinfo, const seed_t baseSeed
 	out_file << ":1:LSH Collision Test Results\n";
 	out_file << ":2:" << "Hashname," << "SequenceLength," << "TokenLength,"<< "Distance Metric," << "Mutation Model,"<< "Mutation Expression" << std::endl;
 	out_file << ":3:" << hinfo->name << "," << seqLen << "," << tokenlength << "," << setDistanceClassForHashInfo(hinfo->hash_flags) << "," << g_mutation_model << "," << g_mutation_expression_type << std::endl;
-	if(std::string(hinfo->name) == "SubseqHash-64"){
-		out_file << ":4:" << g_subseqHash1_subseq_len << "," << g_subseqHash1_d << std::endl;
-	}
+	// if(std::string(hinfo->name) == "SubseqHash-64"){
+	// 	out_file << ":4:" << g_subseqHash1_subseq_len << "," << g_subseqHash1_d << std::endl;
+	// }
 
 	seed_t DatagenSeed = baseSeed + g_GoldenRatio + 17;		// Seed for data generation
 	seed_t DataMutateSeed = baseSeed + 29;	// Seed for data mutation
@@ -672,7 +672,7 @@ bool LSHCollisionAndOrTest( const HashInfo * hinfo, bool extra, flags_t flags) {
 
 	if(hinfo->isSmallSequenceLength()){
 		printf("Hash %s is marked as very slow. Limiting test parameters for practicality.\n", hinfo->name);
-		sequenceLengths = {40}; //{20,30,40}; //{512};
+		sequenceLengths = {60}; //{20,30,40}; //{512};
 	}
 	else{
 		sequenceLengths = {512}; //{16, 24, 32, 48, 64, 80, 96, 128, 256, 512, 1024, 2048, 4096, 8192};

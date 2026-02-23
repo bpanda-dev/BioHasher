@@ -14,7 +14,6 @@ mutation_expressions = {0:"BALANCED",1:"SUB_ONLY",2:"DEL_LITE",3:"INS_LITE",4:"S
 distance_metric = {0:"None",1:"Hamming Similarity",2:"Jaccard Similarity",3:"Cosine Similarity",4:"Angular Similarity",5:"Edit Similarity"}
 
 def read_collision_data_complete(filename):
-    
     with open(filename, 'r') as file:
         lines = file.readlines()
 
@@ -32,7 +31,8 @@ def read_collision_data_complete(filename):
     current_OR_param = ""
     # Base metadata that applies to all rows
     base_metadata = {}
-
+    hash_parameters = {}  # Dictionary to store dynamic hash parameters
+    
     for line in lines:
         line = line.strip()
         if not line:
@@ -51,11 +51,15 @@ def read_collision_data_complete(filename):
             base_metadata['DistanceMetric'] = int(line_parts[3].strip())
             base_metadata['MutationModel'] = int(line_parts[4].strip())
             base_metadata['MutationExpression'] = int(line_parts[5].strip())
-        elif line.startswith(':4:'):  # Specific to subseqhash
-            line_content = line[3:].strip()
-            line_parts = line_content.split(',')
-            base_metadata['SubseqHash_k'] = line_parts[0].strip()
-            base_metadata['SubseqHash_d'] = int(line_parts[1].strip())
+        elif line.startswith(':4.1:'):  # Parameter names
+            param_names = line[5:].strip().split(',')
+            hash_parameters['param_names'] = [name.strip() for name in param_names]
+        elif line.startswith(':4.2:'):  # Parameter descriptions
+            param_descs = line[5:].strip().split(',')
+            hash_parameters['param_descs'] = [desc.strip() for desc in param_descs]
+        elif line.startswith(':4.3:'):  # Parameter values
+            param_values = line[5:].strip().split(',')
+            hash_parameters['param_values'] = [float(value.strip()) for value in param_values]
         elif line.startswith(':5:'):
             line_content = line[3:].strip()
             similarity_values = [float(x.strip()) for x in line_content.split(',')]
@@ -98,8 +102,6 @@ def read_collision_data_complete(filename):
                 'DistanceMetric': base_metadata.get('DistanceMetric', 0),
                 'MutationModel': base_metadata.get('MutationModel', 0),
                 'MutationExpression': base_metadata.get('MutationExpression', 0),
-                'SubseqHash_k': base_metadata.get('SubseqHash_k', 0),
-                'SubseqHash_d': base_metadata.get('SubseqHash_d', 0),
                 'AND_param': current_AND_param,
                 'OR_param': current_OR_param,
                 'similarity_values': similarity_values.copy(),
@@ -111,6 +113,15 @@ def read_collision_data_complete(filename):
                 'collision_rates': collision_rates.copy(),
                 'rand_base_params': rand_base_params,
             }
+            # Add hash parameters dynamically
+            if 'param_names' in hash_parameters and 'param_values' in hash_parameters:
+                for name, value in zip(hash_parameters['param_names'], hash_parameters['param_values']):
+                    row_data[name] = value
+                    print(value)
+            
+            # Add a new column to store parameter names
+            row_data['parameter_columns'] = hash_parameters.get('param_names', [])
+                    
             data_rows.append(row_data)
     
     return sections, pd.DataFrame(data_rows)
@@ -221,18 +232,20 @@ def plot_distribution_curve(
     
     return fig, ax
 
+
+
 # Average per bin curve
 def plot_binned_average_curve(
     row,
     ax=None,
     color=None,
     markersize=6,
-    linewidth=2,
+    linewidth=1,
     alpha=1,
 ):
     """Add a single bin-averaged collision curve to ax. Returns (fig, ax)."""
     if ax is None:
-        # fig, ax = plt.subplots(figsize=(8, 5))
+        # fig, ax = plt.subplots(figsize=(8, 6))
         fig, ax = plt.subplots()
     else:
         fig = ax.figure
@@ -242,9 +255,9 @@ def plot_binned_average_curve(
     y_values = np.array(row['collision_rates'])
 
     # Define bins
-    bin_edges = np.arange(0, 1.02, 0.02)
+    bin_edges = np.arange(0, 1.05, 0.025)
     num_bins = len(bin_edges) - 1         
-    bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
+    bin_centers = bin_edges[:-1] #(bin_edges[:-1] + bin_edges[1:]) / 2
 
     # Compute mean for each bin
     bin_means = []
@@ -267,20 +280,17 @@ def plot_binned_average_curve(
 
     # Build label
     if row['AND_param'] == '1' and row['OR_param'] == '1':
-        if row['hashname'] == "SubseqHash-64":
-            label = f"SubseqHash (L={row['sequencelength']}, k={row['SubseqHash_k']}, d={row['SubseqHash_d']})[{mutation_model_used}]"
-        else:
-            label = f"{row['hashname']} (L={row['sequencelength']}, k={row['tokenlength']})[{mutation_model_used}]"
+        param_labels = ", ".join([f"{name}={row[name]}" for name in row['parameter_columns']])
+        label = f"{row['hashname']} (L={row['sequencelength']}, {param_labels})[{mutation_model_used}]"
     else:
-        if row['hashname'] == "SubseqHash-64":
-            label = f"SubseqHash (L={row['sequencelength']}, k={row['SubseqHash_k']}, d={row['SubseqHash_d']}, AND={row['AND_param']}, OR={row['OR_param']})[{mutation_model_used}]"
-        else:
-            label = f"{row['hashname']} (L={row['sequencelength']}, k={row['tokenlength']}, AND={row['AND_param']}, OR={row['OR_param']})[{mutation_model_used}]"
+        param_labels = ", ".join([f"{name}={row[name]}" for name in row['parameter_columns']])
+        label = f"{row['hashname']} (L={row['sequencelength']}, AND={row['AND_param']}, OR={row['OR_param']}, {param_labels})[{mutation_model_used}]"
 
     ax.plot(
         bin_centers[valid],
         bin_means[valid],
-        '-o',
+        'o',
+        linestyle='solid',
         color=color,
         alpha=alpha,
         markersize=markersize,
@@ -297,25 +307,25 @@ def finalize_binned_average_plot(
     s2=None,
     savename=None,
 ):
-    """Add ideal line, vertical markers, grid, legend, and optionally save."""
-    ax.plot([0, 1], [0, 1], color="black", linewidth=1, alpha=1, label="Theoretical similarity estimator")
+    # """Add ideal line, vertical markers, grid, legend, and optionally save."""
+    # ax.plot([0, 1], [0, 1], color="black", linewidth=1, alpha=1, label="Theoretical similarity estimator")
 
-    if s1 is not None:
-        ax.axvline(x=s1, color='black', label=f'$s_1 = {s1}$', linewidth=1.2, linestyle='dashed')
-    if s2 is not None:
-        ax.axvline(x=s2, color='black', label=f'$s_2 = {s2}$', linewidth=1.2, linestyle='dashed')
+    # if s1 is not None:
+    #     ax.axvline(x=s1, color='black', label=f'$s_1 = {s1}$', linewidth=0.7, linestyle='dashed')
+    # if s2 is not None:
+    #     ax.axvline(x=s2, color='black', label=f'$s_2 = {s2}$', linewidth=0.7, linestyle='dashed')
 
     ax.set_xlim(-0.01, 1.01)
     ax.set_ylim(-0.01, 1.01)
     ax.minorticks_on()
     ax.grid(visible=True, which="both", axis="both", alpha=0.5)
-    ax.set_xlabel(similarity_label, fontsize=15)
-    ax.set_ylabel('Average Collision Rate', fontsize=15)
-    ax.legend(fontsize=18)
+    ax.set_xlabel(similarity_label, fontsize=16)
+    ax.set_ylabel('Average Collision Rate per bin', fontsize=16)
+    ax.legend(fontsize=12)
     ax.figure.tight_layout()
 
     if savename:
-        ax.figure.savefig(savename, dpi=300, bbox_inches='tight')
+        ax.figure.savefig(savename, dpi=600, bbox_inches='tight')
 
 # Color Scatter Plot for Subs-Only Model
 def plot_color_scatter(
@@ -374,13 +384,22 @@ def plot_color_scatter(
         if row['MutationModel'] == 1:
             mutation_model_used = "GEO-" + mutation_expressions[row["MutationExpression"]]
 
-        if hash_name == "SubseqHash-64":
-            k_val = row.get('SubseqHash_k', '?')
-            d_val = row.get('SubseqHash_d', '?')
-            label = f"SubseqHash (L={seq_len}, k={k_val}, d={d_val})[{mutation_model_used}]"
+        # Build label
+        if row['AND_param'] == '1' and row['OR_param'] == '1':
+            param_labels = ", ".join([f"{name}={row[name]}" for name in row['parameter_columns']])
+            label = f"{row['hashname']} (L={row['sequencelength']}, {param_labels})[{mutation_model_used}]"
         else:
-            token_len = row.get('tokenlength', '?')
-            label = f"{hash_name} (L={seq_len}, k={token_len})[{mutation_model_used}]"
+            param_labels = ", ".join([f"{name}={row[name]}" for name in row['parameter_columns']])
+            label = f"{row['hashname']} (L={row['sequencelength']}, AND={row['AND_param']}, OR={row['OR_param']}, {param_labels})[{mutation_model_used}]"
+        
+
+        # if hash_name == "SubseqHash-64":
+        #     k_val = row.get('SubseqHash_k', '?')
+        #     d_val = row.get('SubseqHash_d', '?')
+        #     label = f"SubseqHash (L={seq_len}, k={k_val}, d={d_val})[{mutation_model_used}]"
+        # else:
+        #     token_len = row.get('tokenlength', '?')
+        #     label = f"{hash_name} (L={seq_len}, k={token_len})[{mutation_model_used}]"
             
         # Scatter plot with colorbar
         scatter = ax.scatter(x_values, y_values, c=label_values, cmap='viridis', 
@@ -483,14 +502,15 @@ def plot_monocolor_scatter(
         if row['MutationModel'] == 1:
             mutation_model_used = "GEO-" + mutation_expressions[row["MutationExpression"]]
 
-        if hash_name == "SubseqHash-64":
-            k_val = row.get('SubseqHash_k', '?')
-            d_val = row.get('SubseqHash_d', '?')
-            label = f"SubseqHash (L={seq_len}, k={k_val}, d={d_val})[{mutation_model_used}]"
+        # Build label
+        if row['AND_param'] == '1' and row['OR_param'] == '1':
+            param_labels = ", ".join([f"{name}={row[name]}" for name in row['parameter_columns']])
+            label = f"{row['hashname']} (L={row['sequencelength']}, {param_labels})[{mutation_model_used}]"
         else:
-            token_len = row.get('tokenlength', '?')
-            label = f"{hash_name} (L={seq_len}, k={token_len})[{mutation_model_used}]"
-            
+            param_labels = ", ".join([f"{name}={row[name]}" for name in row['parameter_columns']])
+            label = f"{row['hashname']} (L={row['sequencelength']}, AND={row['AND_param']}, OR={row['OR_param']}, {param_labels})[{mutation_model_used}]"
+        
+
         # Scatter plot with colorbar
         scatter = ax.scatter(x_values, y_values, 
                              alpha=0.3, edgecolors='black', linewidth=0.3, s=25)
@@ -540,7 +560,7 @@ def plot_hash_collision_boxplots(
     n_cols=2, 
     xlabel="Similarity", 
     save_filename=None,
-    num_bins=21,
+    num_bins=26,
     show_plot=True
 ):
     """
@@ -811,11 +831,11 @@ def main():
     #     help="Similarity label for axes (auto-detected from CSV if omitted)"
     # )
     parser.add_argument(
-        "--s1", type=float, default=0.95,
+        "--s1", type=float, default=0.94,
         help="Upper similarity threshold for vertical line (default: 0.95)"
     )
     parser.add_argument(
-        "--s2", type=float, default=0.69,
+        "--s2", type=float, default=0.7,
         help="Lower similarity threshold for vertical line (default: 0.69)"
     )
     parser.add_argument(
@@ -864,7 +884,18 @@ def main():
 
     # --- Average per bin ---
     print("Plotting binned average curve...")
-    fig, ax = plt.subplots(figsize=(16, 8))
+    fig, ax = plt.subplots(figsize=(11, 6))
+    """Add ideal line, vertical markers, grid, legend, and optionally save."""
+    ax.plot([0, 1], [0, 1], color="black", linewidth=1, alpha=1, label="Theoretical similarity estimator")
+
+    if args.s1 is not None:
+        ax.axvline(x=args.s1, color='black', linewidth=0.7, linestyle='dashed', label='_nolegend_')
+        ax.text(args.s1 + 0.01, 0.95, f'$s_1 = {args.s1}$', color='black', fontsize=14, rotation=0)
+
+    if args.s2 is not None:
+        ax.axvline(x=args.s2, color='black', linewidth=0.7, linestyle='dashed', label='_nolegend_')
+        ax.text(args.s2 + 0.01, 0.95, f'$s_2 = {args.s2}$', color='black', fontsize=14, rotation=0)
+        
     for idx, row in df.iterrows():
         plot_binned_average_curve(row, ax=ax)
     savename = f"{hashname}_binaveraged.png"

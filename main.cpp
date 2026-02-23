@@ -97,6 +97,7 @@
 #include "BadSeedsTest.h"
 #include "LSHCollisionTest.h"
 #include "LSHCollisionAndOrTest.h"
+#include "ApproxNearestNeighbourTest.h"
 
 #include <cstdio>
 #include <cstdint>
@@ -147,7 +148,7 @@ static bool g_testBIC;
 static bool g_testBadSeeds;
 static bool g_testLSHCollision;
 static bool g_testLSHCollisionAndOr;
-
+static bool g_testLSHApproxNearestNeighbour;
 struct TestOpts {
     bool &       var;
     bool         defaultvalue;  // What "All" sets the test to
@@ -184,6 +185,7 @@ static TestOpts g_testopts[] = {
     { g_testBadSeeds,        false,     false,    "BadSeeds" },
     { g_testLSHCollision,   false,     false,    "LSHCollision" },
     { g_testLSHCollisionAndOr,   false,     false,    "LSHCollisionAndOr" },
+    { g_testLSHApproxNearestNeighbour,   false,     false,    "LSHApproxNearestNeighbour" },
 };
 
 static void set_default_tests( bool enable ) {
@@ -644,6 +646,15 @@ static bool test( const HashInfo * hInfo, const flags_t flags ) {
 
     if (g_testLSHCollisionAndOr) {
         result &= LSHCollisionAndOrTest<hashtype>(hInfo, g_testExtra, flags);
+        if (g_dumpAllVCodes) { DumpVCodes(); }        // This is for the purpose of debugging only by the tests in smhasher3
+        if (!result && g_exitOnFailure) { goto out; } 
+    }
+    
+    //-----------------------------------------------------------------------------
+    // Test for Nearest Neighbour search for LSH family of hashes
+
+    if (g_testLSHApproxNearestNeighbour) {
+        result &= LSHApproxNearestNeighbourTest<hashtype>(hInfo, g_testExtra, flags);
         if (g_dumpAllVCodes) { DumpVCodes(); }        // This is for the purpose of debugging only by the tests in smhasher3
         if (!result && g_exitOnFailure) { goto out; } 
     }
