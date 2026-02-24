@@ -632,12 +632,10 @@ bool LSHCollisionTest( const HashInfo * hinfo, bool extra, flags_t flags) {
 		sequenceLengths = {512}; //{16, 24, 32, 48, 64, 80, 96, 128, 256, 512, 1024, 2048, 4096, 8192};
 	}
 
-	// seed_t baseSeed = g_GoldenRatio; // Base seed for reproducibility
 	seed_t baseSeed = g_GoldenRatio ^ std::chrono::system_clock::now().time_since_epoch().count();
 
 	SeedGenerator seedGen(baseSeed);
 	
-	// seed_t flagsSeedOffset = 121; // Offset to change the seed based on flags
 	for(const auto & toklen : tokenlengths){
 		
 		SetIsTestActive(true);

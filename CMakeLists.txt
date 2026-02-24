@@ -234,28 +234,28 @@ add_library(
   util/LSHGlobals.cpp
   util/distances.cpp
 #
-  tests/SanityTest.cpp
-  tests/AvalancheTest.cpp
-  tests/BitflipTest.cpp
-  tests/BitIndependenceTest.cpp
-  tests/HashMapTest.cpp
-  tests/SparseKeysetTest.cpp
-  tests/ZeroesKeysetTest.cpp
-  tests/CyclicKeysetTest.cpp
-  tests/TwoBytesKeysetTest.cpp
-  tests/TextKeysetTest.cpp
-  tests/PermutationKeysetTest.cpp
-  tests/SeedTest.cpp
-  tests/SeedZeroesTest.cpp
-  tests/SeedSparseTest.cpp
-  tests/SeedBitflipTest.cpp
-  tests/SeedBlockLenTest.cpp
-  tests/SeedBlockOffsetTest.cpp
-  tests/SeedAvalancheTest.cpp
-  tests/SeedBitIndependenceTest.cpp
-  tests/BadSeedsTest.cpp
-  tests/PerlinNoiseTest.cpp
-  tests/SpeedTest.cpp
+  # tests/SanityTest.cpp
+  # tests/AvalancheTest.cpp
+  # tests/BitflipTest.cpp
+  # tests/BitIndependenceTest.cpp
+  # tests/HashMapTest.cpp
+  # tests/SparseKeysetTest.cpp
+  # tests/ZeroesKeysetTest.cpp
+  # tests/CyclicKeysetTest.cpp
+  # tests/TwoBytesKeysetTest.cpp
+  # tests/TextKeysetTest.cpp
+  # tests/PermutationKeysetTest.cpp
+  # tests/SeedTest.cpp
+  # tests/SeedZeroesTest.cpp
+  # tests/SeedSparseTest.cpp
+  # tests/SeedBitflipTest.cpp
+  # tests/SeedBlockLenTest.cpp
+  # tests/SeedBlockOffsetTest.cpp
+  # tests/SeedAvalancheTest.cpp
+  # tests/SeedBitIndependenceTest.cpp
+  # tests/BadSeedsTest.cpp
+  # tests/PerlinNoiseTest.cpp
+  # tests/SpeedTest.cpp
   tests/LSHCollisionTest.cpp
   tests/LSHCollisionAndOrTest.cpp
   tests/ApproxNearestNeighbourTest.cpp

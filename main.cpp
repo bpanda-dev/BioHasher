@@ -73,28 +73,6 @@
 #include "AES.h"
 #include "version.h"
 
-#include "SanityTest.h"
-#include "SparseKeysetTest.h"
-#include "ZeroesKeysetTest.h"
-#include "CyclicKeysetTest.h"
-#include "TwoBytesKeysetTest.h"
-#include "TextKeysetTest.h"
-#include "PermutationKeysetTest.h"
-#include "SpeedTest.h"
-#include "PerlinNoiseTest.h"
-#include "AvalancheTest.h"
-#include "BitflipTest.h"
-#include "BitIndependenceTest.h" // aka BIC
-#include "HashMapTest.h"
-#include "SeedTest.h"
-#include "SeedZeroesTest.h"
-#include "SeedSparseTest.h"
-#include "SeedBitflipTest.h"
-#include "SeedBlockLenTest.h"
-#include "SeedBlockOffsetTest.h"
-#include "SeedAvalancheTest.h"
-#include "SeedBitIndependenceTest.h"
-#include "BadSeedsTest.h"
 #include "LSHCollisionTest.h"
 #include "LSHCollisionAndOrTest.h"
 #include "ApproxNearestNeighbourTest.h"
@@ -122,30 +100,30 @@ static bool g_testExtra = false;
 
 static bool g_testAll;
 static bool g_testVerifyAll;
-static bool g_testSanityAll;
-static bool g_testSpeedAll;
-static bool g_testSanity;
-static bool g_testSpeed;
-static bool g_testHashmap;
-static bool g_testAvalanche;
-static bool g_testSparse;
-static bool g_testPermutation;
-static bool g_testCyclic;
-static bool g_testTwoBytes;
-static bool g_testText;
-static bool g_testZeroes;
-static bool g_testSeed;
-static bool g_testSeedZeroes;
-static bool g_testSeedSparse;
-static bool g_testSeedBlockLen;
-static bool g_testSeedBlockOffset;
-static bool g_testSeedBitflip;
-static bool g_testSeedAvalanche;
-static bool g_testSeedBIC;
-static bool g_testPerlinNoise;
-static bool g_testBitflip;
-static bool g_testBIC;
-static bool g_testBadSeeds;
+// static bool g_testSanityAll;
+// static bool g_testSpeedAll;
+// static bool g_testSanity;
+// static bool g_testSpeed;
+// static bool g_testHashmap;
+// static bool g_testAvalanche;
+// static bool g_testSparse;
+// static bool g_testPermutation;
+// static bool g_testCyclic;
+// static bool g_testTwoBytes;
+// static bool g_testText;
+// static bool g_testZeroes;
+// static bool g_testSeed;
+// static bool g_testSeedZeroes;
+// static bool g_testSeedSparse;
+// static bool g_testSeedBlockLen;
+// static bool g_testSeedBlockOffset;
+// static bool g_testSeedBitflip;
+// static bool g_testSeedAvalanche;
+// static bool g_testSeedBIC;
+// static bool g_testPerlinNoise;
+// static bool g_testBitflip;
+// static bool g_testBIC;
+// static bool g_testBadSeeds;
 static bool g_testLSHCollision;
 static bool g_testLSHCollisionAndOr;
 static bool g_testLSHApproxNearestNeighbour;
@@ -158,31 +136,31 @@ struct TestOpts {
 // These first 3 override all other selections
 static TestOpts g_testopts[] = {
     { g_testVerifyAll,       false,     false,    "VerifyAll" },
-    { g_testSanityAll,       false,     false,    "SanityAll" },
-    { g_testSpeedAll,        false,     false,    "SpeedAll" },
-    { g_testAll,              true,     false,    "All" },
-    { g_testSanity,           true,     false,    "Sanity" },
-    { g_testSpeed,            true,      true,    "Speed" },
-    { g_testHashmap,          true,      true,    "Hashmap" },
-    { g_testAvalanche,        true,     false,    "Avalanche" },
-    { g_testSparse,           true,     false,    "Sparse" },
-    { g_testPermutation,      true,     false,    "Permutation" },
-    { g_testCyclic,           true,     false,    "Cyclic" },
-    { g_testTwoBytes,         true,     false,    "TwoBytes" },
-    { g_testText,             true,     false,    "Text" },
-    { g_testZeroes,           true,     false,    "Zeroes" },
-    { g_testSeed,             true,     false,    "Seed" },
-    { g_testSeedZeroes,       true,     false,    "SeedZeroes" },
-    { g_testSeedSparse,       true,     false,    "SeedSparse" },
-    { g_testSeedBlockLen,     true,     false,    "SeedBlockLen" },
-    { g_testSeedBlockOffset,  true,     false,    "SeedBlockOffset" },
-    { g_testSeedBitflip,      true,     false,    "SeedBitflip" },
-    { g_testSeedAvalanche,    true,     false,    "SeedAvalanche" },
-    { g_testSeedBIC,          true,     false,    "SeedBIC" },
-    { g_testPerlinNoise,      true,     false,    "PerlinNoise" },
-    { g_testBitflip,          true,     false,    "Bitflip" },
-    { g_testBIC,              true,     false,    "BIC" },
-    { g_testBadSeeds,        false,     false,    "BadSeeds" },
+    // { g_testSanityAll,       false,     false,    "SanityAll" },
+    // { g_testSpeedAll,        false,     false,    "SpeedAll" },
+    // { g_testAll,              true,     false,    "All" },
+    // { g_testSanity,           true,     false,    "Sanity" },
+    // { g_testSpeed,            true,      true,    "Speed" },
+    // { g_testHashmap,          true,      true,    "Hashmap" },
+    // { g_testAvalanche,        true,     false,    "Avalanche" },
+    // { g_testSparse,           true,     false,    "Sparse" },
+    // { g_testPermutation,      true,     false,    "Permutation" },
+    // { g_testCyclic,           true,     false,    "Cyclic" },
+    // { g_testTwoBytes,         true,     false,    "TwoBytes" },
+    // { g_testText,             true,     false,    "Text" },
+    // { g_testZeroes,           true,     false,    "Zeroes" },
+    // { g_testSeed,             true,     false,    "Seed" },
+    // { g_testSeedZeroes,       true,     false,    "SeedZeroes" },
+    // { g_testSeedSparse,       true,     false,    "SeedSparse" },
+    // { g_testSeedBlockLen,     true,     false,    "SeedBlockLen" },
+    // { g_testSeedBlockOffset,  true,     false,    "SeedBlockOffset" },
+    // { g_testSeedBitflip,      true,     false,    "SeedBitflip" },
+    // { g_testSeedAvalanche,    true,     false,    "SeedAvalanche" },
+    // { g_testSeedBIC,          true,     false,    "SeedBIC" },
+    // { g_testPerlinNoise,      true,     false,    "PerlinNoise" },
+    // { g_testBitflip,          true,     false,    "Bitflip" },
+    // { g_testBIC,              true,     false,    "BIC" },
+    // { g_testBadSeeds,        false,     false,    "BadSeeds" },
     { g_testLSHCollision,   false,     false,    "LSHCollision" },
     { g_testLSHCollisionAndOr,   false,     false,    "LSHCollisionAndOr" },
     { g_testLSHApproxNearestNeighbour,   false,     false,    "LSHApproxNearestNeighbour" },
@@ -319,55 +297,55 @@ static bool HashSelfTest( const HashInfo * hinfo ) {
     return result;
 }
 
-static void HashSanityTestAll( flags_t flags ) {
-    const uint64_t mask_flags = FLAG_HASH_MOCK | FLAG_HASH_CRYPTOGRAPHIC;
-    uint64_t       prev_flags = FLAG_HASH_MOCK;
-    std::vector<const HashInfo *> allHashes = findAllHashes();
+// static void HashSanityTestAll( flags_t flags ) {
+//     const uint64_t mask_flags = FLAG_HASH_MOCK | FLAG_HASH_CRYPTOGRAPHIC;
+//     uint64_t       prev_flags = FLAG_HASH_MOCK;
+//     std::vector<const HashInfo *> allHashes = findAllHashes();
 
-    printf("[[[ SanityAll Tests ]]]\n\n");
+//     printf("[[[ SanityAll Tests ]]]\n\n");
 
-    SanityTestHeader(flags);
-    for (const HashInfo * h: allHashes) {
-        if ((h->hash_flags & mask_flags) != prev_flags) {
-            printf("\n");
-            prev_flags = h->hash_flags & mask_flags;
-        }
-        if (!h->Init()) {
-            printf("%s : hash initialization failed!", h->name);
-            continue;
-        }
-        SanityTest(h, flags, true);
-    }
-    printf("\n");
-}
+//     SanityTestHeader(flags);
+//     for (const HashInfo * h: allHashes) {
+//         if ((h->hash_flags & mask_flags) != prev_flags) {
+//             printf("\n");
+//             prev_flags = h->hash_flags & mask_flags;
+//         }
+//         if (!h->Init()) {
+//             printf("%s : hash initialization failed!", h->name);
+//             continue;
+//         }
+//         SanityTest(h, flags, true);
+//     }
+//     printf("\n");
+// }
 
 //-----------------------------------------------------------------------------
 // Quickly speed test all hashes
 
-static void HashSpeedTestAll( flags_t flags ) {
-    const uint64_t   mask_flags    = FLAG_HASH_MOCK | FLAG_HASH_CRYPTOGRAPHIC;
-    uint64_t         prev_flags    = FLAG_HASH_MOCK;
-    const HashInfo * overhead_hash = findHash("donothing-32");
-    std::vector<const HashInfo *> allHashes = findAllHashes();
+// static void HashSpeedTestAll( flags_t flags ) {
+//     const uint64_t   mask_flags    = FLAG_HASH_MOCK | FLAG_HASH_CRYPTOGRAPHIC;
+//     uint64_t         prev_flags    = FLAG_HASH_MOCK;
+//     const HashInfo * overhead_hash = findHash("donothing-32");
+//     std::vector<const HashInfo *> allHashes = findAllHashes();
 
-    printf("[[[ Short Speed Tests ]]]\n\n");
+//     printf("[[[ Short Speed Tests ]]]\n\n");
 
-    SpeedTestInit(overhead_hash, flags);
-    ShortSpeedTestHeader(flags);
+//     SpeedTestInit(overhead_hash, flags);
+//     ShortSpeedTestHeader(flags);
 
-    for (const HashInfo * h: allHashes) {
-        if ((h->hash_flags & mask_flags) != prev_flags) {
-            printf("\n");
-            prev_flags = h->hash_flags & mask_flags;
-        }
-        if (!h->Init()) {
-            printf("%s : hash initialization failed!", h->name);
-            continue;
-        }
-        ShortSpeedTest(h, flags);
-    }
-    printf("\n");
-}
+//     for (const HashInfo * h: allHashes) {
+//         if ((h->hash_flags & mask_flags) != prev_flags) {
+//             printf("\n");
+//             prev_flags = h->hash_flags & mask_flags;
+//         }
+//         if (!h->Init()) {
+//             printf("%s : hash initialization failed!", h->name);
+//             continue;
+//         }
+//         ShortSpeedTest(h, flags);
+//     }
+//     printf("\n");
+// }
 
 //-----------------------------------------------------------------------------
 
@@ -420,7 +398,7 @@ static bool test( const HashInfo * hInfo, const flags_t flags ) {
     // Sanity tests
 
     FILE * outfile;
-    if (g_testAll || g_testSpeed || g_testHashmap) {
+    if (g_testAll) {
         outfile = stdout;
     } else {
         outfile = stderr;
@@ -437,200 +415,200 @@ static bool test( const HashInfo * hInfo, const flags_t flags ) {
         fprintf(outfile, "\n\n");
     }
 
-    if (g_testSanity) {
-        printf("[[[ Sanity Tests ]]]\n\n");
+    // if (g_testSanity) {
+    //     printf("[[[ Sanity Tests ]]]\n\n");
 
-        result &= HashSelfTest(hInfo);
-        result &= (SanityTest(hInfo, flags) || hInfo->isMock());
-        printf("\n");
-        if (g_dumpAllVCodes) { DumpVCodes(); }
-        if (!result && g_exitOnFailure) { goto out; }
-    }
+    //     result &= HashSelfTest(hInfo);
+    //     result &= (SanityTest(hInfo, flags) || hInfo->isMock());
+    //     printf("\n");
+    //     if (g_dumpAllVCodes) { DumpVCodes(); }
+    //     if (!result && g_exitOnFailure) { goto out; }
+    // }
 
     //-----------------------------------------------------------------------------
     // Speed tests
 
-    if (g_testSpeed) {
-        const HashInfo * overhead_hash = findHash("donothing-32");
-        SpeedTestInit(overhead_hash, flags);
-        SpeedTest(hInfo, flags);
-    }
+    // if (g_testSpeed) {
+    //     const HashInfo * overhead_hash = findHash("donothing-32");
+    //     SpeedTestInit(overhead_hash, flags);
+    //     SpeedTest(hInfo, flags);
+    // }
 
-    if (g_testHashmap) {
-        result &= HashMapTest(hInfo, g_testExtra, flags);
-        if (!result && g_exitOnFailure) { goto out; }
-    }
+    // if (g_testHashmap) {
+    //     result &= HashMapTest(hInfo, g_testExtra, flags);
+    //     if (!result && g_exitOnFailure) { goto out; }
+    // }
 
     //-----------------------------------------------------------------------------
     // Avalanche tests
 
-    if (g_testAvalanche) {
-        result &= AvalancheTest<hashtype>(hInfo, g_testExtra, flags);
-        if (g_dumpAllVCodes) { DumpVCodes(); }
-        if (!result && g_exitOnFailure) { goto out; }
-    }
+    // if (g_testAvalanche) {
+    //     result &= AvalancheTest<hashtype>(hInfo, g_testExtra, flags);
+    //     if (g_dumpAllVCodes) { DumpVCodes(); }
+    //     if (!result && g_exitOnFailure) { goto out; }
+    // }
 
     //-----------------------------------------------------------------------------
     // Bit Independence Criteria
 
-    if (g_testBIC) {
-        result &= BicTest<hashtype>(hInfo, g_testExtra, flags);
-        if (g_dumpAllVCodes) { DumpVCodes(); }
-        if (!result && g_exitOnFailure) { goto out; }
-    }
+    // if (g_testBIC) {
+    //     result &= BicTest<hashtype>(hInfo, g_testExtra, flags);
+    //     if (g_dumpAllVCodes) { DumpVCodes(); }
+    //     if (!result && g_exitOnFailure) { goto out; }
+    // }
 
     //-----------------------------------------------------------------------------
     // Keyset 'Zeroes'
 
-    if (g_testZeroes) {
-        result &= ZeroKeyTest<hashtype>(hInfo, flags);
-        if (g_dumpAllVCodes) { DumpVCodes(); }
-        if (!result && g_exitOnFailure) { goto out; }
-    }
+    // if (g_testZeroes) {
+    //     result &= ZeroKeyTest<hashtype>(hInfo, flags);
+    //     if (g_dumpAllVCodes) { DumpVCodes(); }
+    //     if (!result && g_exitOnFailure) { goto out; }
+    // }
 
     //-----------------------------------------------------------------------------
     // Keyset 'Cyclic' - keys of the form "abcdabcdabcd..."
 
-    if (g_testCyclic) {
-        result &= CyclicKeyTest<hashtype>(hInfo, flags);
-        if (g_dumpAllVCodes) { DumpVCodes(); }
-        if (!result && g_exitOnFailure) { goto out; }
-    }
+    // if (g_testCyclic) {
+    //     result &= CyclicKeyTest<hashtype>(hInfo, flags);
+    //     if (g_dumpAllVCodes) { DumpVCodes(); }
+    //     if (!result && g_exitOnFailure) { goto out; }
+    // }
 
     //-----------------------------------------------------------------------------
     // Keyset 'Sparse' - keys with all bits 0 except a few
 
-    if (g_testSparse) {
-        result &= SparseKeyTest<hashtype>(hInfo, g_testExtra, flags);
-        if (g_dumpAllVCodes) { DumpVCodes(); }
-        if (!result && g_exitOnFailure) { goto out; }
-    }
+    // if (g_testSparse) {
+    //     result &= SparseKeyTest<hashtype>(hInfo, g_testExtra, flags);
+    //     if (g_dumpAllVCodes) { DumpVCodes(); }
+    //     if (!result && g_exitOnFailure) { goto out; }
+    // }
 
     //-----------------------------------------------------------------------------
     // Keyset 'Permutation' - all possible combinations of a set of blocks
 
-    if (g_testPermutation) {
-        result &= PermutedKeyTest<hashtype>(hInfo, g_testExtra, flags);
-        if (g_dumpAllVCodes) { DumpVCodes(); }
-        if (!result && g_exitOnFailure) { goto out; }
-    }
+    // if (g_testPermutation) {
+    //     result &= PermutedKeyTest<hashtype>(hInfo, g_testExtra, flags);
+    //     if (g_dumpAllVCodes) { DumpVCodes(); }
+    //     if (!result && g_exitOnFailure) { goto out; }
+    // }
 
     //-----------------------------------------------------------------------------
     // Keyset 'Text'
 
-    if (g_testText) {
-        result &= TextKeyTest<hashtype>(hInfo, flags);
-        if (g_dumpAllVCodes) { DumpVCodes(); }
-        if (!result && g_exitOnFailure) { goto out; }
-    }
+    // if (g_testText) {
+    //     result &= TextKeyTest<hashtype>(hInfo, flags);
+    //     if (g_dumpAllVCodes) { DumpVCodes(); }
+    //     if (!result && g_exitOnFailure) { goto out; }
+    // }
 
     //-----------------------------------------------------------------------------
     // Keyset 'TwoBytes' - all keys up to N bytes containing two non-zero bytes
 
-    if (g_testTwoBytes) {
-        result &= TwoBytesKeyTest<hashtype>(hInfo, g_testExtra, flags);
-        if (g_dumpAllVCodes) { DumpVCodes(); }
-        if (!result && g_exitOnFailure) { goto out; }
-    }
+    // if (g_testTwoBytes) {
+    //     result &= TwoBytesKeyTest<hashtype>(hInfo, g_testExtra, flags);
+    //     if (g_dumpAllVCodes) { DumpVCodes(); }
+    //     if (!result && g_exitOnFailure) { goto out; }
+    // }
 
     //-----------------------------------------------------------------------------
     // Keyset 'PerlinNoise'
 
-    if (g_testPerlinNoise) {
-        result &= PerlinNoiseTest<hashtype>(hInfo, g_testExtra, flags);
-        if (g_dumpAllVCodes) { DumpVCodes(); }
-        if (!result && g_exitOnFailure) { goto out; }
-    }
+    // if (g_testPerlinNoise) {
+    //     result &= PerlinNoiseTest<hashtype>(hInfo, g_testExtra, flags);
+    //     if (g_dumpAllVCodes) { DumpVCodes(); }
+    //     if (!result && g_exitOnFailure) { goto out; }
+    // }
 
     //-----------------------------------------------------------------------------
     // Keyset 'Bitflip'
 
-    if (g_testBitflip) {
-        result &= BitflipTest<hashtype>(hInfo, g_testExtra, flags);
-        if (g_dumpAllVCodes) { DumpVCodes(); }
-        if (!result && g_exitOnFailure) { goto out; }
-    }
+    // if (g_testBitflip) {
+    //     result &= BitflipTest<hashtype>(hInfo, g_testExtra, flags);
+    //     if (g_dumpAllVCodes) { DumpVCodes(); }
+    //     if (!result && g_exitOnFailure) { goto out; }
+    // }
 
     //-----------------------------------------------------------------------------
     // Keyset 'SeedZeroes'
 
-    if (g_testSeedZeroes) {
-        result &= SeedZeroKeyTest<hashtype>(hInfo, flags);
-        if (g_dumpAllVCodes) { DumpVCodes(); }
-        if (!result && g_exitOnFailure) { goto out; }
-    }
+    // if (g_testSeedZeroes) {
+    //     result &= SeedZeroKeyTest<hashtype>(hInfo, flags);
+    //     if (g_dumpAllVCodes) { DumpVCodes(); }
+    //     if (!result && g_exitOnFailure) { goto out; }
+    // }
 
     //-----------------------------------------------------------------------------
     // Keyset 'SeedSparse'
 
-    if (g_testSeedSparse) {
-        result &= SeedSparseTest<hashtype>(hInfo, flags);
-        if (g_dumpAllVCodes) { DumpVCodes(); }
-        if (!result && g_exitOnFailure) { goto out; }
-    }
+    // if (g_testSeedSparse) {
+    //     result &= SeedSparseTest<hashtype>(hInfo, flags);
+    //     if (g_dumpAllVCodes) { DumpVCodes(); }
+    //     if (!result && g_exitOnFailure) { goto out; }
+    // }
 
     //-----------------------------------------------------------------------------
     // Keyset 'SeedBlockLen'
 
-    if (g_testSeedBlockLen) {
-        result &= SeedBlockLenTest<hashtype>(hInfo, g_testExtra, flags);
-        if (g_dumpAllVCodes) { DumpVCodes(); }
-        if (!result && g_exitOnFailure) { goto out; }
-    }
+    // if (g_testSeedBlockLen) {
+    //     result &= SeedBlockLenTest<hashtype>(hInfo, g_testExtra, flags);
+    //     if (g_dumpAllVCodes) { DumpVCodes(); }
+    //     if (!result && g_exitOnFailure) { goto out; }
+    // }
 
     //-----------------------------------------------------------------------------
     // Keyset 'SeedBlockOffset'
 
-    if (g_testSeedBlockOffset) {
-        result &= SeedBlockOffsetTest<hashtype>(hInfo, g_testExtra, flags);
-        if (g_dumpAllVCodes) { DumpVCodes(); }
-        if (!result && g_exitOnFailure) { goto out; }
-    }
+    // if (g_testSeedBlockOffset) {
+    //     result &= SeedBlockOffsetTest<hashtype>(hInfo, g_testExtra, flags);
+    //     if (g_dumpAllVCodes) { DumpVCodes(); }
+    //     if (!result && g_exitOnFailure) { goto out; }
+    // }
 
     //-----------------------------------------------------------------------------
     // Keyset 'Seed'
 
-    if (g_testSeed) {
-        result &= SeedTest<hashtype>(hInfo, flags);
-        if (g_dumpAllVCodes) { DumpVCodes(); }
-        if (!result && g_exitOnFailure) { goto out; }
-    }
+    // if (g_testSeed) {
+    //     result &= SeedTest<hashtype>(hInfo, flags);
+    //     if (g_dumpAllVCodes) { DumpVCodes(); }
+    //     if (!result && g_exitOnFailure) { goto out; }
+    // }
 
     //-----------------------------------------------------------------------------
     // Keyset 'SeedAvalanche'
 
-    if (g_testSeedAvalanche) {
-        result &= SeedAvalancheTest<hashtype>(hInfo, g_testExtra, flags);
-        if (g_dumpAllVCodes) { DumpVCodes(); }
-        if (!result && g_exitOnFailure) { goto out; }
-    }
+    // if (g_testSeedAvalanche) {
+    //     result &= SeedAvalancheTest<hashtype>(hInfo, g_testExtra, flags);
+    //     if (g_dumpAllVCodes) { DumpVCodes(); }
+    //     if (!result && g_exitOnFailure) { goto out; }
+    // }
 
     //-----------------------------------------------------------------------------
     // Keyset 'SeedBIC'
 
-    if (g_testSeedBIC) {
-        result &= SeedBicTest<hashtype>(hInfo, g_testExtra, flags);
-        if (g_dumpAllVCodes) { DumpVCodes(); }
-        if (!result && g_exitOnFailure) { goto out; }
-    }
+    // if (g_testSeedBIC) {
+    //     result &= SeedBicTest<hashtype>(hInfo, g_testExtra, flags);
+    //     if (g_dumpAllVCodes) { DumpVCodes(); }
+    //     if (!result && g_exitOnFailure) { goto out; }
+    // }
 
     //-----------------------------------------------------------------------------
     // Keyset 'SeedBitflip'
 
-    if (g_testSeedBitflip) {
-        result &= SeedBitflipTest<hashtype>(hInfo, g_testExtra, flags);
-        if (g_dumpAllVCodes) { DumpVCodes(); }
-        if (!result && g_exitOnFailure) { goto out; }
-    }
+    // if (g_testSeedBitflip) {
+    //     result &= SeedBitflipTest<hashtype>(hInfo, g_testExtra, flags);
+    //     if (g_dumpAllVCodes) { DumpVCodes(); }
+    //     if (!result && g_exitOnFailure) { goto out; }
+    // }
 
     //-----------------------------------------------------------------------------
     // Test for known or unknown seed values which give bad/suspect hash values
 
-    if (g_testBadSeeds) {
-        result &= BadSeedsTest<hashtype>(hInfo, g_testExtra);
-        if (g_dumpAllVCodes) { DumpVCodes(); }
-        if (!result && g_exitOnFailure) { goto out; }
-    }
+    // if (g_testBadSeeds) {
+    //     result &= BadSeedsTest<hashtype>(hInfo, g_testExtra);
+    //     if (g_dumpAllVCodes) { DumpVCodes(); }
+    //     if (!result && g_exitOnFailure) { goto out; }
+    // }
 
     //-----------------------------------------------------------------------------
     // Test for Collision Curve for LSH family of hashes
@@ -971,11 +949,14 @@ int main( int argc, const char ** argv ) {
 
     if (g_testVerifyAll) {
         HashSelfTestAll(flags);
-    } else if (g_testSanityAll) {
-        HashSanityTestAll(flags);
-    } else if (g_testSpeedAll) {
-        HashSpeedTestAll(flags);
-    } else {
+    } 
+    // else if (g_testSanityAll) {
+    //     HashSanityTestAll(flags);
+    // } 
+    // else if (g_testSpeedAll) {
+    //     HashSpeedTestAll(flags);
+    // }
+     else {
         result = testHash(hashToTest, flags);
     }
 

@@ -33,7 +33,7 @@ struct common_params_struct{
 
 
 template <typename hashtype>
-static void LSHCollisionTestInnerInnerWorker(const HashInfo * hinfo, uint32_t N_seq, uint32_t N_hash, HashFn hash, seed_t HashSeed, common_params_struct &common_params, SequenceRecordsWithMetadataStruct &sequenceRecordsforTest,const std::vector<UnionBitVectorsStruct> *precomputedVectors, double * AverageCollision,int start, int end, uint32_t and_param, uint32_t or_param){
+static void LSHCollisionTestInnerInnerWorker(const HashInfo * hinfo, uint32_t N_hash, HashFn hash, seed_t HashSeed, common_params_struct &common_params, SequenceRecordsWithMetadataStruct &sequenceRecordsforTest,const std::vector<UnionBitVectorsStruct> *precomputedVectors, double * AverageCollision,int start, int end, uint32_t and_param, uint32_t or_param){
 
 	const bool useUniverseOpt = hinfo->hasUniverseVectorOptimisation();
 
@@ -137,17 +137,16 @@ static void LSHCollisionTestInnerInnerWorker(const HashInfo * hinfo, uint32_t N_
 
 
 template <typename hashtype>
-static bool LSHCollisionTestInnerInnerParallel(const HashInfo * hinfo, uint32_t N_seq, uint32_t N_hash, HashFn hash, seed_t HashSeed, common_params_struct &common_params, sim_bins_struct &sim_bins, std::ofstream &out_file){
+static bool LSHCollisionTestInnerInnerParallel(const HashInfo * hinfo, uint32_t N_seq, uint32_t N_hash, HashFn hash, seed_t HashSeed, common_params_struct &common_params, sim_bins_struct &sim_bins, SeedGenerator &seedGen, std::ofstream &out_file){
 	
 	printf("Inside LSHCollisionTestANDORInnerInner\n");
 
-	seed_t seed_offset = 42;	// Coz its the answer to everything!
 	SequenceRecordsWithMetadataStruct sequenceRecordsforTest;
 	sequenceRecordsforTest.OriginalSequenceLength = common_params.seqLen;
 	sequenceRecordsforTest.DistanceClass = common_params.distanceClass;
 	sequenceRecordsforTest.isBasesDrawnFromUniformDist = common_params.isBasesDrawnFromUniformDist;
-	sequenceRecordsforTest.DatagenSeed = common_params.DatagenSeed + seed_offset;
-	sequenceRecordsforTest.DataMutateSeed = common_params.DataMutateSeed + seed_offset;
+	sequenceRecordsforTest.DatagenSeed = seedGen.nextSeed();
+	sequenceRecordsforTest.DataMutateSeed = seedGen.nextSeed();
 	// sequenceRecordsforTest.tokenlength = common_params.tokenlength;
 	sequenceRecordsforTest.KeyCount = N_seq;
 	sequenceRecordsforTest.HashCount = N_hash;
@@ -155,12 +154,13 @@ static bool LSHCollisionTestInnerInnerParallel(const HashInfo * hinfo, uint32_t 
 	SequenceDataGenerator dataGenTest(&sequenceRecordsforTest);
 
 	// For each of the sequence pair, draw a random mutation parameter from the bin statistics. Then store it in the mutation record. and mutate it.
-	seed_t bin_sampling_seed = common_params.DataMutateSeed + 3*seed_offset;
-	seed_t bin_params_sampling_seed = common_params.DataMutateSeed + 7*seed_offset;
+	seed_t bin_sampling_seed = seedGen.nextSeed();
+	seed_t bin_params_sampling_seed = seedGen.nextSeed();
 	
-	Rand rng_bin_sampler(bin_sampling_seed);
-	Rand rng_bin_params_sampler(bin_params_sampling_seed);
+	Randbin rng_bin_sampler(bin_sampling_seed);
+	Randbin rng_bin_params_sampler(bin_params_sampling_seed);
 
+	uint32_t skipped_sequences = 0;
 	for(uint32_t idx = 0; idx < N_seq; idx++){
 		uint32_t bin_fill_count = 0;
 		int sampled_binid = -1;
@@ -176,12 +176,17 @@ static bool LSHCollisionTestInnerInnerParallel(const HashInfo * hinfo, uint32_t 
 		if(bin_fill_count == 0){
 			printf("Warning: Could not find non-empty bin after %u attempts\n", max_attempts);
 			// sequenceRecordsforTest.Records[idx].snpRate = 1.0; // Assign a default value
+			skipped_sequences++;
 			continue;  // Skip this sequence or handle error
 		}
 		
 		uint32_t rand_param_idx = rng_bin_params_sampler.rand_range(bin_fill_count);
 		double sampled_error_param = sim_bins.bin_error_parameters[sampled_binid][rand_param_idx];
 		sequenceRecordsforTest.Records[idx].foundationalParameter = sampled_error_param;
+	}
+
+	if(skipped_sequences > 0){
+		printf("Skipped %u sequences due to empty bins.\n", skipped_sequences);
 	}
 
 	if(g_mutation_model == MUTATION_MODEL_SIMPLE_SNP_ONLY){
@@ -273,6 +278,11 @@ static bool LSHCollisionTestInnerInnerParallel(const HashInfo * hinfo, uint32_t 
 	for(auto andor_param : ANDOR_params){
 		uint32_t and_param = andor_param.first;
 		uint32_t or_param = andor_param.second;
+		
+		if (and_param == 0 || or_param == 0) {
+			printf("Invalid AND/OR parameters: AND=%u, OR=%u\n", and_param, or_param);
+			return false;
+		}
 
 		// std::vector<seed_t> andor_seeds = std::vector<seed_t>(and_param*or_param, 0);
 
@@ -284,7 +294,7 @@ static bool LSHCollisionTestInnerInnerParallel(const HashInfo * hinfo, uint32_t 
 			auto start_seq = std::chrono::high_resolution_clock::now();
 			// Single threaded fallback
 			LSHCollisionTestInnerInnerWorker<hashtype>(
-				hinfo, N_seq, N_hash, hash, HashSeed, 
+				hinfo, N_hash, hash, HashSeed, 
 				common_params, sequenceRecordsforTest,
 				vecPtr,
 				AverageCollision.data(), 
@@ -310,7 +320,7 @@ static bool LSHCollisionTestInnerInnerParallel(const HashInfo * hinfo, uint32_t 
 
 					threads[i] = std::thread(
 						LSHCollisionTestInnerInnerWorker<hashtype>, 
-						hinfo, N_seq, N_hash, hash, HashSeed, 
+						hinfo, N_hash, hash, HashSeed, 
 						std::ref(common_params), 
 						std::ref(sequenceRecordsforTest), 
 						vecPtr,
@@ -344,7 +354,7 @@ static bool LSHCollisionTestInnerInnerParallel(const HashInfo * hinfo, uint32_t 
 	return true;
 }
 
-static sim_bins_struct LSHCollisionTestInnerAgg(uint32_t N_agg, common_params_struct &common_params, std::ofstream &out_file){
+static sim_bins_struct LSHCollisionTestInnerAgg(uint32_t N_agg, common_params_struct &common_params, SeedGenerator &seedGen, std::ofstream &out_file){
 	
 	printf("Inside get_params_aggregated_in_bins\n");
 
@@ -457,7 +467,7 @@ static sim_bins_struct LSHCollisionTestInnerAgg(uint32_t N_agg, common_params_st
 	// I want to fill the remaining entries with random samples from a normal distribution
 	// defined by the mean and stddev of that bin.
 	
-	std::mt19937 gen(common_params.DataMutateSeed + 1337);  // Seeded RNG for reproducibility
+	std::mt19937 gen(seedGen.nextSeed());  // Seeded RNG for reproducibility
 	
 	for (size_t bin_idx = 0; bin_idx < sequenceRecordsForAgg.bincount; bin_idx++) {
 		uint32_t current_fill = sim_bins_agg.bin_fill_count[bin_idx];
@@ -522,7 +532,7 @@ static sim_bins_struct LSHCollisionTestInnerAgg(uint32_t N_agg, common_params_st
 }
 
 template <typename hashtype>
-static bool LSHCollisionTestInner( const HashInfo * hinfo, const seed_t baseSeed, const uint32_t seqLen, flags_t flags, std::ofstream &out_file) {
+static bool LSHCollisionTestInner( const HashInfo * hinfo, const uint32_t seqLen, flags_t flags, std::ofstream &out_file, SeedGenerator &seedGen) {
 
 	bool result = true;	//TODO: Update this based on test results.
 
@@ -530,21 +540,26 @@ static bool LSHCollisionTestInner( const HashInfo * hinfo, const seed_t baseSeed
 
 	HashFn hash = hinfo->hashFn(g_hashEndian);
 
-	const seed_t hash_seed = hinfo->Seed(baseSeed);
-
-	bool isBasesDrawnFromUniformDist = true;
-
 	// File header
 	out_file << ":1:LSH Collision Test Results\n";
 	out_file << ":2:" << "Hashname," << "SequenceLength," << "TokenLength,"<< "Distance Metric," << "Mutation Model,"<< "Mutation Expression" << std::endl;
 	out_file << ":3:" << hinfo->name << "," << seqLen << "," << tokenlength << "," << setDistanceClassForHashInfo(hinfo->hash_flags) << "," << g_mutation_model << "," << g_mutation_expression_type << std::endl;
-	// if(std::string(hinfo->name) == "SubseqHash-64"){
-	// 	out_file << ":4:" << g_subseqHash1_subseq_len << "," << g_subseqHash1_d << std::endl;
-	// }
+	
+	hinfo->printParameters(out_file);
 
-	seed_t DatagenSeed = baseSeed + g_GoldenRatio + 17;		// Seed for data generation
-	seed_t DataMutateSeed = baseSeed + 29;	// Seed for data mutation
-	seed_t HashSeed = hash_seed;			// Seed for hash family generation
+	seed_t DatagenSeed = seedGen.nextSeed();		// Seed for data generation
+	seed_t DataMutateSeed = seedGen.nextSeed();	// Seed for data mutation
+	seed_t HashSeed = hinfo->Seed(seedGen.nextSeed());			// Seed for hash family generation
+
+	common_params_struct common_params;
+	common_params.seqLen = seqLen;
+	common_params.DatagenSeed = DatagenSeed;
+	common_params.DataMutateSeed = DataMutateSeed;
+	common_params.tokenlength = tokenlength;
+	common_params.isBasesDrawnFromUniformDist = true;
+	common_params.distanceClass = setDistanceClassForHashInfo(hinfo->hash_flags);
+	//--------------------------------------------//
+
 
 	if (!REPORT(VERBOSE, flags)) {
 		// printf("LSH Collision Test: Key Size = %3u bits (%2u bytes), Keys = %8u, Hashes per Key = %4zu\n",
@@ -555,14 +570,7 @@ static bool LSHCollisionTestInner( const HashInfo * hinfo, const seed_t baseSeed
     }
 
 	//--------------------------------------------//
-	common_params_struct common_params;
-	common_params.seqLen = seqLen;
-	common_params.DatagenSeed = DatagenSeed;
-	common_params.DataMutateSeed = DataMutateSeed;
-	common_params.tokenlength = tokenlength;
-	common_params.isBasesDrawnFromUniformDist = isBasesDrawnFromUniformDist;
-	common_params.distanceClass = setDistanceClassForHashInfo(hinfo->hash_flags);
-	//--------------------------------------------//
+
 
 	uint32_t N_agg = 0;
 	sim_bins_struct sim_bins;
@@ -576,29 +584,33 @@ static bool LSHCollisionTestInner( const HashInfo * hinfo, const seed_t baseSeed
 		printf("Hash %s is marked as very slow. Limiting test parameters for practicality.\n", hinfo->name);
 		N_agg = 500000;	// Number of sequences to generate for testing
 		// N_agg = 10000;	// Number of sequences to generate for testing
-		sim_bins = LSHCollisionTestInnerAgg(N_agg, common_params, out_file);
+		sim_bins = LSHCollisionTestInnerAgg(N_agg, common_params, seedGen, out_file);
 		
 		//print bin means and stddevs using	
-		for (size_t bin_idx = 0; bin_idx < sim_bins.bin_error_parameters_mean.size(); bin_idx++) {
-			printf("Bin %zu: Count %d, Mean = %0.2f, Stddev = %0.2f\n", bin_idx, sim_bins.bin_fill_count[bin_idx], sim_bins.bin_error_parameters_mean[bin_idx], sim_bins.bin_error_parameters_stddev[bin_idx]);
+		if (!REPORT(VERBOSE, flags)) {
+			for (size_t bin_idx = 0; bin_idx < sim_bins.bin_error_parameters_mean.size(); bin_idx++) {
+				printf("Bin %zu: Count %d, Mean = %0.2f, Stddev = %0.2f\n", bin_idx, sim_bins.bin_fill_count[bin_idx], sim_bins.bin_error_parameters_mean[bin_idx], sim_bins.bin_error_parameters_stddev[bin_idx]);
+			}
 		}
 		
 		//--------------------------------------------//
 		// N_seq = 1000;		// Number of sequences to generate for testing
 		// N_hash = 1000;	// Number of hashes to compute per sequence
-		N_seq = 5000;		// Number of sequences to generate for testing
-		N_hash = 2000;	// Number of hashes to compute per sequence
+		N_seq = 1000;		// Number of sequences to generate for testing
+		N_hash = 1000;	// Number of hashes to compute per sequence
 		
 		// N_seq = 5000;		// Number of sequences to generate for testing
 		// N_hash = 500;	// Number of hashes to compute per sequence
 	}
 	else{
 		N_agg = 500000;	// Number of sequences to generate for testing
-		sim_bins = LSHCollisionTestInnerAgg(N_agg, common_params, out_file);
+		sim_bins = LSHCollisionTestInnerAgg(N_agg, common_params, seedGen, out_file);
 		
 		//print bin means and stddevs using	
-		for (size_t bin_idx = 0; bin_idx < sim_bins.bin_error_parameters_mean.size(); bin_idx++) {
-			printf("Bin %zu: Count %d, Mean = %0.2f, Stddev = %0.2f\n", bin_idx, sim_bins.bin_fill_count[bin_idx], sim_bins.bin_error_parameters_mean[bin_idx], sim_bins.bin_error_parameters_stddev[bin_idx]);
+		if (!REPORT(VERBOSE, flags)) {
+			for (size_t bin_idx = 0; bin_idx < sim_bins.bin_error_parameters_mean.size(); bin_idx++) {
+				printf("Bin %zu: Count %d, Mean = %0.2f, Stddev = %0.2f\n", bin_idx, sim_bins.bin_fill_count[bin_idx], sim_bins.bin_error_parameters_mean[bin_idx], sim_bins.bin_error_parameters_stddev[bin_idx]);
+			}
 		}
 		
 		//--------------------------------------------//
@@ -609,7 +621,7 @@ static bool LSHCollisionTestInner( const HashInfo * hinfo, const seed_t baseSeed
 	}
 	
 	// LSHCollisionTestInnerInner<hashtype>(hinfo, N_seq, N_hash, hash, HashSeed, common_params, sim_bins, out_file);
-	LSHCollisionTestInnerInnerParallel<hashtype>(hinfo, N_seq, N_hash, hash, HashSeed, common_params, sim_bins, out_file);
+	LSHCollisionTestInnerInnerParallel<hashtype>(hinfo, N_seq, N_hash, hash, HashSeed, common_params, sim_bins, seedGen, out_file);
 
 	//--------------------------------------------//
 
@@ -672,15 +684,16 @@ bool LSHCollisionAndOrTest( const HashInfo * hinfo, bool extra, flags_t flags) {
 
 	if(hinfo->isSmallSequenceLength()){
 		printf("Hash %s is marked as very slow. Limiting test parameters for practicality.\n", hinfo->name);
-		sequenceLengths = {60}; //{20,30,40}; //{512};
+		sequenceLengths = {45}; //{20,30,40}; //{512};
 	}
 	else{
 		sequenceLengths = {512}; //{16, 24, 32, 48, 64, 80, 96, 128, 256, 512, 1024, 2048, 4096, 8192};
 	}
 
-	seed_t baseSeed = g_GoldenRatio; // Base seed for reproducibility
+	seed_t baseSeed = g_GoldenRatio ^ std::chrono::system_clock::now().time_since_epoch().count();
 	
-	seed_t flagsSeedOffset = 101; // Offset to change the seed based on flags
+	SeedGenerator seedGen(baseSeed);
+	
 	for(const auto & toklen : tokenlengths){
 		
 		SetIsTestActive(true);
@@ -726,9 +739,9 @@ bool LSHCollisionAndOrTest( const HashInfo * hinfo, bool extra, flags_t flags) {
 				g_TokenLength = toklen;	// Set global token length for testing
 			}
 
-			baseSeed += flagsSeedOffset;
+			baseSeed = seedGen.nextSeed();
 			printf("\nTesting hash: %s with keybits: %u (sequence length: %u), token length: %d\n", hinfo->name, keybits, seqLen, toklen);
-			result &= LSHCollisionTestInner<hashtype>(hinfo, baseSeed, seqLen, flags, out_file);
+			result &= LSHCollisionTestInner<hashtype>(hinfo, seqLen, flags, out_file, seedGen);
 		}
 	}
 		

@@ -59,7 +59,10 @@ def read_collision_data_complete(filename):
             hash_parameters['param_descs'] = [desc.strip() for desc in param_descs]
         elif line.startswith(':4.3:'):  # Parameter values
             param_values = line[5:].strip().split(',')
-            hash_parameters['param_values'] = [float(value.strip()) for value in param_values]
+            # Handle missing or empty parameter values
+            hash_parameters['param_values'] = [
+                float(value.strip()) if value.strip() else 0.0 for value in param_values
+            ]
         elif line.startswith(':5:'):
             line_content = line[3:].strip()
             similarity_values = [float(x.strip()) for x in line_content.split(',')]
@@ -255,9 +258,10 @@ def plot_binned_average_curve(
     y_values = np.array(row['collision_rates'])
 
     # Define bins
-    bin_edges = np.arange(0, 1.05, 0.025)
+    bin_edges = np.arange(0, 1.04, 0.04)
     num_bins = len(bin_edges) - 1         
-    bin_centers = bin_edges[:-1] #(bin_edges[:-1] + bin_edges[1:]) / 2
+    bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
+    # print(bin_centers)
 
     # Compute mean for each bin
     bin_means = []
@@ -832,11 +836,11 @@ def main():
     # )
     parser.add_argument(
         "--s1", type=float, default=0.94,
-        help="Upper similarity threshold for vertical line (default: 0.95)"
+        help="Upper similarity threshold for vertical line (default: 0.94)"
     )
     parser.add_argument(
-        "--s2", type=float, default=0.7,
-        help="Lower similarity threshold for vertical line (default: 0.69)"
+        "--s2", type=float, default=0.62,
+        help="Lower similarity threshold for vertical line (default: 0.62)"
     )
     parser.add_argument(
         "--no-verification", action="store_true",
@@ -886,7 +890,7 @@ def main():
     print("Plotting binned average curve...")
     fig, ax = plt.subplots(figsize=(11, 6))
     """Add ideal line, vertical markers, grid, legend, and optionally save."""
-    ax.plot([0, 1], [0, 1], color="black", linewidth=1, alpha=1, label="Theoretical similarity estimator")
+    # ax.plot([0, 1], [0, 1], color="black", linewidth=1, alpha=1, label="Theoretical similarity estimator")
 
     if args.s1 is not None:
         ax.axvline(x=args.s1, color='black', linewidth=0.7, linestyle='dashed', label='_nolegend_')
