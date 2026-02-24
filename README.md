@@ -2,7 +2,7 @@
 
 ## Overview
 
-BioHasher is a specialized hash function testing framework designed for biological sequence analysis. It extends the SMHasher3 framework with locality-sensitive hashing (LSH) tests optimized for genomic data processing and similarity detection.
+BioHasher is a specialized Locality Sensitive Hash function testing framework designed for biological sequence analysis. It is built upon the core performance-testing architecture of SMHasher3[https://gitlab.com/fwojcik/smhasher3] (Wojcik), with locality-sensitive hashing (LSH) tests optimized for genomic data processing and similarity detection.
 
 ## Usage Guide
 
