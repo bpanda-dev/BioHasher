@@ -38,6 +38,25 @@ struct UnionBitVectorsStruct {
     std::vector<std::string> universe;
 };
 
+// Store k-mers with their positions for nearest neighbour lookups
+struct KmerEntry {
+	std::string kmer;
+	uint32_t position;  // Start position in the reference sequence
+};
+
+struct NearestKmerEntry {
+	std::string kmer;
+	uint32_t position;     // Position in the reference sequence
+	double similarity;     // Similarity to the query
+};
+
+double ComputeHammingSimilarity(const std::string& seq1, const std::string& seq2, const uint32_t length);
+double ComputeJaccardSimilarity(const std::string& seq1, const std::string& seq2, int k);
+double ComputeCosineSimilarity(const std::string& seq1, const std::string& seq2, int k);
+double ComputeAngularSimilarity(const std::string& seq1, const std::string& seq2, int k);
+double ComputeEditSimilarity(const std::string& seq1, const std::string& seq2);
+
+
 UnionBitVectorsStruct CreateUnionBitVectors(const std::string& seq1, const std::string& seq2, int k);
 
 struct SequenceRecordUnit{
@@ -130,6 +149,12 @@ public:
     // Generate a random number in the range [0, range)
     uint32_t rand_range(uint32_t range) {
         return dist(rng) % range;
+    }
+	
+	// Generate a uniform random double in [low, high)
+    double rand_custom_range(double low, double high) {
+        std::uniform_real_distribution<double> real_dist(low, high);
+        return real_dist(rng);
     }
 };
 

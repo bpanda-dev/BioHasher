@@ -402,7 +402,7 @@ SequenceDataMutatorSubstitutionOnly::SequenceDataMutatorSubstitutionOnly(Sequenc
             std::cout << "Mutated Length:  " << record.MutatedLength << std::endl;
             std::cout << "Original: " << record.SeqASCIIOrg << std::endl;
             std::cout << "Mutated:  " << record.SeqASCIIMut << std::endl;
-			std::cout << "SNP Rate: " << record.snpRate << std::endl;
+			std::cout << "Foundational Rate: " << record.foundationalParameter << std::endl;
 			std::cout << "Similarity: " << record.similarity << std::endl;
         }
     }	
@@ -490,7 +490,7 @@ SequenceDataMutatorSubstitutionOnly::SequenceDataMutatorSubstitutionOnly(Sequenc
             std::cout << "Mutated Length:  " << record.MutatedLength << std::endl;
             std::cout << "Original: " << record.SeqASCIIOrg << std::endl;
             std::cout << "Mutated:  " << record.SeqASCIIMut << std::endl;
-			std::cout << "SNP Rate: " << record.snpRate << std::endl;
+			std::cout << "Foundational Parameter: " << record.foundationalParameter << std::endl;
 			std::cout << "Similarity: " << record.similarity << std::endl;
         }
     }	
@@ -672,7 +672,7 @@ SequenceDataMutatorGeometric::SequenceDataMutatorGeometric(SequenceRecordsWithMe
             std::cout << "Mutated Length:  " << record.MutatedLength << std::endl;
             std::cout << "Original: " << record.SeqASCIIOrg << std::endl;
             std::cout << "Mutated:  " << record.SeqASCIIMut << std::endl;
-			std::cout << "SNP Rate: " << record.snpRate << std::endl;
+			std::cout << "Foundational Parameter: " << record.foundationalParameter << std::endl;
 			std::cout << "Similarity: " << record.similarity << std::endl;
         }
     }	
@@ -836,7 +836,7 @@ SequenceDataMutatorGeometric::SequenceDataMutatorGeometric(SequenceRecordsWithMe
             std::cout << "Mutated Length:  " << record.MutatedLength << std::endl;
             std::cout << "Original: " << record.SeqASCIIOrg << std::endl;
             std::cout << "Mutated:  " << record.SeqASCIIMut << std::endl;
-			std::cout << "SNP Rate: " << record.snpRate << std::endl;
+			std::cout << "Foundational Parameter: " << record.foundationalParameter << std::endl;
 			std::cout << "Similarity: " << record.similarity << std::endl;
         }
     }	

@@ -715,7 +715,7 @@ bool LSHCollisionAndOrTest( const HashInfo * hinfo, bool extra, flags_t flags) {
 				}
 
 				// Calculate the number of tokens the sequence will be split into.
-				const uint64_t tokensInSequence = (seqLen + toklen - 1) / toklen; // Ceiling division	//Cardinality
+				const uint64_t tokensInSequence = (seqLen - toklen + 1);//Cardinality
 				// Condition 2: Skipping if the sequence is too short to provide enough tokens for meaningful mutation analysis and avoid natural repetition.
 				const uint64_t MIN_TOKENS_FOR_MUTATION = 20; // A more reasonable threshold.
 				if (tokensInSequence < MIN_TOKENS_FOR_MUTATION) {
@@ -729,8 +729,8 @@ bool LSHCollisionAndOrTest( const HashInfo * hinfo, bool extra, flags_t flags) {
 					uint64_t maxPossibleTokens = (toklen >= 32) ? UINT64_MAX : (1ULL << (2 * toklen));
 					
 					// This checks if the number of tokens in the sequence is a large fraction of the total possible unique tokens.
-					// For example, skip if tokensInSequence > 1% of maxPossibleTokens.
-					if (maxPossibleTokens / 100 < tokensInSequence) {
+					// For example, skip if tokensInSequence > 50% of maxPossibleTokens.
+					if (maxPossibleTokens / 2 < tokensInSequence) {
 						printf("Skipping: High token repetition expected. Tokens in sequence (%llu) vs. max possible (%llu).\n", (unsigned long long)tokensInSequence, (unsigned long long)maxPossibleTokens);
 						continue;
 					}

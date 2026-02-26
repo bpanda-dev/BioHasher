@@ -12,6 +12,10 @@ if we want to test different number of signatures in Minhash or other LSH functi
 const uint32_t g_bincount_full = 1000;
 
 uint32_t g_TokenLength = 0;     // Default token/kmer length
+
+uint32_t g_window_length = 0;		// Default window length for winnowing (if applicable)
+
+
 // uint32_t gNumSignatures = 32;   // Default number of signatures	
 bool g_IsTestActive = false;     // Whether test is currently running
 
@@ -19,11 +23,15 @@ const uint32_t g_GoldenRatio = 0x9e3779b1;
 
 // Change to MUTATION_MODEL_SIMPLE_SNP_ONLY (0) or MUTATION_MODEL_GEOMETRIC_MUTATOR (1)
 uint32_t g_mutation_model = MUTATION_MODEL_GEOMETRIC_MUTATOR; //MUTATION_MODEL_SIMPLE_SNP_ONLY;//MUTATION_MODEL_GEOMETRIC_MUTATOR; // MUTATION_MODEL_SIMPLE_SNP_ONLY; // 0: Simple SNP only, 1: Geometric Mutator   // Change the mutation model here.
-const uint32_t g_mutation_expression_type = MUTATION_EXPRESSION_INS_LITE;//MUTATION_EXPRESSION_BALANCED;	// Change the mutation expression type here as needed.
+const uint32_t g_mutation_expression_type = MUTATION_EXPRESSION_BALANCED;//MUTATION_EXPRESSION_BALANCED;	// Change the mutation expression type here as needed.
 
 // Setter functions (called by LSHCollision test)
 void SetTokenLength(uint32_t length) {
     g_TokenLength = length;
+}
+
+void SetWindowLength(uint32_t length) {
+    g_window_length = length;
 }
 
 // void SetNumSignatures(uint32_t num) {
@@ -37,6 +45,10 @@ void SetIsTestActive(bool active) {
 // Getter functions (called by hash functions)
 uint32_t GetTokenLength() {
     return g_TokenLength;
+}
+
+uint32_t GetWindowLength() {
+    return g_window_length;
 }
 
 // uint32_t GetNumSignatures() {
