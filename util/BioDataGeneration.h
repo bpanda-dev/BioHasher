@@ -84,6 +84,12 @@ struct SequenceRecordUnit{
 	double stayRate;
 	double insmean;
 	double insRate; //For 1 length.
+
+	uint32_t count_ins;
+	uint32_t count_del;
+	uint32_t count_sub;
+	uint32_t count_stay;
+	uint32_t count_ins_length;	// Total length of insertions (sum of lengths of all insertions)
 };
 
 struct sim_bins_struct{

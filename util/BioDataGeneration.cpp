@@ -244,11 +244,16 @@ SequenceDataGenerator::SequenceDataGenerator(SequenceRecordsWithMetadataStruct *
 				record.SeqASCIIOrg[pos] = bases[base];
 			}
 
+			//this was for testing
+			// for(uint32_t pos = 0; pos < sequenceRecordsWithMetadata->OriginalSequenceLength; pos++) {
+			// 	record.SeqASCIIOrg = "TCGAATGCTCCTACACACTGTTTCGAACATGATCCGCCCGGAGGC";
+			// }
+
 			/* Debugging Statements! Please never delete!*/
 			// Print first 10 sequences for verification
-			// if (rec_idx < 10) {
-			// 	std::cout << "Record " << rec_idx << " Original Sequence: " << record.SeqASCIIOrg << std::endl;
-			// }
+			if (rec_idx < 10) {
+				std::cout << "Record " << rec_idx << " Original Sequence: " << record.SeqASCIIOrg << std::endl;
+			}
 		}
 	}
 	else{
@@ -534,6 +539,12 @@ SequenceDataMutatorGeometric::SequenceDataMutatorGeometric(SequenceRecordsWithMe
 		sequenceRecordsWithMetadata->Records[rec_idx].insmean = g_mean;
 		sequenceRecordsWithMetadata->Records[rec_idx].insRate = (1-(1/(1+g_mean)))*(1/(1+g_mean));  // Probability of insertion being of length 1 drawn from a geometric distribution with mean g_mean.
 
+		uint32_t count_sub = 0;
+		uint32_t count_del = 0;
+		uint32_t count_ins = 0;
+		uint32_t count_stay = 0;
+		uint32_t count_ins_length = 0;
+
 
 		auto& record = sequenceRecordsWithMetadata->Records[rec_idx];
 		
@@ -557,10 +568,13 @@ SequenceDataMutatorGeometric::SequenceDataMutatorGeometric(SequenceRecordsWithMe
 			double rand_val = static_cast<double>(rng_sub_del.rand_range(100)) / 100.0;	// Convert to 0 to 1
 			if (rand_val < cumulative_probs[0]) {
 				mutation_marks[pos] = 1; // P_sub
+				count_sub++;
 			} else if (rand_val < cumulative_probs[1]) {
 				mutation_marks[pos] = 2; // P_del
+				count_del++;
 			} else {
 				mutation_marks[pos] = 0; // P_stay
+				count_stay++;
 			}
 		}
 
@@ -568,6 +582,9 @@ SequenceDataMutatorGeometric::SequenceDataMutatorGeometric(SequenceRecordsWithMe
 			for (uint32_t pos = 0; pos < record.OriginalLength; pos++) {
 				ins_lengths[pos] = 0;
 			}
+
+			count_ins_length = 0;
+			count_ins = 0;
 		}
 		else{
 			// Draw insertion lengths for each position based on geometric distribution
@@ -576,6 +593,9 @@ SequenceDataMutatorGeometric::SequenceDataMutatorGeometric(SequenceRecordsWithMe
 			for (uint32_t pos = 0; pos < record.OriginalLength; pos++) {
 				uint32_t ins_length = geom_dist(gen);
 				ins_lengths[pos] = ins_length;
+
+				count_ins_length += ins_length;
+				count_ins += (ins_length > 0) ? 1 : 0;
 				// printf("Record %u, Position %u: Insertion Length = %u\n", rec_idx, pos, ins_length);
 			}
 		}
@@ -595,6 +615,14 @@ SequenceDataMutatorGeometric::SequenceDataMutatorGeometric(SequenceRecordsWithMe
 		// if(record.MutatedLength > record.OriginalLength){
 		// 	std::cout << "Record " << rec_idx << ": Original Length = " << record.OriginalLength << ", Mutated Length = " << record.MutatedLength << std::endl;
 		// }
+
+		// Store the counts in the record for reference
+		record.count_sub = count_sub;
+		record.count_del = count_del;
+		record.count_ins = count_ins;
+		record.count_stay = count_stay;
+		record.count_ins_length = count_ins_length;
+
 
 		// Apply mutations based on precomputed marks
 		uint32_t mpos = 0;	// Position in mutated sequence
@@ -693,6 +721,12 @@ SequenceDataMutatorGeometric::SequenceDataMutatorGeometric(SequenceRecordsWithMe
 
 	for(uint32_t rec_idx = 0; rec_idx < sequenceRecordsWithMetadata->KeyCount; rec_idx++) {
 
+		uint32_t count_sub = 0;
+		uint32_t count_del = 0;
+		uint32_t count_ins = 0;
+		uint32_t count_stay = 0;
+		uint32_t count_ins_length = 0;
+
 		auto& record = sequenceRecordsWithMetadata->Records[rec_idx];
 
 		double g_mean = record.foundationalParameter;
@@ -705,7 +739,7 @@ SequenceDataMutatorGeometric::SequenceDataMutatorGeometric(SequenceRecordsWithMe
 		sequenceRecordsWithMetadata->Records[rec_idx].insmean = g_mean;
 		sequenceRecordsWithMetadata->Records[rec_idx].insRate = (1-(1/(1+g_mean)))*(1/(1+g_mean));  // Probability of insertion being of length 1 drawn from a geometric distribution with mean g_mean.
 		
-	
+
 		// Initialising the mutated sequences with original sequences
 		record.MutatedLength = record.OriginalLength;
 		record.SeqASCIIMut.resize(record.MutatedLength, 'A');
@@ -727,10 +761,13 @@ SequenceDataMutatorGeometric::SequenceDataMutatorGeometric(SequenceRecordsWithMe
 			double rand_val = static_cast<double>(rng_sub_del.rand_range(100)) / 100.0;	// Convert to 0 to 1
 			if (rand_val < cumulative_probs[0]) {
 				mutation_marks[pos] = 1; // P_sub
+				count_sub++;
 			} else if (rand_val < cumulative_probs[1]) {
 				mutation_marks[pos] = 2; // P_del
+				count_del++;
 			} else {
 				mutation_marks[pos] = 0; // P_stay
+				count_stay++;
 			}
 		}
 
@@ -738,6 +775,8 @@ SequenceDataMutatorGeometric::SequenceDataMutatorGeometric(SequenceRecordsWithMe
 			for (uint32_t pos = 0; pos < record.OriginalLength; pos++) {
 				ins_lengths[pos] = 0;
 			}
+			count_ins_length = 0;
+			count_ins = 0;
 		}
 		else{
 			// Draw insertion lengths for each position based on geometric distribution
@@ -746,6 +785,9 @@ SequenceDataMutatorGeometric::SequenceDataMutatorGeometric(SequenceRecordsWithMe
 			for (uint32_t pos = 0; pos < record.OriginalLength; pos++) {
 				uint32_t ins_length = geom_dist(gen);
 				ins_lengths[pos] = ins_length;
+
+				count_ins_length += ins_lengths[pos];
+				count_ins += (ins_lengths[pos] > 0) ? 1 : 0;
 				// printf("Record %u, Position %u: Insertion Length = %u\n", rec_idx, pos, ins_length);
 			}
 		}
@@ -762,6 +804,13 @@ SequenceDataMutatorGeometric::SequenceDataMutatorGeometric(SequenceRecordsWithMe
 
 		record.SeqASCIIMut.resize(record.MutatedLength, 'A');	// Resize mutated sequence based on computed length
 		
+		// Store the counts in the record for reference
+		record.count_sub = count_sub;
+		record.count_del = count_del;
+		record.count_ins = count_ins;
+		record.count_stay = count_stay;
+		record.count_ins_length = count_ins_length;
+
 		// Apply mutations based on precomputed marks
 		uint32_t mpos = 0;	// Position in mutated sequence
 		for(uint32_t pos = 0; pos < record.OriginalLength; pos++) {

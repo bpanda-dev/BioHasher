@@ -10,10 +10,10 @@
 #include <cstring>
 #include <algorithm>
 
-const uint32_t subseqHash1_subseq_len = 21; // Default subsequence length for SubseqHash1 This is k   (11,21,31,37)
+const uint32_t subseqHash1_subseq_len = 11; // Default subsequence length for SubseqHash1 This is k   (11,21,31,37)
 const uint32_t subseqHash1_d = 1;           // Default 'p' value for SubseqHash1 this is d
 
-const uint32_t DP_array_size = 70;
+const uint32_t DP_array_size = 120;
 
 
 // Thread-safe structure to hold all computation state

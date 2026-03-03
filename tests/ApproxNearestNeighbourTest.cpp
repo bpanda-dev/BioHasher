@@ -38,10 +38,11 @@ void perform_sanity_checks_for_test_configuration(const HashInfo *hinfo,const ui
   }
 
   // Calculate the number of windows the sequence will be split into.
-  const uint64_t windowsInSequence = (referenceLen - windowlength + 1);
+  // const uint64_t windowsInSequence = (referenceLen - windowlength + 1);
+  const uint64_t windowsInSequence = (referenceLen/windowlength); // Using non-overlapping windows for sanity check, as this is what the LSH test will use.
   // Condition 2 : Skipping if the sequence is too short to provide enough
   // windows
-  const uint64_t MIN_WINDOWS = 2000; // A more reasonable threshold.
+  const uint64_t MIN_WINDOWS = 50; // A more reasonable threshold.
   if (windowsInSequence < MIN_WINDOWS) {
     printf("Skipping: Sequence with %llu windows is too short (min is %llu).\n", (unsigned long long)windowsInSequence,(unsigned long long)MIN_WINDOWS);
     exit(EXIT_FAILURE);
@@ -367,11 +368,11 @@ bool LSHApproxNearestNeighbourTest(const HashInfo *hinfo, bool extra, flags_t fl
   std::vector<KmerEntry> referenceKmers;
 
   if (refSeq.length() >= windowlength) {
-    uint32_t numKmers =
-        static_cast<uint32_t>(refSeq.length() - windowlength + 1);
+    // uint32_t numKmers = static_cast<uint32_t>(refSeq.length() - windowlength + 1);
+    uint32_t numKmers = static_cast<uint32_t>(refSeq.length() / windowlength);
     referenceKmers.reserve(numKmers);
 
-    for (uint32_t pos = 0; pos <= refSeq.length() - windowlength; pos++) {
+    for (uint32_t pos = 0; pos <= refSeq.length() - windowlength; pos += windowlength) {
       referenceKmers.push_back({refSeq.substr(pos, windowlength), pos});
     }
   }
@@ -403,13 +404,10 @@ bool LSHApproxNearestNeighbourTest(const HashInfo *hinfo, bool extra, flags_t fl
     uniqueKmerList.push_back(entry.first);
   }
 
-  printf("Sampling %u query k-mers from %zu unique k-mers.\n", numQueries,
-         uniqueKmerList.size());
+  printf("Sampling %u query k-mers from %zu unique k-mers.\n", numQueries, uniqueKmerList.size());
 
   if (uniqueKmerList.size() < numQueries) {
-    printf("Warning: Not enough unique k-mers (%zu) to sample %u queries. "
-           "Sampling with replacement.\n",
-           uniqueKmerList.size(), numQueries);
+    printf("Warning: Not enough unique k-mers (%zu) to sample %u queries. Sampling with replacement.\n", uniqueKmerList.size(), numQueries);
   }
 
   Rand rngQuery(seedGen.nextSeed()); // seeded RNG for reproducible sampling
@@ -447,10 +445,7 @@ bool LSHApproxNearestNeighbourTest(const HashInfo *hinfo, bool extra, flags_t fl
   // print bin means and stddevs using
   if (REPORT(VERBOSE, flags)) {
     for (size_t bin_idx = 0; bin_idx < sim_bins.bin_error_parameters_mean.size(); bin_idx++) {
-      printf("Bin %zu: Count %d, Mean = %0.2f, Stddev = %0.2f\n", bin_idx,
-              sim_bins.bin_fill_count[bin_idx],
-              sim_bins.bin_error_parameters_mean[bin_idx],
-              sim_bins.bin_error_parameters_stddev[bin_idx]);
+      printf("Bin %zu: Count %d, Mean = %0.2f, Stddev = %0.2f\n", bin_idx, sim_bins.bin_fill_count[bin_idx], sim_bins.bin_error_parameters_mean[bin_idx], sim_bins.bin_error_parameters_stddev[bin_idx]);
     }
   }
 
@@ -495,8 +490,7 @@ bool LSHApproxNearestNeighbourTest(const HashInfo *hinfo, bool extra, flags_t fl
     const uint32_t max_attempts = 1000;
 
     while (bin_fill_count == 0 && attempts < max_attempts) {
-      sampled_binid = rng_bin_sampler.rand_custom_range(target_sim_low * 100,
-                                                        target_sim_high * 100);
+      sampled_binid = rng_bin_sampler.rand_custom_range(target_sim_low * 100, target_sim_high * 100);
       // printf("Attempt %u: Sampled bin ID = %d\n", attempts + 1,
       // sampled_binid);
       bin_fill_count = sim_bins.bin_fill_count[sampled_binid];
@@ -504,8 +498,7 @@ bool LSHApproxNearestNeighbourTest(const HashInfo *hinfo, bool extra, flags_t fl
     }
 
     if (bin_fill_count == 0) {
-      printf("Warning: Could not find non-empty bin after %u attempts\n",
-             max_attempts);
+      printf("Warning: Could not find non-empty bin after %u attempts\n", max_attempts);
       // sequenceRecordsforTest.Records[idx].snpRate = 1.0; // Assign a default
       // value
       skipped_sequences++;
@@ -513,10 +506,8 @@ bool LSHApproxNearestNeighbourTest(const HashInfo *hinfo, bool extra, flags_t fl
     }
 
     uint32_t rand_param_idx = rng_bin_params_sampler.rand_range(bin_fill_count);
-    double sampled_error_param =
-        sim_bins.bin_error_parameters[sampled_binid][rand_param_idx];
-    QuerySequenceRecord.Records[idx].foundationalParameter =
-        sampled_error_param;
+    double sampled_error_param = sim_bins.bin_error_parameters[sampled_binid][rand_param_idx];
+    QuerySequenceRecord.Records[idx].foundationalParameter = sampled_error_param;
   }
 
   if (skipped_sequences > 0) {
@@ -595,12 +586,13 @@ bool LSHApproxNearestNeighbourTest(const HashInfo *hinfo, bool extra, flags_t fl
     std::vector<uint32_t> positions; // All positions of this kmer in the reference
   };
 
-  std::vector<std::vector<GroundTruthEntry>> groundTruthNearest( QuerySequenceRecord.KeyCount);
+  std::vector<std::vector<GroundTruthEntry>> groundTruthNearest(QuerySequenceRecord.KeyCount);
 
   printf("Computing ground truth top-%u nearest k-mers for %u queries across %zu unique reference k-mers...\n", TOP_K, QuerySequenceRecord.KeyCount, uniqueKmerPositions.size());
 
   for (uint32_t q_idx = 0; q_idx < QuerySequenceRecord.KeyCount; q_idx++) {
     const std::string &querySeq = QuerySequenceRecord.Records[q_idx].SeqASCIIMut;
+
     // Step 1: Compute similarity between this query and every unique k-mer in the reference
     std::vector<std::pair<double, std::string>> simPerUniqueKmer;
     simPerUniqueKmer.reserve(uniqueKmerPositions.size());
@@ -649,30 +641,347 @@ bool LSHApproxNearestNeighbourTest(const HashInfo *hinfo, bool extra, flags_t fl
       printf("  Ground truth progress: %u / %u queries done.\n", q_idx, QuerySequenceRecord.KeyCount);
     }
   }
-    
-    printf("Ground truth computation complete for %u queries.\n",
-    QuerySequenceRecord.KeyCount);
-    // Write ground truth to output file
-    out_file << ":15:Ground Truth Top-" << TOP_K << " Nearest K-mers\n";
-    for(uint32_t q_idx = 0; q_idx < QuerySequenceRecord.KeyCount; q_idx++){
-    	out_file << "Q" << q_idx << ":";
-    	for(size_t k = 0; k < groundTruthNearest[q_idx].size(); k++){
-    		const auto& entry = groundTruthNearest[q_idx][k];
-    		out_file << entry.kmer << "," << entry.similarity << ",[";
-    		for(size_t p = 0; p < entry.positions.size(); p++){
-    			out_file << entry.positions[p];
-    			if(p < entry.positions.size() - 1) out_file << "|";
-    		}
-    		out_file << "]";
-    		if(k < groundTruthNearest[q_idx].size() - 1) out_file << ";";
-    	}
-    	out_file << "\n";
+  
+  printf("Ground truth computation complete for %u queries.\n",  QuerySequenceRecord.KeyCount);
+  
+  // Write ground truth to output file
+  out_file << ":15:Ground Truth Top-" << TOP_K << " Nearest K-mers\n";
+  for(uint32_t q_idx = 0; q_idx < QuerySequenceRecord.KeyCount; q_idx++){
+    out_file << "Q" << q_idx << ":";
+    for(size_t k = 0; k < groundTruthNearest[q_idx].size(); k++){
+      const auto& entry = groundTruthNearest[q_idx][k];
+      out_file << entry.kmer << "," << entry.similarity << ",[";
+      for(size_t p = 0; p < entry.positions.size(); p++){
+        out_file << entry.positions[p];
+        if(p < entry.positions.size() - 1) out_file << "|";
+      }
+      out_file << "]";
+      if(k < groundTruthNearest[q_idx].size() - 1) out_file << ";";
+    }
+    out_file << "\n";
   }
 
-  // -----------------------------------------------------------------------------------------------------
-  // // Compute the ground truth. <Time tasking> <Parallelize>
-  // -----------------------------------------------------------------------------------------------------
-  // //
+  // Compute Hash tables. using 2 AND and 3 tables.
+
+  seed_t hashSeed1A = seedGen.nextSeed();
+  seed_t hashSeed1B = seedGen.nextSeed();
+  seed_t hashSeed1C = seedGen.nextSeed();
+  seed_t hashSeed1D = seedGen.nextSeed();
+  
+  seed_t hashSeed2A = seedGen.nextSeed();
+  seed_t hashSeed2B = seedGen.nextSeed();
+  seed_t hashSeed2C = seedGen.nextSeed();
+  seed_t hashSeed2D = seedGen.nextSeed();
+
+  seed_t hashSeed3A = seedGen.nextSeed();
+  seed_t hashSeed3B = seedGen.nextSeed();
+  seed_t hashSeed3C = seedGen.nextSeed();
+  seed_t hashSeed3D = seedGen.nextSeed();
+
+  // Define a hash table type: mapping hash value to vector of kmer positions
+  using HashTable = std::unordered_map<uint64_t, std::vector<uint32_t>>;
+
+  HashFn hash = hinfo->hashFn(g_hashEndian);
+  if (!hash) {
+      printf("Error: hash function pointer is null!\n");
+      exit(EXIT_FAILURE);
+  }
+  // Helper: Compute AND of two hashes for a k-mer
+  auto compute_hash_and = [&](const std::string& kmer, seed_t seedA, seed_t seedB, seed_t seedC, seed_t seedD) -> uint64_t {
+      uint64_t hashA = 0;
+      uint64_t hashB = 0;
+      uint64_t hashC = 0;
+      uint64_t hashD = 0;
+
+      const uint8_t* strPtr = (const uint8_t*)kmer.c_str();
+      size_t strLen = kmer.length();
+      printf("Processing k-mer '%s' of length %zu\n", kmer.c_str(), strLen);
+      
+      hash(strPtr, strLen, seedA, &hashA);
+      hash(strPtr, strLen, seedB, &hashB);
+      hash(strPtr, strLen, seedC, &hashC);
+      hash(strPtr, strLen, seedD, &hashD);
+
+      return hashA & hashB & hashC & hashD;
+  };
+
+  // Create three hash tables
+  HashTable hashTable1, hashTable2, hashTable3;
+
+  // Populate hashTable1: AND of hashes with hashSeed1A and hashSeed1B
+  for (const auto& entry : referenceKmers) {
+      uint64_t hash_val = compute_hash_and(entry.kmer, hashSeed1A, hashSeed1B, hashSeed1C, hashSeed1D);
+      printf("Hash AND for k-mer '%s': 0x%016llx at position %u\n", entry.kmer.c_str(), (unsigned long long)hash_val, entry.position);
+      hashTable1[hash_val].push_back(entry.position);
+  }
+
+  // Populate hashTable2: AND of hashes with hashSeed2A and hashSeed2B
+  for (const auto& entry : referenceKmers) {
+      uint64_t hash_val = compute_hash_and(entry.kmer, hashSeed2A, hashSeed2B, hashSeed2C, hashSeed2D);
+       printf("Hash AND for k-mer '%s': 0x%016llx at position %u\n", entry.kmer.c_str(), (unsigned long long)hash_val, entry.position);
+      hashTable2[hash_val].push_back(entry.position);
+  }
+
+  // Populate hashTable3: AND of hashes with hashSeed3A and hashSeed3B
+  for (const auto& entry : referenceKmers) {
+      uint64_t hash_val = compute_hash_and(entry.kmer, hashSeed3A, hashSeed3B, hashSeed3C, hashSeed3D);
+      hashTable3[hash_val].push_back(entry.position);
+  }
+  
+  auto print_hash_table = [](const HashTable& table, const std::string& name) {
+      printf("Contents of %s:\n", name.c_str());
+      for (const auto& [hash_val, positions] : table) {
+          printf("Hash: 0x%016llx -> Positions: [", (unsigned long long)hash_val);
+          for (size_t i = 0; i < positions.size(); ++i) {
+              printf("%u", positions[i]);
+              if (i < positions.size() - 1) printf(", ");
+          }
+          printf("]\n");
+      }
+      printf("\n");
+  };
+
+  // Print all three hash tables
+  print_hash_table(hashTable1, "HashTable1");
+  print_hash_table(hashTable2, "HashTable2");
+  print_hash_table(hashTable3, "HashTable3");
+
+  
+  // Query phase: For each query, search in hashtable 1, hashtable2 and hash table3.
+  printf("\n\n========== LSH QUERY PHASE ==========\n");
+
+  // Helper: Deduplicate and sort positions
+  auto aggregate_positions = [](const std::vector<std::vector<uint32_t>>& position_lists) -> std::vector<uint32_t> {
+      std::set<uint32_t> unique_positions;
+      for (const auto& list : position_lists) {
+          for (uint32_t pos : list) {
+              unique_positions.insert(pos);
+          }
+      }
+      return std::vector<uint32_t>(unique_positions.begin(), unique_positions.end());
+  };
+
+  // Accumulate metrics across all queries
+  uint32_t total_true_positives = 0;
+  uint32_t total_false_positives = 0;
+  uint32_t total_false_negatives = 0;
+  uint32_t total_queries_with_results = 0;
+  std::vector<double> recall_per_query;
+  std::vector<double> precision_per_query;
+
+  // For each query
+  for (uint32_t q_idx = 0; q_idx < QuerySequenceRecord.KeyCount; q_idx++) {
+      const std::string& querySeq = QuerySequenceRecord.Records[q_idx].SeqASCIIMut;
+      
+      // Compute hash values for this query using the same seeds
+      uint64_t query_hash1 = compute_hash_and(querySeq, hashSeed1A, hashSeed1B, hashSeed1C, hashSeed1D);
+      uint64_t query_hash2 = compute_hash_and(querySeq, hashSeed2A, hashSeed2B, hashSeed2C, hashSeed2D);
+      uint64_t query_hash3 = compute_hash_and(querySeq, hashSeed3A, hashSeed3B, hashSeed3C, hashSeed3D);
+
+      // Look up in all three hash tables
+      std::vector<std::vector<uint32_t>> position_lists;
+      
+      if (hashTable1.find(query_hash1) != hashTable1.end()) {
+          position_lists.push_back(hashTable1.at(query_hash1));
+      }
+      if (hashTable2.find(query_hash2) != hashTable2.end()) {
+          position_lists.push_back(hashTable2.at(query_hash2));
+      }
+      if (hashTable3.find(query_hash3) != hashTable3.end()) {
+          position_lists.push_back(hashTable3.at(query_hash3));
+      }
+
+      // Aggregate and deduplicate positions
+      std::vector<uint32_t> lsh_results = aggregate_positions(position_lists);
+      
+      // Convert to sets for easier comparison
+      std::set<uint32_t> lsh_results_set(lsh_results.begin(), lsh_results.end());
+      
+      // Collect ground truth positions
+      const auto& ground_truth = groundTruthNearest[q_idx];
+      std::set<uint32_t> ground_truth_positions;
+      for (const auto& entry : ground_truth) {
+          for (uint32_t pos : entry.positions) {
+              ground_truth_positions.insert(pos);
+          }
+      }
+      
+      // Calculate TP, FP, FN for this query
+      uint32_t true_positives = 0;      // In both LSH and ground truth
+      uint32_t false_positives = 0;     // In LSH but NOT in ground truth
+      uint32_t false_negatives = 0;     // In ground truth but NOT in LSH
+      
+      // Count true positives and false positives
+      for (uint32_t pos : lsh_results_set) {
+          if (ground_truth_positions.find(pos) != ground_truth_positions.end()) {
+              true_positives++;
+          } else {
+              false_positives++;
+          }
+      }
+      
+      // Count false negatives
+      for (uint32_t pos : ground_truth_positions) {
+          if (lsh_results_set.find(pos) == lsh_results_set.end()) {
+              false_negatives++;
+          }
+      }
+      
+      // Calculate Recall and Precision for this query
+      double recall = 0.0;
+      double precision = 0.0;
+      
+      // Recall = TP / (TP + FN) = TP / |ground_truth|
+      if ((true_positives + false_negatives) > 0) {
+          recall = (double)true_positives / (true_positives + false_negatives);
+      }
+      
+      // Precision = TP / (TP + FP) = TP / |LSH_results|
+      if ((true_positives + false_positives) > 0) {
+          precision = (double)true_positives / (true_positives + false_positives);
+      }
+      
+      recall_per_query.push_back(recall);
+      precision_per_query.push_back(precision);
+      
+      printf("\nQuery %u: '%s'\n", q_idx, querySeq.c_str());
+      printf("  Hash1: 0x%016llx -> %zu positions\n", (unsigned long long)query_hash1,hashTable1.find(query_hash1) != hashTable1.end() ? hashTable1.at(query_hash1).size() : 0);
+      printf("  Hash2: 0x%016llx -> %zu positions\n", (unsigned long long)query_hash2,hashTable2.find(query_hash2) != hashTable2.end() ? hashTable2.at(query_hash2).size() : 0);
+      printf("  Hash3: 0x%016llx -> %zu positions\n", (unsigned long long)query_hash3,hashTable3.find(query_hash3) != hashTable3.end() ? hashTable3.at(query_hash3).size() : 0);
+      printf("  Aggregated candidates (deduplicated): %zu\n", lsh_results.size());
+
+      // Print aggregated candidates (deduplicated)
+      printf("  Aggregated candidates: [");
+      for (size_t i = 0; i < lsh_results.size(); i++) {
+          printf("%u", lsh_results[i]);
+          if (i < lsh_results.size() - 1) printf(", ");
+      }
+      printf("]\n");
+
+      printf("  Ground truth size: %zu\n", ground_truth_positions.size());
+
+      // Print ground truth positions
+      printf("  Ground truth positions: [");
+      size_t gt_idx = 0;
+      for (uint32_t pos : ground_truth_positions) {
+          printf("%u", pos);
+          if (++gt_idx < ground_truth_positions.size()) printf(", ");
+      }
+      printf("]\n");
+
+      printf("  TP (in both LSH and GT): %u\n", true_positives);
+      printf("  FP (in LSH but not GT): %u\n", false_positives);
+      printf("  FN (in GT but not LSH): %u\n", false_negatives);
+      printf("  Recall: %.4f\n", recall);
+      printf("  Precision: %.4f\n", precision);
+      
+      // Accumulate metrics
+      if (lsh_results.size() > 0) {
+          total_queries_with_results++;
+      }
+      total_true_positives += true_positives;
+      total_false_positives += false_positives;
+      total_false_negatives += false_negatives;
+
+      // Write results to output file
+      out_file << ":16:Query " << q_idx << " LSH Results\n";
+      out_file << "LSH_candidates," << lsh_results.size() << "\n";
+      out_file << "Ground_truth_count," << ground_truth_positions.size() << "\n";
+      out_file << "True_positives," << true_positives << "\n";
+      out_file << "False_positives," << false_positives << "\n";
+      out_file << "False_negatives," << false_negatives << "\n";
+      out_file << "Recall," << recall << "\n";
+      out_file << "Precision," << precision << "\n";
+      out_file << "Candidate_positions,";
+      for (size_t i = 0; i < lsh_results.size(); i++) {
+          out_file << lsh_results[i];
+          if (i < lsh_results.size() - 1) out_file << "|";
+      }
+      out_file << "\n";
+      out_file << "Ground_truth_positions,";
+      size_t gt_count = 0;
+      for (uint32_t pos : ground_truth_positions) {
+          out_file << pos;
+          if (++gt_count < ground_truth_positions.size()) out_file << "|";
+      }
+      out_file << "\n";
+  }
+
+  // Calculate aggregate metrics
+  double avg_recall = 0.0;
+  double avg_precision = 0.0;
+
+  if (QuerySequenceRecord.KeyCount > 0) {
+      for (double r : recall_per_query) {
+          avg_recall += r;
+      }
+      avg_recall /= QuerySequenceRecord.KeyCount;
+      
+      for (double p : precision_per_query) {
+          avg_precision += p;
+      }
+      avg_precision /= QuerySequenceRecord.KeyCount;
+  }
+
+  // Calculate macro-averaged F1 score
+  double f1_score = 0.0;
+  if ((avg_recall + avg_precision) > 0) {
+      f1_score = 2.0 * (avg_recall * avg_precision) / (avg_recall + avg_precision);
+  }
+
+  // Calculate overall recall and precision across all queries
+  double overall_recall = 0.0;
+  double overall_precision = 0.0;
+
+  if ((total_true_positives + total_false_negatives) > 0) {
+      overall_recall = (double)total_true_positives / (total_true_positives + total_false_negatives);
+  }
+
+  if ((total_true_positives + total_false_positives) > 0) {
+      overall_precision = (double)total_true_positives / (total_true_positives + total_false_positives);
+  }
+
+  double overall_f1 = 0.0;
+  if ((overall_recall + overall_precision) > 0) {
+      overall_f1 = 2.0 * (overall_recall * overall_precision) / (overall_recall + overall_precision);
+  }
+
+  // Print summary statistics
+  printf("\n========== LSH QUERY SUMMARY ==========\n");
+  printf("Total queries: %u\n", QuerySequenceRecord.KeyCount);
+  printf("Queries with LSH results: %u\n", total_queries_with_results);
+  printf("\n--- Aggregate Metrics ---\n");
+  printf("Total True Positives (TP): %u\n", total_true_positives);
+  printf("Total False Positives (FP): %u\n", total_false_positives);
+  printf("Total False Negatives (FN): %u\n", total_false_negatives);
+  printf("\n--- Overall Metrics (Micro-averaged) ---\n");
+  printf("Overall Recall: %.4f\n", overall_recall);
+  printf("Overall Precision: %.4f\n", overall_precision);
+  printf("Overall F1-Score: %.4f\n", overall_f1);
+  printf("\n--- Per-Query Average (Macro-averaged) ---\n");
+  printf("Average Recall: %.4f\n", avg_recall);
+  printf("Average Precision: %.4f\n", avg_precision);
+  printf("Average F1-Score: %.4f\n", f1_score);
+
+  // Write summary to output file
+  out_file << ":17:LSH Query Summary\n";
+  out_file << "Total_queries," << QuerySequenceRecord.KeyCount << "\n";
+  out_file << "Queries_with_results," << total_queries_with_results << "\n";
+  out_file << "Total_TP," << total_true_positives << "\n";
+  out_file << "Total_FP," << total_false_positives << "\n";
+  out_file << "Total_FN," << total_false_negatives << "\n";
+  out_file << "Overall_Recall," << overall_recall << "\n";
+  out_file << "Overall_Precision," << overall_precision << "\n";
+  out_file << "Overall_F1_Score," << overall_f1 << "\n";
+  out_file << "Average_Recall," << avg_recall << "\n";
+  out_file << "Average_Precision," << avg_precision << "\n";
+  out_file << "Average_F1_Score," << f1_score << "\n";
+
+  out_file.close();
+
+
+
+  //
 
   // For each query, compute the hash and check if it got the c-NN right.
 

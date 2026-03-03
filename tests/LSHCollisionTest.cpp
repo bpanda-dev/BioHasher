@@ -285,6 +285,43 @@ static bool LSHCollisionTestInnerInnerParallel(
       else
         out_file << sequenceRecordsforTest.Records[i].insRate << ",";
     }
+
+    out_file << ":15:";
+    for (size_t i = 0; i < N_seq; i++) {
+      if (i == N_seq - 1)
+        out_file << sequenceRecordsforTest.Records[i].count_ins << "\n";
+      else        out_file << sequenceRecordsforTest.Records[i].count_ins << ",";
+    }
+    out_file << ":16:";
+    for (size_t i = 0; i < N_seq; i++) {
+      if (i == N_seq - 1)        out_file << sequenceRecordsforTest.Records[i].count_del << "\n";
+      else        out_file << sequenceRecordsforTest.Records[i].count_del << ",";
+    }
+    out_file << ":17:";
+    for (size_t i = 0; i < N_seq; i++) {
+      if (i == N_seq - 1)        out_file << sequenceRecordsforTest.Records[i].count_sub << "\n";
+      else        out_file << sequenceRecordsforTest.Records[i].count_sub << ",";
+    }
+    out_file << ":18:";
+    for (size_t i = 0; i < N_seq; i++) {
+      if (i == N_seq - 1)        out_file << sequenceRecordsforTest.Records[i].count_stay << "\n";
+      else        out_file << sequenceRecordsforTest.Records[i].count_stay << ",";
+    }
+    out_file << ":19:";
+    for (size_t i = 0; i < N_seq; i++) {
+      if (i == N_seq - 1)        out_file << sequenceRecordsforTest.Records[i].count_ins_length << "\n";
+      else        out_file << sequenceRecordsforTest.Records[i].count_ins_length << ",";
+    }
+    out_file << ":20:";
+    for (size_t i = 0; i < N_seq; i++) {
+      if (i == N_seq - 1)        out_file << sequenceRecordsforTest.Records[i].SeqASCIIOrg << "\n";
+      else        out_file << sequenceRecordsforTest.Records[i].SeqASCIIOrg << ",";
+    }
+    out_file << ":21:";
+    for (size_t i = 0; i < N_seq; i++) {
+      if (i == N_seq - 1)        out_file << sequenceRecordsforTest.Records[i].SeqASCIIMut << "\n";
+      else        out_file << sequenceRecordsforTest.Records[i].SeqASCIIMut << ",";
+    }
   }
 
   out_file << ":10:" << "AND," << "OR" << std::endl;
