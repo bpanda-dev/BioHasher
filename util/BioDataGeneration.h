@@ -124,6 +124,7 @@ struct SequenceRecordsWithMetadataStruct{
 
 	// Array of sequence records (AoS)
     std::vector<SequenceRecordUnit> Records;
+	
 
 	SequenceRecordsWithMetadataStruct() : KeyCount(0), OriginalSequenceLength(0),DistanceClass(0), DatagenSeed(0), DataMutateSeed(0),
 		A_percentage(0.25), C_percentage(0.25), G_percentage(0.25), T_percentage(0.25),

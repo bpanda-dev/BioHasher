@@ -1,5 +1,5 @@
 /*
- * BioHasher
+ * BioHasher (Codebase was forked from SMHasher3 and then edited for use in BioHasher)
  * 
  *
  * This program is free software: you can redistribute it and/or
@@ -38,7 +38,7 @@
  *     Copyright (c) 2020      Thomas Dybdahl Ahle
  *     Copyright (c) 2020      Tom Kaitchuck
  *     Copyright (c) 2021      Logan oos Even
- *     Copyright (c) 2026      Bikram Kumar Panda
+ *     Copyright (c) 2026      Bikram Kumar Panda and Paul Medvedev
  *
  *     Permission is hereby granted, free of charge, to any person
  *     obtaining a copy of this software and associated documentation
@@ -66,6 +66,7 @@
 #include "Hashlib.h"
 #include "TestGlobals.h"
 #include "Random.h"
+
 #include "Blobsort.h"
 #include "Analyze.h"
 #include "Stats.h"
@@ -133,6 +134,7 @@ struct TestOpts {
     bool         testspeedonly; // If true, then disabling test doesn't affect "All" testing
     const char * name;
 };
+
 // These first 3 override all other selections
 static TestOpts g_testopts[] = {
     { g_testVerifyAll,       false,     false,    "VerifyAll" },
@@ -962,17 +964,17 @@ int main( int argc, const char ** argv ) {
 
     size_t timeEnd = monotonic_clock();
 
-    uint32_t vcode = VCODE_FINALIZE();
+    // uint32_t vcode = VCODE_FINALIZE();
 
     FILE * outfile = g_testAll ? stdout : stderr;
 
-    if (g_doVCode) {
-        fprintf(outfile, "Input vcode 0x%08x, Output vcode 0x%08x, Result vcode 0x%08x\n",
-                g_inputVCode, g_outputVCode, g_resultVCode);
-    }
+    // if (g_doVCode) {
+    //     fprintf(outfile, "Input vcode 0x%08x, Output vcode 0x%08x, Result vcode 0x%08x\n",
+    //             g_inputVCode, g_outputVCode, g_resultVCode);
+    // }
 
-    fprintf(outfile, "Verification value is 0x%08x - Testing took %f seconds\n\n",
-            vcode, (double)(timeEnd - timeBegin) / (double)NSEC_PER_SEC);
+    // fprintf(outfile, "Verification value is 0x%08x - Testing took %f seconds\n\n",
+    //         vcode, (double)(timeEnd - timeBegin) / (double)NSEC_PER_SEC);
 
     return (!result && g_exitCodeResult) ? 99 : 0;
 }

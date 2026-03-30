@@ -32,15 +32,14 @@
     FLAG_EXPAND(HASH_CRC_BASED)          \
     FLAG_EXPAND(HASH_AES_BASED)          \
     FLAG_EXPAND(HASH_CLMUL_BASED)        \
-    FLAG_EXPAND(HASH_LOOKUP_TABLE)       \
     FLAG_EXPAND(HASH_XL_SEED)            \
     FLAG_EXPAND(HASH_SMALL_SEED)         \
     FLAG_EXPAND(HASH_NO_SEED)            \
     FLAG_EXPAND(HASH_SYSTEM_SPECIFIC)    \
     FLAG_EXPAND(HASH_ENDIAN_INDEPENDENT) \
     FLAG_EXPAND(HASH_FLOATING_POINT)     \
-    FLAG_EXPAND(HASH_LOCALITY_SENSITIVE)    \
-    FLAG_EXPAND(HASH_TOKENISATION_PROPERTY)   \
+    FLAG_EXPAND(HASH_LOCALITY_SENSITIVE)    \   
+    FLAG_EXPAND(HASH_TOKENISATION_PROPERTY) \   
     FLAG_EXPAND(HASH_HAMMING_SIMILARITY)    \
     FLAG_EXPAND(HASH_JACCARD_SIMILARITY)   \
     FLAG_EXPAND(HASH_COSINE_SIMILARITY)    \
@@ -48,7 +47,11 @@
     FLAG_EXPAND(HASH_EDIT_SIMILARITY)    \
     FLAG_EXPAND(HASH_OVERLAPPING_TOKENS) \
     FLAG_EXPAND(HASH_NONOVERLAPPING_TOKENS) \
-    FLAG_EXPAND(HASH_UNIVERSE_VECTOR_OPTIMISATION)
+    FLAG_EXPAND(HASH_UNIVERSE_VECTOR_OPTIMISATION)  // i NEED TO REMOVE THIS. 
+
+// Is the hash locally sensitive (e.g. simhash, minhash)?
+// Does the hash performs tokenisation of the input window (e.g. minhash)?
+
 
 #define IMPL_FLAGS                          \
     FLAG_EXPAND(IMPL_SANITY_FAILS)          \
@@ -111,6 +114,7 @@ typedef void       (* HashFn)( const void * in, const size_t len, const seed_t s
 typedef void       (* HashFnVarOut)( const void * in, const size_t len, const seed_t seed, void * out, const size_t outlen );
 
 seed_t excludeBadseeds( const HashInfo * hinfo, const seed_t seed );
+
 
 class HashInfo {
     friend class HashFamilyInfo;

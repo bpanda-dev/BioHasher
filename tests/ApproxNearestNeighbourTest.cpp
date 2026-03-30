@@ -29,28 +29,38 @@ struct common_params_struct {
   uint32_t distanceClass;
 };
 
+// Store k-mers with their positions for nearest neighbour lookups
+// struct KmerEntry {
+//   std::string kmer;
+//   uint32_t position; // Start position in the reference sequence
+// };
+
+
 void perform_sanity_checks_for_test_configuration(const HashInfo *hinfo,const uint32_t tokenlength,const uint32_t referenceLen,const uint32_t windowlength) {
 
-  // Sanity check of windowlength.
+  // Sanity check of windowlength. It should always be less than the reference length, otherwise the test is not meaningful.
   if (windowlength > referenceLen) {
     printf("Error: Window length (%u) > reference length (%u).\n", windowlength,referenceLen);
     exit(EXIT_FAILURE);
   }
 
   // Calculate the number of windows the sequence will be split into.
+
+  // Overlapping windows
   // const uint64_t windowsInSequence = (referenceLen - windowlength + 1);
+  
+  // Non-overlapping windows (more realistic for LSH test, as this is what the LSH test will use)
   const uint64_t windowsInSequence = (referenceLen/windowlength); // Using non-overlapping windows for sanity check, as this is what the LSH test will use.
-  // Condition 2 : Skipping if the sequence is too short to provide enough
-  // windows
+  
+  
+  // Condition 2 : Skipping if the sequence is too short to provide enough windows
   const uint64_t MIN_WINDOWS = 50; // A more reasonable threshold.
   if (windowsInSequence < MIN_WINDOWS) {
     printf("Skipping: Sequence with %llu windows is too short (min is %llu).\n", (unsigned long long)windowsInSequence,(unsigned long long)MIN_WINDOWS);
     exit(EXIT_FAILURE);
   }
 
-  // Condition 3 : Skipping if the window space is too small, which would lead
-  // to high collision rates even for random data, making the LSH property test
-  // less meaningful.
+  // Condition 3 : Skipping if the window space is too small, which would lead to high collision rates even for random data, making the LSH property test less meaningful.
   if (windowlength > 0) {
     uint64_t maxPossibleWindows = (windowlength >= 32) ? UINT64_MAX : (1ULL << (2 * windowlength));
     // This checks if the number of windows in the sequence is a large fraction
@@ -162,8 +172,7 @@ static sim_bins_struct LSHCollisionTestInnerAgg(SequenceRecordsWithMetadataStruc
       for (uint32_t param_idx = 0; param_idx < sim_bins_agg.bin_fill_count[bin_idx]; param_idx++) {
         sum += params[param_idx];
       }
-      // printf("Bin %zu: Sum = %f, Count = %u\n", bin_idx, sum,
-      // sim_bins_agg.bin_fill_count[bin_idx]);
+      printf("Bin %zu: Sum = %f, Count = %u\n", bin_idx, sum, sim_bins_agg.bin_fill_count[bin_idx]);
       double mean = sum / sim_bins_agg.bin_fill_count[bin_idx];
       sim_bins_agg.bin_error_parameters_mean[bin_idx] = mean;
 
@@ -311,8 +320,7 @@ bool LSHApproxNearestNeighbourTest(const HashInfo *hinfo, bool extra, flags_t fl
   uint32_t tokenlength;
   if (hinfo->hasTokenisationProperty()) {
     printf(
-        "Hash %s has tokenisation property. Testing multiple token lengths.\n",
-        hinfo->name);
+        "Hash %s has tokenisation property. Testing multiple token lengths.\n",hinfo->name);
     tokenlength = 13;
   } else {
     tokenlength = 0; // No tokenization
@@ -321,18 +329,13 @@ bool LSHApproxNearestNeighbourTest(const HashInfo *hinfo, bool extra, flags_t fl
   // Note: The tokenlength is different from window size. Token is like a kmer.
   // Window size is the length of the sequence that we are hashing.
 
-  uint32_t referenceLen = 10000;
-  uint32_t windowlength = 45;
+  uint32_t windowlength = 40; // This can be termed as the sequence length for the LSH collision test.
+  uint32_t referenceLen = windowlength * 10000; // Reference sequence length. This will be split into windows of size 'windowlength' for hashing and mutation.
 
   perform_sanity_checks_for_test_configuration(hinfo, tokenlength, referenceLen, windowlength);
 
-  if (windowlength == 0) { // Redundant, but just in case the sanity check is bypassed for some reason.
-    printf("Error: Window length of 0 is not valid for this test.\n");
-    exit(EXIT_FAILURE); // Window length of 0 is not valid for this test.
-  }
-
   // -----------------------------------------------------------------------------------------------------
-  // // Generate long sequence.
+  // 1. Generate long sequence.
 
   seed_t baseSeed = g_GoldenRatio ^ std::chrono::system_clock::now().time_since_epoch().count();
   SeedGenerator seedGen(baseSeed);
@@ -343,8 +346,7 @@ bool LSHApproxNearestNeighbourTest(const HashInfo *hinfo, bool extra, flags_t fl
   ReferenceSequenceRecord.DistanceClass = 0;
   ReferenceSequenceRecord.isBasesDrawnFromUniformDist = true;
   ReferenceSequenceRecord.DatagenSeed = seedGen.nextSeed();
-  ReferenceSequenceRecord.DataMutateSeed =
-      0; // No mutation for reference sequence
+  ReferenceSequenceRecord.DataMutateSeed = 0; // No mutation for reference sequence
 
   SequenceDataGenerator dataGenReference(&ReferenceSequenceRecord);
 
@@ -354,32 +356,24 @@ bool LSHApproxNearestNeighbourTest(const HashInfo *hinfo, bool extra, flags_t fl
   out_file << ReferenceSequenceRecord.Records[0].SeqASCIIOrg << std::endl;
 
   // -----------------------------------------------------------------------------------------------------
-  // //
-  // Extract all k-mers (windows) from the reference sequence.
-  // k-mer size = windowlength, using a sliding window with stride 1.
+  // 2. Extract windows from the reference sequence
+
   const std::string &refSeq = ReferenceSequenceRecord.Records[0].SeqASCIIOrg;
-
-  // Store k-mers with their positions for nearest neighbour lookups
-  struct KmerEntry {
-    std::string kmer;
-    uint32_t position; // Start position in the reference sequence
-  };
-
   std::vector<KmerEntry> referenceKmers;
 
-  if (refSeq.length() >= windowlength) {
-    // uint32_t numKmers = static_cast<uint32_t>(refSeq.length() - windowlength + 1);
-    uint32_t numKmers = static_cast<uint32_t>(refSeq.length() / windowlength);
-    referenceKmers.reserve(numKmers);
+  // uint32_t numKmers = static_cast<uint32_t>(refSeq.length() - windowlength + 1);
+  uint32_t numKmers = static_cast<uint32_t>(refSeq.length() / windowlength);
+  referenceKmers.reserve(numKmers);
 
-    for (uint32_t pos = 0; pos <= refSeq.length() - windowlength; pos += windowlength) {
-      referenceKmers.push_back({refSeq.substr(pos, windowlength), pos});
-    }
+  for (uint32_t pos = 0; pos <= refSeq.length() - windowlength; pos += windowlength) {
+    referenceKmers.push_back({refSeq.substr(pos, windowlength), pos});
   }
 
   printf("Extracted %zu k-mers (window size = %u) from reference sequence of length %u.\n", referenceKmers.size(), windowlength, referenceLen);
 
-  // Also build a set of unique k-mers for fast lookup / deduplication if needed
+
+  // -----------------------------------------------------------------------------------------------------
+  // 3. Build a set of unique k-mers for fast lookup / deduplication if needed
   std::unordered_map<std::string, std::vector<uint32_t>> uniqueKmerPositions;
   for (const auto &entry : referenceKmers) {
     uniqueKmerPositions[entry.kmer].push_back(entry.position);
@@ -393,19 +387,38 @@ bool LSHApproxNearestNeighbourTest(const HashInfo *hinfo, bool extra, flags_t fl
   out_file << "unique_kmers," << uniqueKmerPositions.size() << std::endl;
 
   // -----------------------------------------------------------------------------------------------------
-  // // Generate query sequences by randomly sampling from the unique k-mers in
-  // the reference.
+  // 4. Generate query sequences by randomly sampling from the unique k-mers in the reference.
+  
   const uint32_t numQueries = 100;
 
+  if(numQueries > uniqueKmerPositions.size()) {
+    printf("Warning: Number of queries (%u) exceeds number of unique k-mers (%zu) \n.", numQueries, uniqueKmerPositions.size());
+    printf("Some queries will be duplicates due to sampling with replacement.\n");
+  }
+
+  // for debugging: print unique k-mers and their positions to output file
+  out_file << ":3: Unique Kmers\n";
   // Collecting unique k-mers into a vector for random access
   std::vector<std::string> uniqueKmerList;
   uniqueKmerList.reserve(uniqueKmerPositions.size());
+  uint32_t index_unq = 0;
   for (const auto &entry : uniqueKmerPositions) {
     uniqueKmerList.push_back(entry.first);
+    // print the k‑mer and all its positions
+    // out_file << index_unq << ":" << entry.first << ":";
+    // const auto &positions = entry.second;
+    // for (size_t i = 0; i < positions.size(); ++i) {
+    //     out_file << positions[i];
+    //     if (i + 1 < positions.size())
+    //         out_file << "|";  // separator between positions
+    // }
+    // out_file << "\n";
+
+    // index_unq++;
   }
 
   printf("Sampling %u query k-mers from %zu unique k-mers.\n", numQueries, uniqueKmerList.size());
-
+  
   if (uniqueKmerList.size() < numQueries) {
     printf("Warning: Not enough unique k-mers (%zu) to sample %u queries. Sampling with replacement.\n", uniqueKmerList.size(), numQueries);
   }
@@ -433,7 +446,7 @@ bool LSHApproxNearestNeighbourTest(const HashInfo *hinfo, bool extra, flags_t fl
   printf("Window Length: %u\n", windowlength);
 
   // Print the query sequences to the output file
-  out_file << ":1:Query Sequences\n";
+  out_file << ":4:Query Sequences\n";
   out_file << QuerySequenceRecord.KeyCount << std::endl;
   for (uint32_t i = 0; i < QuerySequenceRecord.KeyCount; i++) {
     out_file << QuerySequenceRecord.Records[i].SeqASCIIOrg << std::endl;
@@ -461,18 +474,18 @@ bool LSHApproxNearestNeighbourTest(const HashInfo *hinfo, bool extra, flags_t fl
     QuerySequenceRecord.Records[i].insRate = 0.0;
   }
 
-  // printf("\n>>\n");
-  // // print the query, the mutated sequence and the similarity values to terminal
-  // for (uint32_t i = 0; i < QuerySequenceRecord.KeyCount; i++) {
-  //   printf("Foundational Parameter for record %u: %f\n", i,
-  //          QuerySequenceRecord.Records[i].foundationalParameter);
-  //   printf("Similarity for record %u: %f\n", i,
-  //          QuerySequenceRecord.Records[i].similarity);
-  //   printf("Query Sequence: %s\n",
-  //          QuerySequenceRecord.Records[i].SeqASCIIOrg.c_str());
-  //   // printf("Mutated Sequence: %s\n",
-  //   // QuerySequenceRecord.Records[i].SeqASCIIMut.c_str());
-  // }
+  // // printf("\n>>\n");
+  // // // print the query, the mutated sequence and the similarity values to terminal
+  // // for (uint32_t i = 0; i < QuerySequenceRecord.KeyCount; i++) {
+  // //   printf("Foundational Parameter for record %u: %f\n", i,
+  // //          QuerySequenceRecord.Records[i].foundationalParameter);
+  // //   printf("Similarity for record %u: %f\n", i,
+  // //          QuerySequenceRecord.Records[i].similarity);
+  // //   printf("Query Sequence: %s\n",
+  // //          QuerySequenceRecord.Records[i].SeqASCIIOrg.c_str());
+  // //   // printf("Mutated Sequence: %s\n",
+  // //   // QuerySequenceRecord.Records[i].SeqASCIIMut.c_str());
+  // // }
 
   // Generate new error parameters targeting similarity range [0.95, 1.0]
 
@@ -522,9 +535,7 @@ bool LSHApproxNearestNeighbourTest(const HashInfo *hinfo, bool extra, flags_t fl
     printf("Completed mutation using geometric mutator model.\n");
   }
 
-  printf(
-      "Re-sampled mutated %u sequences targeting similarity in [%.2f, %.2f].\n",
-      QuerySequenceRecord.KeyCount, target_sim_low, target_sim_high);
+  printf("Re-sampled mutated %u sequences targeting similarity in [%.2f, %.2f].\n", QuerySequenceRecord.KeyCount, target_sim_low, target_sim_high);
 
   // -----------------------------------------------------------------------------------------------------
   // //
@@ -576,8 +587,7 @@ bool LSHApproxNearestNeighbourTest(const HashInfo *hinfo, bool extra, flags_t fl
   // Each k-mer stores all its positions in the reference, sorted most-similar
   // first.
   // -----------------------------------------------------------------------------------------------------
-  // //
-  const uint32_t TOP_K = 10;
+  const uint32_t TOP_K = 1;
   uint32_t distanceClass = QuerySequenceRecord.DistanceClass;
 
   struct GroundTruthEntry {
@@ -613,12 +623,10 @@ bool LSHApproxNearestNeighbourTest(const HashInfo *hinfo, bool extra, flags_t fl
       simPerUniqueKmer.push_back({sim, refKmer});
     }
     // Step 2: Sort by similarity in descending order (most similar first)
-    std::sort(simPerUniqueKmer.begin(), simPerUniqueKmer.end(), 
-              [](const std::pair<double, std::string> &a, const std::pair<double, std::string> &b) 
-                {
-                  return a.first > b.first;
-                });
-
+    std::sort(simPerUniqueKmer.begin(), simPerUniqueKmer.end(), [](const std::pair<double, std::string> &a, const std::pair<double, std::string> &b) 
+      {
+        return a.first > b.first;
+      });
 
     // Debug: Print top 10 similarities for this query
     printf("Top %u nearest k-mers for query %u:\n", TOP_K, q_idx);
@@ -981,59 +989,59 @@ bool LSHApproxNearestNeighbourTest(const HashInfo *hinfo, bool extra, flags_t fl
 
 
 
-  //
+  
 
-  // For each query, compute the hash and check if it got the c-NN right.
+  // // For each query, compute the hash and check if it got the c-NN right.
 
-  // For each query, compute the hash and find the nearest neighbour in the hash
-  // table. Compute the distance to the nearest neighbour and compare it to the
-  // expected distance based on the mutation parameters.
+  // // For each query, compute the hash and find the nearest neighbour in the hash
+  // // table. Compute the distance to the nearest neighbour and compare it to the
+  // // expected distance based on the mutation parameters.
 
-  // You generate sequences, and then as the mutation rate increases, can you
-  // see how the recall drops?
+  // // You generate sequences, and then as the mutation rate increases, can you
+  // // see how the recall drops?
 
-  // std::vector<uint32_t> sequenceLengths;
+  // // std::vector<uint32_t> sequenceLengths;
 
-  // if(hinfo->isSmallSequenceLength()){
-  // 	printf("Hash %s is marked as very slow. Limiting test parameters for
-  // practicality.\n", hinfo->name); 	sequenceLengths = {60}; //{20,30,40};
-  // //{512};
-  // }
-  // else{
-  // 	sequenceLengths = {512}; //{16, 24, 32, 48, 64, 80, 96, 128, 256, 512,
-  // 1024, 2048, 4096, 8192};
-  // }
+  // // if(hinfo->isSmallSequenceLength()){
+  // // 	printf("Hash %s is marked as very slow. Limiting test parameters for
+  // // practicality.\n", hinfo->name); 	sequenceLengths = {60}; //{20,30,40};
+  // // //{512};
+  // // }
+  // // else{
+  // // 	sequenceLengths = {512}; //{16, 24, 32, 48, 64, 80, 96, 128, 256, 512,
+  // // 1024, 2048, 4096, 8192};
+  // // }
 
-  // seed_t baseSeed = g_GoldenRatio; // Base seed for reproducibility
+  // // seed_t baseSeed = g_GoldenRatio; // Base seed for reproducibility
 
-  // seed_t flagsSeedOffset = 101; // Offset to change the seed based on flags
-  // for(const auto & toklen : tokenlengths){
+  // // seed_t flagsSeedOffset = 101; // Offset to change the seed based on flags
+  // // for(const auto & toklen : tokenlengths){
 
-  // 	SetIsTestActive(true);
+  // // 	SetIsTestActive(true);
 
-  // 	for(const auto & seqLen : sequenceLengths){
-  // 		printf("=====================================\n");
-  // 		printf("Sequence length: %u \tToken length: %d\n", seqLen,
-  // toklen); 		printf("=====================================\n");
-  // 		// For DNA sequences, keybits = 8 * sequence length
-  // 		uint32_t keybits = seqLen * 8;	// Eg: Keybits = Sequence length
-  // times 8 (8 bits per base)
+  // // 	for(const auto & seqLen : sequenceLengths){
+  // // 		printf("=====================================\n");
+  // // 		printf("Sequence length: %u \tToken length: %d\n", seqLen,
+  // // toklen); 		printf("=====================================\n");
+  // // 		// For DNA sequences, keybits = 8 * sequence length
+  // // 		uint32_t keybits = seqLen * 8;	// Eg: Keybits = Sequence length
+  // // times 8 (8 bits per base)
 
-  //
+  
 
-  // 		baseSeed += flagsSeedOffset;
-  // 		printf("\nTesting hash: %s with keybits: %u (sequence length:
-  // %u), token length: %d\n", hinfo->name, keybits, seqLen, toklen);
-  // result &= LSHApproxNearestNeighbourTestInner<hashtype>(hinfo, baseSeed,
-  // seqLen, flags, out_file);
-  // 	}
-  // }
+  // // 		baseSeed += flagsSeedOffset;
+  // // 		printf("\nTesting hash: %s with keybits: %u (sequence length:
+  // // %u), token length: %d\n", hinfo->name, keybits, seqLen, toklen);
+  // // result &= LSHApproxNearestNeighbourTestInner<hashtype>(hinfo, baseSeed,
+  // // seqLen, flags, out_file);
+  // // 	}
+  // // }
 
-  // // Cleanup: Reset LSH global variables after test completion
-  // SetIsTestActive(false);
+  // // // Cleanup: Reset LSH global variables after test completion
+  // // SetIsTestActive(false);
 
-  // printf("%s\n", result ? "" : g_failstr);
-  out_file.close();
+  // // printf("%s\n", result ? "" : g_failstr);
+  // out_file.close();
   return result;
 }
 
