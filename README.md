@@ -4,9 +4,37 @@
 
 BioHasher is a specialized Locality Sensitive Hash function testing framework designed for biological sequence analysis. It is built upon the core performance-testing architecture of SMHasher3[https://gitlab.com/fwojcik/smhasher3] (Wojcik), with locality-sensitive hashing (LSH) tests optimized for genomic data processing and similarity detection.
 
-## Usage Guide
+## Getting Started
 
-This section walks through the complete workflow: **adding a new hash function**, **running tests**, and **generating plots** from the results.
+To get started with BioHasher, follow these steps:
+
+1. Clone the repository:
+
+    ```bash
+    git clone https://github.com/bpanda-dev/BioHasher.git
+    cd BioHasher
+    pip install -r requirements.txt
+    cd build
+    cmake ..
+    make -j$(nproc)
+    # Perform a sample test run to perform collison analysis of an included hash function (subseqhash1)
+    ./SMHasher3 --test=LSHCollision SubSeqHash-64 --ncpu=16
+    ```
+
+    The above run should generate a file named `collisionResults_SubseqHash-64.csv` in the `results` directory under `BioHasher`. This file contains the output of the collision test.
+
+2. To plot the curves from the output csv file,
+
+    ```bash
+        python ../analysis/plot.py ../results/collisionResults_SubseqHash-64.csv
+    ```
+
+    This will generate various versions of collision curves plots in the analysis directory. We explain about the type of plots in section [[?]].
+
+
+## Usage Guide for Novel Hash function testing
+
+This section walks through the complete workflow of: **adding a new hash function**, **running tests**, and **generating plots** from the results.
 
 ---
 
@@ -267,7 +295,12 @@ All plots are saved in the $pwd of the script itself.
 | `*_monocolor_multiplot.png`   | Single-color scatter subplots           |
 | `*_verificationCurves.png`    | Plots the distribution of various mutation parameters.(Useful in performing sanity check of random number generator)                       |
 
----
+#### Analyzing ANN Results
+
+`ApproxNearestNeighbourResults_<hashname>.csv` 
+
+For example, you can plot `Avg_Recall` vs. `Avg_FPR` to generate an ROC-like curve, helping you select the optimal `(b, r)` parameters for your application.
+
 
 ### File Structure
 
