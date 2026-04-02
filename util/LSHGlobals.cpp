@@ -23,6 +23,9 @@ std::vector<uint32_t> g_sequenceLength_large = {512};
 std::vector<uint32_t> g_tokenLengths_array = {13}; //{4 ,7, 13, 21, 31, 33};
 
 
+uint32_t g_sequenceLength_ANN = 45; // Sequence length for Approx Nearest Neighbour test. Adjust as needed.
+uint32_t g_Nseq_in_Database = 1000; // Number of sequences in the reference database for the Approx Nearest Neighbour test. Adjust as needed.
+uint32_t g_numQueriesForApproxNNTest = 100; // Number of query sequences to generate for the Approx Nearest Neighbour test. Adjust as needed.
 
 
 

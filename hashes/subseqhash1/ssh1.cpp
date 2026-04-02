@@ -21,7 +21,7 @@
 const char ALPHABET[ALPHABETSIZE] = {'A', 'C', 'G', 'T'};
 
 // #define WINDOW_SIZE 30
-#define SUBSEQUENCE_LENGTH 15
+#define SUBSEQUENCE_LENGTH 21
 #define D_PARAM 11
 
 #define MAXK 64

@@ -32,7 +32,9 @@ extern std::vector<uint32_t> g_sequenceLength_large;
 
 extern std::vector<uint32_t> g_tokenLengths_array;
 
-
+extern uint32_t g_Nseq_in_Database;
+extern uint32_t g_numQueriesForApproxNNTest;
+extern uint32_t g_sequenceLength_ANN;
 
 
 
