@@ -1,3 +1,6 @@
+
+// This code is from subseqhash1 hash collision src.
+
 #include "Platform.h"
 #include "Hashlib.h"
 #include "LSHGlobals.h"
@@ -11,22 +14,24 @@
 #include <cassert>
 #include <algorithm>
 
-const uint32_t subseqHash1_subseq_len = 11; // Default subsequence length for SubseqHash1 This is k   (11,21,31,37)
-// const uint32_t subseqHash1_d = 1;           // Default 'p' value for SubseqHash1 this is d
-const uint32_t subseqHash1_d = 4;           // Default 'p' value for SubseqHash1 this is d
+const uint32_t subseqHash1_subseq_len = 15; // Default subsequence length for SubseqHash1 This is k   (11,21,31,37)
+const uint32_t subseqHash1_d = 1;           // Default 'p' value for SubseqHash1 this is d
+// const uint32_t DP_array_size = 100;
 
-const uint32_t DP_array_size = 100;
-
+#define MAXK 64
+#define MAXD 31
+#define MAX_LEN 60
 
 // Thread-safe structure to hold all computation state
 struct SubseqHashState {
-    double f_max[DP_array_size][DP_array_size][DP_array_size + 1];
-    double f_min[DP_array_size][DP_array_size][DP_array_size + 1];
-    bool h[DP_array_size][DP_array_size][DP_array_size + 1];
-    double word[DP_array_size][4][DP_array_size];
-    int sign[DP_array_size][4];
-    int sign1[DP_array_size][4][DP_array_size];
-    int sign2[DP_array_size][4][DP_array_size];
+    double f_max[(MAX_LEN + 1)][(MAXK+1)][MAXD];
+    double f_min[(MAX_LEN + 1)][(MAXK+1)][MAXD];
+    bool h[(MAX_LEN+1)][(MAXK+1)][MAXD];
+    
+	double word[MAXK][4][MAXD];
+    int sign[MAXK][4];
+    int sign1[MAXK][4][MAXD];
+    int sign2[MAXK][4][MAXD];
 	int dict[256];  // Use array instead of map for speed // Memory intensive but faster
 
     SubseqHashState() {

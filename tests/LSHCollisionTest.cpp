@@ -40,7 +40,9 @@ static void LSHCollisionTestInnerInnerWorker(
     double *AverageCollision, int start, int end) {
 
   const bool useUniverseOpt = hinfo->hasUniverseVectorOptimisation();
-
+    
+  printf("Inside LSHCollisionTestInnerInnerWorker: start=%d, end=%d\n", start, end);
+  
   for (int rec_idx = start; rec_idx < end; rec_idx++) {
     SequenceRecordUnit &record = sequenceRecordsforTest.Records[rec_idx];
 
@@ -590,18 +592,15 @@ static bool LSHCollisionTestInner(const HashInfo *hinfo, const uint32_t seqLen,
 
   //--------------------------------------------//
   if (hinfo->isVerySlow()) {
-    printf("Hash %s is marked as very slow. Limiting test parameters for "
-           "practicality.\n",
-           hinfo->name);
-    N_agg = 500000; // Number of sequences to generate for testing
-    // N_agg = 10000;	// Number of sequences to generate for testing
-    sim_bins =
-        LSHCollisionTestInnerAgg(N_agg, common_params, seedGen, out_file);
+    printf("Hash %s is marked as very slow. Limiting test parameters for practicality.\n", hinfo->name);
+    
+    N_agg = g_slow_N_agg_cases; // Number of sequences to generate for testing
+    
+    sim_bins = LSHCollisionTestInnerAgg(N_agg, common_params, seedGen, out_file);
 
     // print bin means and stddevs using
     if (!REPORT(VERBOSE, flags)) {
-      for (size_t bin_idx = 0;
-           bin_idx < sim_bins.bin_error_parameters_mean.size(); bin_idx++) {
+      for (size_t bin_idx = 0; bin_idx < sim_bins.bin_error_parameters_mean.size(); bin_idx++) {
         printf("Bin %zu: Count %d, Mean = %0.2f, Stddev = %0.2f\n", bin_idx,
                sim_bins.bin_fill_count[bin_idx],
                sim_bins.bin_error_parameters_mean[bin_idx],
@@ -610,20 +609,16 @@ static bool LSHCollisionTestInner(const HashInfo *hinfo, const uint32_t seqLen,
     }
 
     //--------------------------------------------//
-    N_seq = 5000;  // Number of sequences to generate for testing
-    N_hash = 1000; // Number of hashes to compute per sequence
-
-    // N_seq = 5000;		// Number of sequences to generate for testing
-    // N_hash = 500;	// Number of hashes to compute per sequence
-  } else {
-    N_agg = 500000; // Number of sequences to generate for testing
-    sim_bins =
-        LSHCollisionTestInnerAgg(N_agg, common_params, seedGen, out_file);
+    N_seq = g_slow_N_seq;  // Number of sequences to generate for testing
+    N_hash = g_slow_N_hashes; // Number of hashes to compute per sequence
+  } 
+  else {
+    N_agg = g_norm_N_agg_cases; // Number of sequences to generate for testing
+    sim_bins = LSHCollisionTestInnerAgg(N_agg, common_params, seedGen, out_file);
 
     // print bin means and stddevs using
     if (!REPORT(VERBOSE, flags)) {
-      for (size_t bin_idx = 0;
-           bin_idx < sim_bins.bin_error_parameters_mean.size(); bin_idx++) {
+      for (size_t bin_idx = 0; bin_idx < sim_bins.bin_error_parameters_mean.size(); bin_idx++) {
         printf("Bin %zu: Count %d, Mean = %0.2f, Stddev = %0.2f\n", bin_idx,
                sim_bins.bin_fill_count[bin_idx],
                sim_bins.bin_error_parameters_mean[bin_idx],
@@ -632,20 +627,15 @@ static bool LSHCollisionTestInner(const HashInfo *hinfo, const uint32_t seqLen,
     }
 
     //--------------------------------------------//
-    N_seq = 5000;  // Number of sequences to generate for testing
-    N_hash = 2000; // Number of hashes to compute per sequence
-    // N_seq = 1000;		// Number of sequences to generate for testing
-    // N_hash = 100;	// Number of hashes to compute per sequence
+    N_seq = g_norm_N_seq;  // Number of sequences to generate for testing
+    N_hash = g_norm_N_hashes; // Number of hashes to compute per sequence
   }
 
   // LSHCollisionTestInnerInner<hashtype>(hinfo, N_seq, N_hash, hash, HashSeed,
   // common_params, sim_bins, out_file);
-  LSHCollisionTestInnerInnerParallel<hashtype>(hinfo, N_seq, N_hash, hash,
-                                               HashSeed, common_params,
-                                               sim_bins, seedGen, out_file);
+  LSHCollisionTestInnerInnerParallel<hashtype>(hinfo, N_seq, N_hash, hash, HashSeed, common_params, sim_bins, seedGen, out_file);
 
   //--------------------------------------------//
-
   return result; // TODO: For now, the result is always true. We need to add
                  // logic to find where the test fails.
 }
@@ -687,7 +677,7 @@ bool LSHCollisionTest(const HashInfo *hinfo, bool extra, flags_t flags) {
   // Create a code for generating an output file name based on hash name.
 
   /*
-          If the hash has tokenisation property, then we need to test for
+    If the hash has tokenisation property, then we need to test for
      multiple token lengths Otherwise, we just use a token length of 0 (no
      tokenisation)
   */
@@ -696,7 +686,7 @@ bool LSHCollisionTest(const HashInfo *hinfo, bool extra, flags_t flags) {
     printf(
         "Hash %s has tokenisation property. Testing multiple token lengths.\n",
         hinfo->name);
-    tokenlengths = {13}; //{4 ,7, 13, 21, 31, 33}; //create_tokens();
+    tokenlengths = g_tokenLengths_array;
   } else {
     tokenlengths = {0}; // No tokenization
   }
@@ -704,17 +694,13 @@ bool LSHCollisionTest(const HashInfo *hinfo, bool extra, flags_t flags) {
   std::vector<uint32_t> sequenceLengths;
 
   if (hinfo->isSmallSequenceLength()) {
-    printf("Hash %s is marked as very slow. Limiting test parameters for "
-           "practicality.\n",
-           hinfo->name);
-    sequenceLengths = {45}; //{20,30,40}; //{512};
+    printf("Hash %s is marked as very slow. Limiting test parameters for practicality.\n", hinfo->name);
+    sequenceLengths = g_sequenceLength_small; //{45}; //{20,30,40}; //{512};
   } else {
-    sequenceLengths = {512}; //{16, 24, 32, 48, 64, 80, 96, 128, 256, 512, 1024,
-                             //2048, 4096, 8192};
+    sequenceLengths = g_sequenceLength_large; // {512}; //{16, 24, 32, 48, 64, 80, 96, 128, 256, 512, 1024, 2048, 4096, 8192};
   }
 
-  seed_t baseSeed = g_GoldenRatio ^
-                    std::chrono::system_clock::now().time_since_epoch().count();
+  seed_t baseSeed = g_GoldenRatio ^ std::chrono::system_clock::now().time_since_epoch().count();
 
   SeedGenerator seedGen(baseSeed);
 

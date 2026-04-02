@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <vector>
 
 
 
@@ -14,6 +15,24 @@
 #define MUTATION_EXPRESSION_DEL_LITE 2
 #define MUTATION_EXPRESSION_INS_LITE 3
 #define MUTATION_EXPRESSION_SUB_LITE 4
+
+
+
+
+extern uint32_t g_slow_N_agg_cases;
+extern uint32_t g_slow_N_seq;
+extern uint32_t g_slow_N_hashes;
+
+extern uint32_t g_norm_N_agg_cases;
+extern uint32_t g_norm_N_seq;
+extern uint32_t g_norm_N_hashes;
+
+extern std::vector<uint32_t> g_sequenceLength_small;
+extern std::vector<uint32_t> g_sequenceLength_large;
+
+extern std::vector<uint32_t> g_tokenLengths_array;
+
+
 
 
 

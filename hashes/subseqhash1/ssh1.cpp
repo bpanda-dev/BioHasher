@@ -1,3 +1,8 @@
+// This file implements ssh1 and integrates it into the biohasher3 framework.
+
+
+// This code is from subseqhash2 src. but is corrected. Contains TB logic too,
+
 #include "Platform.h"
 #include "Hashlib.h"
 #include "LSHGlobals.h"
@@ -15,8 +20,8 @@
 #define ALPHABETSIZE 4
 const char ALPHABET[ALPHABETSIZE] = {'A', 'C', 'G', 'T'};
 
-#define WINDOW_SIZE 30
-#define SUBSEQUENCE_LENGTH 25
+// #define WINDOW_SIZE 30
+#define SUBSEQUENCE_LENGTH 15
 #define D_PARAM 11
 
 #define MAXK 64
@@ -26,14 +31,16 @@ const char ALPHABET[ALPHABETSIZE] = {'A', 'C', 'G', 'T'};
 typedef uint64_t kmer;
 const double INF = 1e15;
 
-
-//this needs to go to the global lsh header file, but for now we can keep it here.
+// TODO: This struct gives more flexibility to the output of the hash function,
+// but we need to make sure it works well with the smhasher framework. 
+// We might need to adjust the way we return the hash value and other information.
+// //this needs to go to the global lsh header file, but for now we can keep it here.
 struct genomics_seed
 {
     int64_t hashval;
-    kmer str;
+    kmer str;	// Remember, the kmer size is maxed out at 64, so it can fit in a uint64_t. If we want to support longer kmers, we might need to change this to a different data structure.
     size_t start, end;
-    uint64_t index = 0;	// This store the 
+    uint64_t index = 0;	
 };
 
 
@@ -56,19 +63,52 @@ static inline int dpIndex(int d1, int d2, int d3)
     return d1 * (k+1) * d + d2 * d + d3;
 }
 
+char* decode(const kmer enc, const int k, char* str)	// For decoding the strings :debugging
+{
+    if(str == NULL)
+		str = (char*)malloc(sizeof *str *k);
+
+    kmer enc_copy = enc;
+
+    for(int i=k-1; i>=0; i-=1)
+    {
+		str[i] = ALPHABET[enc_copy & 3];
+		enc_copy >>= 2;
+    }
+
+    return str;
+}
+
+
 template <bool bswap>
 static void SubseqHash64(const void* in, const size_t len, const seed_t rand_seed, void* out) {
 
 	const char* s = (const char*)in;
 	
-	int n = WINDOW_SIZE;
+	int n = len;
     int k = SUBSEQUENCE_LENGTH;
 	int d = D_PARAM;
     int dim1 = (n+1) * (k+1) * d;
-    int dim2 = d;
+    // int dim2 = d;
+
+	// printf("dim1: %d\n", dim1);
+	// printf("dim2: %d\n", (WINDOW_SIZE+1) * (k+1) * d);
+	
+	assert(n >= k && "Sequence length must be >= subsequence length");
 
 	//-------------------------------------------------------------------------------------//
+	double best_val = 0;
 
+
+	genomics_seed gen_seed;
+
+	gen_seed.start = 0;
+	gen_seed.end = 0;
+	gen_seed.index = 0;
+	gen_seed.hashval = 0;
+	gen_seed.str = 0;
+
+	//-------------------------------------------------------------------------------------//
 	double A[MAXK][ALPHABETSIZE][MAXD];
 	
 	int B1[MAXK][ALPHABETSIZE][MAXD];
@@ -102,7 +142,7 @@ static void SubseqHash64(const void* in, const size_t len, const seed_t rand_see
 		std::shuffle(pos.begin(), pos.end(), std::default_random_engine(internal_seed_1));
 
 		for(int j = 0; j < 4; j++)
-			C[i][j] = pos[j];
+			C[i][j] = pos[j%d];
 
 		for(int q = 0; q < d; q++)
 		{	
@@ -290,85 +330,102 @@ static void SubseqHash64(const void* in, const size_t len, const seed_t rand_see
 		dp_index = dpIndex(n, k, 0);
 
 		int i = 0;
-		for(i = 0; i < d; i++)
+		for(i = 0; i < d; i++){
 			if(h[dp_index + i] == st + 1)
 			{
 				if(fabs(dp[dp_index + i].f_min) > dp[dp_index + i].f_max)
-					tmp.hashval = uint64_t(dp[dp_index + i].f_min * 32768);
+					tmp.hashval = uint64_t(fabs(dp[dp_index + i].f_min) * 32768);
 				else
 					tmp.hashval = uint64_t(dp[dp_index + i].f_max * 32768);
 
 				mod = i;
                 break;
 			}
+		}
+		best_val = tmp.hashval;
 
-			// If no valid hash was found, we can't proceed.
-			if (i == d) {
-				printf("No valid hash found for the given input sequence.\n");
-				return; // TODO: Need to handle it with much better way. 
-			}
 
-			kmer hashval = 0;
-			std::vector<size_t> index;
+		
+		// dp_index = dpIndex(n, k, 0);
+		// int i = 0;
+		// for(i = 0; i < d; i++){
+		// 	if(h[dp_index + i] == st + 1)
+		// 	{
+		// 		best_val = std::max(best_val, fabs(dp[dp_index + i].f_min));
+		// 		best_val = std::max(best_val, dp[dp_index + i].f_max);
+		// 		mod = i;
+		// 		break;
+		// 	}
+		// }
+			
+		// If no valid hash was found, we can't proceed. Added by bpanda-dev
+		if (i == d) {
+			printf("No valid hash found for the given input sequence.\n");
+			return; // TODO: Need to handle it with much better way. 
+		}
 
-			int x = n;
-			int y = k;
-			size_t nextpos;
-			int nextval, nextd;
+		kmer hashval = 0;
+		std::vector<size_t> index;
 
-			bool z = 1;
-			if(tmp.hashval < 0)
-				z = 0;
+		int x = n;
+		int y = k;
+		size_t nextpos;
+		int nextval;
 
-			while(y > 0)
+		bool z = 1;
+		if(tmp.hashval < 0)
+			z = 0;
+
+		while(y > 0)
+		{
+			dp_index = dpIndex(x, y, mod);
+			if(z == 1)
 			{
-				dp_index = dpIndex(x, y, mod);
-				if(z == 1)
-				{
-					nextpos = st + dp[dp_index].g_max;
-					nextval = alphabetIndex(s[nextpos]);
+				nextpos = st + dp[dp_index].g_max;
+				nextval = alphabetIndex(s[nextpos]);
 
-					index.push_back(nextpos);
-					hashval = (hashval<<2) | nextval;
+				index.push_back(nextpos);
+				hashval = (hashval<<2) | nextval;
 
-					if(B1[y-1][nextval][mod] == -1)
-						z = 0;
+				if(B1[y-1][nextval][mod] == -1)
+					z = 0;
 
-					x = dp[dp_index].g_max;
-					y--;
-					mod = (mod + d - C[y][nextval]) % d;
-				}
-				else
-				{
-					nextpos = st + dp[dp_index].g_min;
-					nextval = alphabetIndex(s[nextpos]);
-
-					index.push_back(nextpos);
-					hashval = (hashval<<2) | nextval;
-
-					if(B1[y-1][nextval][mod] == -1)
-						z = 1;
-
-					x = dp[dp_index].g_min;
-					y--;
-					mod = (mod + d - C[y][nextval]) % d;
-				}
+				x = dp[dp_index].g_max;
+				y--;
+				mod = (mod + d - C[y][nextval]) % d;
 			}
+			else
+			{
+				nextpos = st + dp[dp_index].g_min;
+				nextval = alphabetIndex(s[nextpos]);
 
-			tmp.start = index.back();
-			tmp.end = index[0];
+				index.push_back(nextpos);
+				hashval = (hashval<<2) | nextval;
 
-	    for(size_t a: index)
-	    	tmp.index |= ((uint64_t)1)<<(a - tmp.start);
+				if(B1[y-1][nextval][mod] == -1)
+					z = 1;
 
+				x = dp[dp_index].g_min;
+				y--;
+				mod = (mod + d - C[y][nextval]) % d;
+			}
+		}
+
+		tmp.start = index.back();
+		tmp.end = index[0];
+
+	    for(size_t a: index){
+			tmp.index |= ((uint64_t)1)<<(a - tmp.start);
+		}
+	    	
 		// The logic for comparing with a vector of seeds is removed.
         
 		tmp.str = hashval;
         
-		*((genomics_seed*)out) = tmp;
+		//disabled.
+		gen_seed = tmp;	// We assign the result to the output parameter 'out'. Note that we need to make sure the caller of this function knows how to interpret the output as a 'genomics_seed' struct.
 		
-
-		out.hashval = tmp.hashval;
+		// To return seed, we can return the gen_seed datastructure.
 	}
     
 	free(dp);
@@ -376,10 +433,15 @@ static void SubseqHash64(const void* in, const size_t len, const seed_t rand_see
 
 	//-------------------------------------------------------------------------------------//
 	// Copy double bits directly to output
-    uint64_t hash;
-    memcpy(&hash, &res, sizeof(double));
+	uint64_t hash;
+	memcpy(&hash, &best_val, sizeof(double));
 
-    PUT_U64<bswap>(hash, (uint8_t*)out, 0);
+	PUT_U64<bswap>(hash, (uint8_t*)out, 0);
+
+    // uint64_t hash;
+    // memcpy(&hash, &gen_seed.hashval, sizeof(double));
+
+    // PUT_U64<bswap>(hash, (uint8_t*)out, 0);
 }
 
 REGISTER_FAMILY(SubseqHash,
