@@ -195,31 +195,16 @@ make
 | `--exit-on-failure`     | Stop on first test failure                                    | Active              |
 | `--version`             | Print version string                                          | Active              |
 
-#### Running LSH Collision Tests (BioHasher-Specific)
+#### Test 1 — LSH Collision Test (`--test=LSHCollision`)
 
-The LSH Collision test is **off by default** — you must explicitly enable it:
+**What it does:** The collision test measures how faithfully a hash function preserves sequence similarity. It generates thousands of random genomic sequence pairs, mutates one copy at controlled rates, bins the pairs into 100 similarity buckets (0.00–1.00), and records the average hash-collision rate per bucket. The resulting *collision curve* should closely track the diagonal for an ideal LSH — deviations reveal where the hash over- or under-estimates similarity, helping you understand its quality before deploying it in a real pipeline.
 
 ```bash
-# Run LSH collision test for a SubseqHash hash
-./SMHasher3 --test=LSHCollision SubseqHash-64
-
-# Run with multi-threading (recommended for large tests)
-./SMHasher3 --test=LSHCollision SubseqHash-64 --ncpu=16
-./SMHasher3 --test=LSHCollision OneBaseSamplingHash-32 --ncpu=16
-
-#Note: The and-or amplification documentation is underway.
-# Run LSH AND-OR amplification collision test for a SubseqHash hash
-#./SMHasher3 --test=LSHCollisionAndOrTest SimHash-Ang-32 --ncpu=16
-#./SMHasher3 --test=LSHCollision SimHash-Ang-32 --ncpu=16
-
+# Run LSH collision test (multi-threaded recommended)
+./SMHasher3 --test=LSHCollision SubSeqHash-64 --ncpu=16
 ```
 
-#### What the LSH Collision Test Does (A brief idea)
-
-1. **Generates sequence pairs** — creates random genomic sequences and mutates them using the configured mutation model.
-2. **Bins by similarity** — sorts the pairs into 100 similarity bins ($0.00–1.00$) based on the hash's distance metric (Hamming, Jaccard, Cosine, etc.)
-3. **Computes collision rates** — for each bin, hashes both sequences N times with different seeds and measures the average collision rate
-4. **Writes CSV results** — outputs to `results/collisionResults_<hashname>.csv`
+**Output:** `results/collisionResults_<hashname>.csv`
 
 **Test parameters** (automatically adjusted based on hash flags):
 
@@ -228,6 +213,70 @@ The LSH Collision test is **off by default** — you must explicitly enable it:
 | Sequence pairs per bin    | 50,000      | 5,000                                            |
 | Hash repetitions per pair | 2,000       | 2,000                                            |
 | Sequence length           | 512 bases   | 512 (or 40 if `FLAG_IMPL_SMALL_SEQUENCE_LENGTH`) |
+
+---
+
+#### Test 2 — LSH Collision AND-OR Test (`--test=LSHCollisionAndOrTest`)
+
+**What it does:** AND-OR amplification reshapes the collision probability's S-curve to give you finer control over the trade-off between false positives and false negatives. The **AND** parameter `b` raises the base collision probability to the `b`-th power (making the curve steeper — fewer false positives), while the **OR** parameter `r` takes `r` independent AND-bands and reports a collision if *any* band matches (recovering recall). This test sweeps over a grid of `(AND, OR)` pairs and records the amplified collision curve for each, so you can visually compare how different configurations sharpen or flatten the curve.
+
+The `(AND, OR)` grid is configured in [`util/LSHGlobals.cpp`](util/LSHGlobals.cpp) via `g_ANN_start_B`, `g_ANN_MAX_B`, `g_ANN_start_R`, `g_ANN_MAX_R`.
+
+```bash
+./SMHasher3 --test=LSHCollisionAndOrTest SubSeqHash-64 --ncpu=16
+```
+
+**Output:** `results/collisionResults_<hashname>ANDOR.csv`
+
+The output format is the same tagged-line CSV as the basic collision test, with additional `:10:` (AND/OR headers) and `:11:` (AND/OR values) lines for each parameter pair, followed by `:12:` collision rates.
+
+> **Full documentation:** See [`ANDORtest.md`](documents/ANDORtest.md) for the complete reference including AND-OR basics, internal pipeline, pseudocode, all configurable parameters, and caveats.
+
+---
+
+#### Test 3 — Approximate Nearest Neighbour Test (`--test=LSHApproxNearestNeighbour`)
+
+**What it does:** This test evaluates the hash function as an *LSH index* for nearest-neighbour search — the end-to-end use case most genomic LSH pipelines care about. It:
+
+1. Generates a reference database of random sequences.
+2. Samples query sequences from the reference, then mutates them to target 90–100% similarity.
+3. Computes brute-force ground truth (the true nearest neighbour for each query).
+4. For each `(b, r)` configuration, builds an LSH index with `r` tables (each using a `b`-hash band signature), inserts all reference sequences, queries with each mutated sequence, and compares results against ground truth.
+5. Reports **Recall**, **Precision**, **FPR**, and **F1** averaged over multiple independent runs.
+
+This helps you select the optimal `(b, r)` parameters for your application by directly measuring retrieval quality.
+
+> **Full documentation:** See [`ANNtest.md`](documents/ANNtest.md) for the complete reference including the 5-phase pipeline internals, all configurable parameters, evaluation metrics, and caveats.
+
+```bash
+./SMHasher3 --test=LSHApproxNearestNeighbour SubSeqHash-64 --ncpu=16
+```
+
+**Output:** `results/ApproxNearestNeighbourResults_<hashname>.csv`
+
+**Output format:**
+
+```
+:1: LSH Approx Nearest Neighbour Summary
+:2: Hashname, SequenceLength, TokenLength, Distance Metric, Mutation Model, Mutation Expression
+:3: <values>
+:4.1:/:4.2:/:4.3: Hash-specific parameters
+:5: b, r, Avg_Recall, Avg_Precision, Avg_FPR, Avg_F1_Score   (column headers)
+:6: <one data row per (b,r) pair>
+```
+
+**Configuration** (all in [`util/LSHGlobals.cpp`](util/LSHGlobals.cpp)):
+
+| Variable                       | Description                        | Default |
+| ------------------------------ | ---------------------------------- | ------- |
+| `g_ANN_start_B` / `g_ANN_MAX_B` | Range of `b` (hashes per table)  | 1–5     |
+| `g_ANN_start_R` / `g_ANN_MAX_R` | Range of `r` (number of tables)  | 1–7     |
+| `g_ANN_runs_for_avg`           | Independent runs to average over   | 3       |
+| `g_sequenceLength_ANN`         | Length of reference/query sequences | —       |
+| `g_Nseq_in_Database`           | Number of reference sequences      | —       |
+| `g_numQueriesForApproxNNTest`  | Number of query sequences          | —       |
+
+---
 
 #### Configuring the Mutation Model
 
@@ -274,53 +323,64 @@ For a particular Hash function, each run **appends** to the CSV if it already ex
 
 ### Part 3 — Generating Plots
 
-After running the LSH collision tests, we simply need to run `plot.py` script present in `analysis` directory. Prerequisites for the script are:
+#### 3a. Collision Curve Plots (`analysis/plot.py`)
+
+Works for both basic collision and AND-OR collision CSV files.
 
 ```bash
-pip install pandas numpy matplotlib scipy argparse os sys
-
+pip install pandas numpy matplotlib scipy
+python analysis/plot.py results/collisionResults_<hashname>.csv
 ```
 
-Now, to get the plot, just run,
+All plots are saved in the current working directory.
+
+| Filename Pattern              | Description                                 |
+| ----------------------------- | ------------------------------------------- |
+| `*_binaveraged.png`           | Bin-averaged collision curves (overlay)     |
+| `*_snpcolor_multiplot.png`    | SNP-rate colored scatter subplots           |
+| `*_boxplot_multiplot.png`     | Box plot subplots per similarity bin        |
+| `*_monocolor_multiplot.png`   | Single-color scatter subplots               |
+| `*_verificationCurves.png`    | Mutation parameter distributions (sanity check) |
+
+#### 3b. ANN Result Plots (`analysis/plot_lsh_results.py`)
+
+Visualises the Recall vs FPR trade-off across `(b, r)` configurations.
 
 ```bash
-python plot.py ../results/collisionResults_<hashname>.csv
+pip install matplotlib numpy adjustText
+python analysis/plot_lsh_results.py results/ApproxNearestNeighbourResults_<hashname>.csv
 ```
 
-All plots are saved in the $pwd of the script itself.
+Produces **6 plots** (3 linear + 3 log-scale):
 
-**Description of the Output Files**
+| Filename Pattern                       | Description                                              |
+| -------------------------------------- | -------------------------------------------------------- |
+| `*_fpr_vs_recall.png` / `*_log.png`   | FPR vs Recall per `b` value, annotated with `r`          |
+| `*_best_fpr_per_recall_bin.png` / `*_log.png` | Pareto-optimal (min FPR) per recall bin           |
+| `*_all_points.png` / `*_log.png`      | All `(b,r)` configs as an annotated scatter              |
 
-
-| Filename Pattern              | Description                             |
-| ----------------------------- | --------------------------------------- |
-| `*_binaveraged.png`           | Bin-averaged collision curves (overlay) |
-| `*_snpcolor_multiplot.png`    | SNP-rate colored scatter subplots(can be changed to del-rate/ins-rate)       |
-| `*_boxplot_multiplot.png`     | Box plot subplots per similarity bin    |
-| `*_monocolor_multiplot.png`   | Single-color scatter subplots           |
-| `*_verificationCurves.png`    | Plots the distribution of various mutation parameters.(Useful in performing sanity check of random number generator)                       |
-
-#### Analyzing ANN Results
-
-`ApproxNearestNeighbourResults_<hashname>.csv` 
-
-For example, you can plot `Avg_Recall` vs. `Avg_FPR` to generate an ROC-like curve, helping you select the optimal `(b, r)` parameters for your application.
-
+---
 
 ### File Structure
 
 ```bash
 BioHasher/
-├── hashes/                         # Hash function implementations
-│ ├── minhash.cpp                       # MinHash implementation
-│ ├── simhash.cpp                       # SimHash implementation
-│ └── subseqhash/                       # SubseqHash implementation
-│     └──  ssh1.cpp
-├── tests/                          # Test implementations
-│ ├── LSHCollisionTest.cpp              # Collision curve test
-│ └── LSHCollisionAndOrTest.cpp         # Collision Curve test with AND-OR amplification
-├── include/                        # Header files
-└── README.md                       # This file
+├── hashes/                             # Hash function implementations
+│   ├── minhash.cpp                     # MinHash implementation
+│   ├── simhash.cpp                     # SimHash implementation
+│   └── subseqhash/                     # SubseqHash implementation
+│       └── ssh1.cpp
+├── tests/                              # Test implementations
+│   ├── LSHCollisionTest.cpp            # Collision curve test
+│   ├── LSHCollisionAndOrTest.cpp       # Collision curve test with AND-OR amplification
+│   └── ApproxNearestNeighbourTest.cpp  # Approximate nearest neighbour test
+├── analysis/                           # Plotting scripts
+│   ├── plot.py                         # Collision curve plotting
+│   └── plot_lsh_results.py             # ANN result plotting
+├── util/                               # Utilities & configuration
+│   └── LSHGlobals.cpp                  # Test parameter globals
+├── include/                            # Header files
+└── README.md                           # This file
 ```
 
 ---

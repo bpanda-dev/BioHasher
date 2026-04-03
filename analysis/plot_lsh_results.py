@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from pathlib import Path
 import itertools
+from adjustText import adjust_text
 
 
 def parse_lsh_results(filepath):
@@ -90,7 +91,7 @@ def experiment_label(exp):
     return ', '.join(parts) if parts else 'default'
 
 
-def plot_lsh_results(filepath, output_path=None):
+def plot_lsh_results(filepath, output_path=None, use_log=False):
     experiments = parse_lsh_results(filepath)
 
     if not experiments:
@@ -104,12 +105,13 @@ def plot_lsh_results(filepath, output_path=None):
         return
 
     fig, ax = plt.subplots(figsize=(11, 7))
+    texts = []  # collect for adjust_text
 
     # Collect all unique b values across experiments
     all_b = sorted({row['b'] for exp in experiments for row in exp['rows']})
 
     # Markers cycle for experiments, colors for b values
-    markers = ['o', 's', 'D', '^', 'v', 'P', '*', 'X']
+    markers = ['o','^','*', 's', 'D', 'v', 'P', 'X']
     cmap = plt.cm.tab10
     b_colors = {b: cmap(i / max(len(all_b) - 1, 1)) for i, b in enumerate(all_b)}
 
@@ -133,7 +135,7 @@ def plot_lsh_results(filepath, output_path=None):
                 recalls, fprs,
                 color=b_colors[b_val],
                 marker=marker,
-                markersize=9,
+                markersize=6,
                 markeredgecolor='black',
                 markeredgewidth=0.5,
                 linestyle='--', linewidth=1.2, alpha=0.75,
@@ -143,37 +145,40 @@ def plot_lsh_results(filepath, output_path=None):
 
             # Annotate each point with its r value
             for r_row in rows:
-                ax.annotate(
-                    f'r={int(r_row["r"])}',
-                    (r_row['Avg_Recall'], r_row['Avg_FPR']),
-                    textcoords='offset points', xytext=(7, 7),
-                    fontsize=7.5, fontweight='bold', alpha=0.85,
-                )
+                texts.append(ax.text(
+                    r_row['Avg_Recall'], r_row['Avg_FPR'],
+                    f'{int(r_row["r"])}',
+                    fontsize=9, fontweight='bold', alpha=0.85,
+                ))
 
     # Axis labels & title
+    scale_label = ' (log scale)' if use_log else ''
     ax.set_xlabel('Average Recall', fontsize=13)
-    ax.set_ylabel('Average FPR (log scale)', fontsize=13)
+    ax.set_ylabel(f'Average FPR{scale_label}', fontsize=13)
 
     hash_name = experiments[0]['metadata'].get('Hashname', 'Unknown')
-    ax.set_title(
-        f'LSH Approx Nearest Neighbour: {hash_name}\nAvg FPR vs Avg Recall',
-        fontsize=14, fontweight='bold',
-    )
+    # ax.set_title(
+    #     f'LSH Approx Nearest Neighbour: {hash_name}\nAvg FPR vs Avg Recall',
+    #     fontsize=14, fontweight='bold',
+    # )
 
-    ax.set_yscale('log')
+    if use_log:
+        ax.set_yscale('log')
     ax.legend(loc='best', fontsize=9, title='b  (experiment params)', title_fontsize=10)
     ax.grid(True, alpha=0.3)
+    adjust_text(texts, ax=ax, arrowprops=dict(arrowstyle='-', color='gray', lw=0.5))
     plt.tight_layout()
 
     if output_path is None:
-        output_path = Path(filepath).stem + '_fpr_vs_recall.png'
+        suffix = '_log' if use_log else ''
+        output_path = Path(filepath).stem + f'_fpr_vs_recall{suffix}.png'
 
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
     print(f"Plot saved to: {output_path}")
     plt.show()
 
 
-def plot_best_fpr_per_recall_bin(filepath, output_path=None, num_bins=10):
+def plot_best_fpr_per_recall_bin(filepath, output_path=None, num_bins=25, use_log=False):
     """
     For each experiment, bin (b,r) data points by Avg_Recall.
     For each recall bin, pick the minimum FPR across all (b,r) pairs in that bin.
@@ -187,6 +192,7 @@ def plot_best_fpr_per_recall_bin(filepath, output_path=None, num_bins=10):
         return
 
     fig, ax = plt.subplots(figsize=(11, 7))
+    texts = []  # collect for adjust_text
 
     # Consistent bin edges across all experiments
     all_recalls = [r['Avg_Recall'] for exp in experiments for r in exp['rows']]
@@ -215,7 +221,7 @@ def plot_best_fpr_per_recall_bin(filepath, output_path=None, num_bins=10):
             best = min(rows_in_bin, key=lambda r: r['Avg_FPR'])
             bin_centers.append((lo + hi) / 2)
             min_fprs.append(best['Avg_FPR'])
-            bin_annotations.append(f"b={int(best['b'])},r={int(best['r'])}")
+            bin_annotations.append(f"({int(best['b'])},{int(best['r'])})")
 
         # Sort by bin center for clean line
         order = sorted(range(len(bin_centers)), key=lambda i: bin_centers[i])
@@ -239,32 +245,36 @@ def plot_best_fpr_per_recall_bin(filepath, output_path=None, num_bins=10):
         )
 
         for x, y, ann in zip(bin_centers, min_fprs, bin_annotations):
-            ax.annotate(
-                ann, (x, y),
-                textcoords='offset points', xytext=(7, 7),
-                fontsize=6.5, alpha=0.8,
-            )
+            texts.append(ax.text(
+                x, y, ann,
+                fontsize=8, alpha=0.8,
+            ))
 
     hash_name = experiments[0]['metadata'].get('Hashname', 'Unknown')
+    scale_label = ' (log scale)' if use_log else ''
     ax.set_xlabel('Recall Bin Center', fontsize=13)
-    ax.set_ylabel('Best (Min) FPR in Bin (log scale)', fontsize=13)
-    ax.set_title(
-        f'LSH {hash_name}: Best FPR per Recall Bin\n(lower is better)',
-        fontsize=14, fontweight='bold',
-    )
-    ax.set_yscale('log')
+    ax.set_ylabel(f'Best (Min) FPR in Bin{scale_label}', fontsize=13)
+    # ax.set_title(
+    #     f'LSH {hash_name}: Best FPR per Recall Bin\n(lower is better)',
+    #     fontsize=14, fontweight='bold',
+    # )
+
+    if use_log:
+        ax.set_yscale('log')
     ax.legend(loc='best', fontsize=10, title='Experiment')
     ax.grid(True, alpha=0.3)
+    adjust_text(texts, ax=ax, arrowprops=dict(arrowstyle='-', color='gray', lw=0.5))
     plt.tight_layout()
 
     if output_path is None:
-        output_path = Path(filepath).stem + '_best_fpr_per_recall_bin.png'
+        suffix = '_log' if use_log else ''
+        output_path = Path(filepath).stem + f'_best_fpr_per_recall_bin{suffix}.png'
 
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
     print(f"Plot saved to: {output_path}")
     plt.show()
 
-def plot_all_points(filepath, output_path=None):
+def plot_all_points(filepath, output_path=None, use_log=False):
     """
     Simple scatter: all (Recall, FPR) points per experiment in one color.
     No b/r separation, no annotations — just one cloud per experiment.
@@ -277,6 +287,7 @@ def plot_all_points(filepath, output_path=None):
         return
 
     fig, ax = plt.subplots(figsize=(11, 7))
+    texts = []  # collect for adjust_text
 
     markers = ['o', 's', 'D', '^', 'v', 'P', '*', 'X']
     cmap = plt.cm.tab10
@@ -297,27 +308,31 @@ def plot_all_points(filepath, output_path=None):
         )
 
         for row in exp['rows']:
-            ax.annotate(
-                f"{int(row['b'])},{int(row['r'])}",
-                (row['Avg_Recall'], row['Avg_FPR']),
-                textcoords='offset points', xytext=(5, 5),
-                fontsize=6, alpha=0.75,
-            )
+            texts.append(ax.text(
+                row['Avg_Recall'], row['Avg_FPR'],
+                f"({int(row['b'])},{int(row['r'])})",
+                fontsize=8, alpha=0.75,
+            ))
 
     hash_name = experiments[0]['metadata'].get('Hashname', 'Unknown')
+    scale_label = ' (log scale)' if use_log else ''
     ax.set_xlabel('Average Recall', fontsize=13)
-    ax.set_ylabel('Average FPR (log scale)', fontsize=13)
-    ax.set_title(
-        f'LSH {hash_name}: All (b,r) configurations\nFPR vs Recall',
-        fontsize=14, fontweight='bold',
-    )
-    ax.set_yscale('log')
+    ax.set_ylabel(f'Average FPR{scale_label}', fontsize=13)
+    # ax.set_title(
+    #     f'LSH {hash_name}: All (b,r) configurations\nFPR vs Recall',
+    #     fontsize=14, fontweight='bold',
+    # )
+
+    if use_log:
+        ax.set_yscale('log')
     ax.legend(loc='best', fontsize=10, title='Experiment')
     ax.grid(True, alpha=0.3)
+    adjust_text(texts, ax=ax, arrowprops=dict(arrowstyle='-', color='gray', lw=0.5))
     plt.tight_layout()
 
     if output_path is None:
-        output_path = Path(filepath).stem + '_all_points.png'
+        suffix = '_log' if use_log else ''
+        output_path = Path(filepath).stem + f'_all_points{suffix}.png'
 
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
     print(f"Plot saved to: {output_path}")
@@ -336,7 +351,13 @@ if __name__ == "__main__":
         )
         output_path = None
 
+    # Linear versions
     plot_lsh_results(filepath, output_path)
     plot_best_fpr_per_recall_bin(filepath)
     plot_all_points(filepath)
+
+    # Log-scale versions
+    plot_lsh_results(filepath, use_log=True)
+    plot_best_fpr_per_recall_bin(filepath, use_log=True)
+    plot_all_points(filepath, use_log=True)
 
