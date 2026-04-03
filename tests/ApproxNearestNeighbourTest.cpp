@@ -10,7 +10,7 @@
 #include "BioDataGeneration.h"
 #include "LSHGlobals.h"
 #include "LSHCollisionTest.h"
-#include "fstream"
+#include <fstream>
 #include <iostream>
 #include <filesystem>
 
@@ -47,7 +47,7 @@ private:
     // This is a robust hash combiner to replace bitwise AND, which can
     // heavily bias the signature distribution toward 0.
     inline uint64_t combine_signatures(uint64_t seed, uint64_t hash_val) const {
-        // Based on golden ratio mix (similar to boost::hash_combine but 64-bit)
+        // Based on golden ratio mix (similar to boost::hash_combine but 64-bit) https://stackoverflow.com/a/2595226
         return seed ^ (hash_val + 0x9e3779b97f4a7c15ULL + (seed << 6) + (seed >> 2));
     }
 
@@ -842,6 +842,7 @@ bool LSHApproxNearestNeighbourTest(const HashInfo *hinfo, bool extra, flags_t fl
         }
         
         uint32_t false_negatives = ground_truth_positions.size() - true_positives;
+        assert(false_negatives >= 0);
         
         double recall = (true_positives + false_negatives > 0) ? (double)true_positives / (true_positives + false_negatives) : 0.0;
         double precision = (true_positives + false_positives > 0) ? (double)true_positives / (true_positives + false_positives) : 0.0;
@@ -922,142 +923,3 @@ bool LSHApproxNearestNeighbourTest(const HashInfo *hinfo, bool extra, flags_t fl
 }
 
 INSTANTIATE(LSHApproxNearestNeighbourTest, HASHTYPELIST);
-
-
-
-
-// // Define LSH parameters and number of runs
-//   const uint32_t NUM_RUNS = 5;
-//   const std::vector<std::pair<uint32_t, uint32_t>> br_pairs = {
-//       {2, 4},
-//       {1, 2},
-//       {4, 4},
-//       {2, 8}
-//   };
-
-//   out_file << ":17:LSH Experiment Summary\n";
-//   out_file << "b,r,Avg_Recall,Avg_Precision,Avg_FPR,Avg_F1_Score\n";
-
-//   for (const auto& br_pair : br_pairs) {
-//     uint32_t b = br_pair.first;  // Hashes per table
-//     uint32_t r = br_pair.second; // Number of tables
-
-//     printf("\n\n==================================================================\n");
-//     printf("Running experiment for b=%u, r=%u over %u runs\n", b, r, NUM_RUNS);
-//     printf("==================================================================\n");
-
-//     std::vector<double> all_runs_avg_recall;
-//     std::vector<double> all_runs_avg_precision;
-//     std::vector<double> all_runs_avg_fpr;
-//     std::vector<double> all_runs_avg_f1;
-
-//     for (uint32_t run = 0; run < NUM_RUNS; ++run) {
-//       printf("\n--- Run %u/%u for b=%u, r=%u ---\n", run + 1, NUM_RUNS, b, r);
-
-//       ANN_LSH_Index lsh_index(r, b, hash, seedGen);
-
-//       // Populate Index from the reference database
-//       for (uint32_t i = 0; i < g_Nseq_in_Database; ++i) {
-//           lsh_index.insert(ReferenceSequenceRecord.Records[i].SeqASCIIOrg, i);
-//       }
-      
-//       // ============================================================================
-//       // Query and Evaluation Phase for this run
-//       // ============================================================================
-//       std::vector<double> recall_per_query;
-//       std::vector<double> precision_per_query;
-//       std::vector<double> fpr_per_query;
-
-//       for (uint32_t q_idx = 0; q_idx < QuerySequenceRecord.KeyCount; q_idx++) {
-//         const std::string& querySeq = QuerySequenceRecord.Records[q_idx].SeqASCIIMut;
-//         std::vector<uint32_t> lsh_results = lsh_index.query(querySeq);
-//         std::set<uint32_t> lsh_results_set(lsh_results.begin(), lsh_results.end());
-        
-//         const auto& ground_truth = groundTruthNearest[q_idx];
-//         std::set<uint32_t> ground_truth_positions;
-//         for (const auto& entry : ground_truth) {
-//             ground_truth_positions.insert(entry.position);
-//         }
-        
-//         uint32_t true_positives = 0;
-//         uint32_t false_positives = 0;
-        
-//         for (uint32_t pos : lsh_results_set) {
-//             if (ground_truth_positions.count(pos)) {
-//                 true_positives++;
-//             } else {
-//                 false_positives++;
-//             }
-//         }
-        
-//         uint32_t false_negatives = ground_truth_positions.size() - true_positives;
-        
-//         double recall = (true_positives + false_negatives > 0) ? (double)true_positives / (true_positives + false_negatives) : 0.0;
-//         double precision = (true_positives + false_positives > 0) ? (double)true_positives / (true_positives + false_positives) : 0.0;
-        
-//         uint32_t total_negatives = g_Nseq_in_Database - ground_truth_positions.size();
-//         double false_positive_rate = (total_negatives > 0) ? (double)false_positives / total_negatives : 0.0;
-
-//         recall_per_query.push_back(recall);
-//         precision_per_query.push_back(precision);
-//         fpr_per_query.push_back(false_positive_rate);
-//       }
-
-//       // Calculate macro-averaged metrics for this single run
-//       double run_avg_recall = 0.0;
-//       double run_avg_precision = 0.0;
-//       double run_avg_fpr = 0.0;
-
-//       if (QuerySequenceRecord.KeyCount > 0) {
-//           for (double r_val : recall_per_query) run_avg_recall += r_val;
-//           run_avg_recall /= QuerySequenceRecord.KeyCount;
-          
-//           for (double p_val : precision_per_query) run_avg_precision += p_val;
-//           run_avg_precision /= QuerySequenceRecord.KeyCount;
-
-//           for (double fpr_val : fpr_per_query) run_avg_fpr += fpr_val;
-//           run_avg_fpr /= QuerySequenceRecord.KeyCount;
-//       }
-
-//       double run_f1_score = 0.0;
-//       if ((run_avg_recall + run_avg_precision) > 0) {
-//           run_f1_score = 2.0 * (run_avg_recall * run_avg_precision) / (run_avg_recall + run_avg_precision);
-//       }
-
-//       printf("  Run %u Metrics: Recall=%.4f, Precision=%.4f, FPR=%.4f, F1=%.4f\n", run + 1, run_avg_recall, run_avg_precision, run_avg_fpr, run_f1_score);
-
-//       // Store metrics for this run
-//       all_runs_avg_recall.push_back(run_avg_recall);
-//       all_runs_avg_precision.push_back(run_avg_precision);
-//       all_runs_avg_fpr.push_back(run_avg_fpr);
-//       all_runs_avg_f1.push_back(run_f1_score);
-//     }
-
-//     // Average the metrics across all runs for the current (b, r) pair
-//     double final_avg_recall = 0.0;
-//     double final_avg_precision = 0.0;
-//     double final_avg_fpr = 0.0;
-//     double final_avg_f1 = 0.0;
-
-//     for(double val : all_runs_avg_recall) final_avg_recall += val;
-//     final_avg_recall /= NUM_RUNS;
-
-//     for(double val : all_runs_avg_precision) final_avg_precision += val;
-//     final_avg_precision /= NUM_RUNS;
-
-//     for(double val : all_runs_avg_fpr) final_avg_fpr += val;
-//     final_avg_fpr /= NUM_RUNS;
-
-//     for(double val : all_runs_avg_f1) final_avg_f1 += val;
-//     final_avg_f1 /= NUM_RUNS;
-
-//     printf("\n--- Average Metrics for b=%u, r=%u (over %u runs) ---\n", b, r, NUM_RUNS);
-//     printf("Average Recall:    %.4f\n", final_avg_recall);
-//     printf("Average Precision: %.4f\n", final_avg_precision);
-//     printf("Average FPR:       %.4f\n", final_avg_fpr);
-//     printf("Average F1-Score:  %.4f\n", final_avg_f1);
-//     printf("-----------------------------------------------------\n");
-
-//     // Write summary for this (b,r) pair to file
-//     out_file << b << "," << r << "," << final_avg_recall << "," << final_avg_precision << "," << final_avg_fpr << "," << final_avg_f1 << "\n";
-//   }

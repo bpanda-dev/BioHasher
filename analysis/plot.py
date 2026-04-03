@@ -617,13 +617,8 @@ def plot_hash_collision_boxplots(
         if row['MutationModel'] == 1:
             mutation_model_used = "GEO-" + mutation_expressions[row["MutationExpression"]]
 
-        if hash_name == "SubseqHash-64":
-            k_val = row.get('SubseqHash_k', '?')
-            d_val = row.get('SubseqHash_d', '?')
-            base_label = f"SubseqHash (L={seq_len}, k={k_val}, d={d_val}"
-        else:
-            token_len = row.get('tokenlength', '?')
-            base_label = f"{hash_name} (L={seq_len}, k={token_len}"
+        param_labels = ", ".join([f"{name}={row[name]}" for name in row['parameter_columns']])
+        base_label = f"{hash_name} (L={seq_len}, {param_labels}"
 
         if show_params:
             label = f"{base_label}, AND={and_param}, OR={or_param})[{mutation_model_used}]"
@@ -770,13 +765,8 @@ def plot_verification_curves(
         elif row['MutationModel'] == 1:
             mutation_model_used = "GEO-" + mutation_expressions[row["MutationExpression"]]
 
-        if hash_name == "SubseqHash-64":
-            k_val = row.get('SubseqHash_k', '?')
-            d_val = row.get('SubseqHash_d', '?')
-            title = f"SubseqHash (L={seq_len}, k={k_val}, d={d_val})[{mutation_model_used}]"
-        else:
-            token_len = row.get('tokenlength', '?')
-            title = f"{hash_name} (L={seq_len}, k={token_len})[{mutation_model_used}]"
+        param_labels = ", ".join([f"{name}={row[name]}" for name in row['parameter_columns']])
+        title = f"{hash_name} (L={seq_len}, {param_labels})[{mutation_model_used}]"
 
         and_param = str(row.get('AND_param', '1'))
         or_param = str(row.get('OR_param', '1'))

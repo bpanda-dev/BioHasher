@@ -97,13 +97,19 @@ def plot_lsh_results(filepath, output_path=None):
         print("No experiments found in file")
         return
 
-    fig, ax = plt.subplots(figsize=(10, 7))
+    # Filter out experiments with no data rows
+    experiments = [exp for exp in experiments if exp['rows']]
+    if not experiments:
+        print("No experiments with data found")
+        return
+
+    fig, ax = plt.subplots(figsize=(11, 7))
 
     # Collect all unique b values across experiments
     all_b = sorted({row['b'] for exp in experiments for row in exp['rows']})
 
     # Markers cycle for experiments, colors for b values
-    markers = ['o', '*', 'D', '^', 'v', 'P', 's', 'X']
+    markers = ['o', 's', 'D', '^', 'v', 'P', '*', 'X']
     cmap = plt.cm.tab10
     b_colors = {b: cmap(i / max(len(all_b) - 1, 1)) for i, b in enumerate(all_b)}
 
@@ -122,21 +128,16 @@ def plot_lsh_results(filepath, output_path=None):
             recalls = [r['Avg_Recall'] for r in rows]
             fprs = [r['Avg_FPR'] for r in rows]
 
-            # Plot line connecting points with the same b
+            # Plot line + markers together (ensures proper legend entry)
             ax.plot(
                 recalls, fprs,
                 color=b_colors[b_val],
-                linestyle='--', linewidth=1, alpha=0.5,
-            )
-
-            # Plot scatter points
-            ax.scatter(
-                recalls, fprs,
-                label=f'b={int(b_val)} ({label_prefix})',
-                s=120, alpha=0.8,
-                color=b_colors[b_val],
                 marker=marker,
-                edgecolors='black', linewidth=0.5,
+                markersize=9,
+                markeredgecolor='black',
+                markeredgewidth=0.5,
+                linestyle='--', linewidth=1.2, alpha=0.75,
+                label=f'b={int(b_val)} ({label_prefix})',
                 zorder=5,
             )
 
@@ -145,8 +146,8 @@ def plot_lsh_results(filepath, output_path=None):
                 ax.annotate(
                     f'r={int(r_row["r"])}',
                     (r_row['Avg_Recall'], r_row['Avg_FPR']),
-                    textcoords='offset points', xytext=(6, 6),
-                    fontsize=7, alpha=0.85,
+                    textcoords='offset points', xytext=(7, 7),
+                    fontsize=7.5, fontweight='bold', alpha=0.85,
                 )
 
     # Axis labels & title
@@ -172,6 +173,157 @@ def plot_lsh_results(filepath, output_path=None):
     plt.show()
 
 
+def plot_best_fpr_per_recall_bin(filepath, output_path=None, num_bins=10):
+    """
+    For each experiment, bin (b,r) data points by Avg_Recall.
+    For each recall bin, pick the minimum FPR across all (b,r) pairs in that bin.
+    Plot one curve per experiment.
+    """
+    experiments = parse_lsh_results(filepath)
+    experiments = [exp for exp in experiments if exp['rows']]
+
+    if not experiments:
+        print("No experiments with data found")
+        return
+
+    fig, ax = plt.subplots(figsize=(11, 7))
+
+    # Consistent bin edges across all experiments
+    all_recalls = [r['Avg_Recall'] for exp in experiments for r in exp['rows']]
+    bin_edges = np.linspace(min(all_recalls) - 1e-9, max(all_recalls) + 1e-9, num_bins + 1)
+
+    markers = ['o', 's', 'D', '^', 'v', 'P', '*', 'X']
+    cmap = plt.cm.tab10
+
+    for exp_idx, exp in enumerate(experiments):
+        label = experiment_label(exp)
+        color = cmap(exp_idx / max(len(experiments) - 1, 1))
+        marker = markers[exp_idx % len(markers)]
+
+        # Bin rows by recall and find min FPR per bin
+        bin_centers = []
+        min_fprs = []
+        bin_annotations = []  # (b,r) that achieved the min FPR
+
+        for i in range(num_bins):
+            lo, hi = bin_edges[i], bin_edges[i + 1]
+            rows_in_bin = [r for r in exp['rows'] if lo <= r['Avg_Recall'] < hi]
+
+            if not rows_in_bin:
+                continue
+
+            best = min(rows_in_bin, key=lambda r: r['Avg_FPR'])
+            bin_centers.append((lo + hi) / 2)
+            min_fprs.append(best['Avg_FPR'])
+            bin_annotations.append(f"b={int(best['b'])},r={int(best['r'])}")
+
+        # Sort by bin center for clean line
+        order = sorted(range(len(bin_centers)), key=lambda i: bin_centers[i])
+        bin_centers = [bin_centers[i] for i in order]
+        min_fprs = [min_fprs[i] for i in order]
+        bin_annotations = [bin_annotations[i] for i in order]
+
+        # ax.scatter(
+        #     bin_centers, min_fprs,
+        #     color=color, marker=marker, s=100,
+        #     edgecolors='black', linewidth=0.5,
+        #     alpha=0.85, label=label, zorder=5,
+        # )
+
+        ax.plot(
+            bin_centers, min_fprs,
+            color=color, marker=marker, markersize=9,
+            markeredgecolor='black', markeredgewidth=0.5,
+            linestyle='-', linewidth=1.5, alpha=0.85,
+            label=label, zorder=5,
+        )
+
+        for x, y, ann in zip(bin_centers, min_fprs, bin_annotations):
+            ax.annotate(
+                ann, (x, y),
+                textcoords='offset points', xytext=(7, 7),
+                fontsize=6.5, alpha=0.8,
+            )
+
+    hash_name = experiments[0]['metadata'].get('Hashname', 'Unknown')
+    ax.set_xlabel('Recall Bin Center', fontsize=13)
+    ax.set_ylabel('Best (Min) FPR in Bin (log scale)', fontsize=13)
+    ax.set_title(
+        f'LSH {hash_name}: Best FPR per Recall Bin\n(lower is better)',
+        fontsize=14, fontweight='bold',
+    )
+    ax.set_yscale('log')
+    ax.legend(loc='best', fontsize=10, title='Experiment')
+    ax.grid(True, alpha=0.3)
+    plt.tight_layout()
+
+    if output_path is None:
+        output_path = Path(filepath).stem + '_best_fpr_per_recall_bin.png'
+
+    plt.savefig(output_path, dpi=300, bbox_inches='tight')
+    print(f"Plot saved to: {output_path}")
+    plt.show()
+
+def plot_all_points(filepath, output_path=None):
+    """
+    Simple scatter: all (Recall, FPR) points per experiment in one color.
+    No b/r separation, no annotations — just one cloud per experiment.
+    """
+    experiments = parse_lsh_results(filepath)
+    experiments = [exp for exp in experiments if exp['rows']]
+
+    if not experiments:
+        print("No experiments with data found")
+        return
+
+    fig, ax = plt.subplots(figsize=(11, 7))
+
+    markers = ['o', 's', 'D', '^', 'v', 'P', '*', 'X']
+    cmap = plt.cm.tab10
+
+    for exp_idx, exp in enumerate(experiments):
+        color = cmap(exp_idx / max(len(experiments) - 1, 1))
+        marker = markers[exp_idx % len(markers)]
+        label = experiment_label(exp)
+
+        recalls = [r['Avg_Recall'] for r in exp['rows']]
+        fprs = [r['Avg_FPR'] for r in exp['rows']]
+
+        ax.scatter(
+            recalls, fprs,
+            color=color, marker=marker, s=60, alpha=0.7,
+            edgecolors='black', linewidth=0.4,
+            label=label, zorder=5,
+        )
+
+        for row in exp['rows']:
+            ax.annotate(
+                f"{int(row['b'])},{int(row['r'])}",
+                (row['Avg_Recall'], row['Avg_FPR']),
+                textcoords='offset points', xytext=(5, 5),
+                fontsize=6, alpha=0.75,
+            )
+
+    hash_name = experiments[0]['metadata'].get('Hashname', 'Unknown')
+    ax.set_xlabel('Average Recall', fontsize=13)
+    ax.set_ylabel('Average FPR (log scale)', fontsize=13)
+    ax.set_title(
+        f'LSH {hash_name}: All (b,r) configurations\nFPR vs Recall',
+        fontsize=14, fontweight='bold',
+    )
+    ax.set_yscale('log')
+    ax.legend(loc='best', fontsize=10, title='Experiment')
+    ax.grid(True, alpha=0.3)
+    plt.tight_layout()
+
+    if output_path is None:
+        output_path = Path(filepath).stem + '_all_points.png'
+
+    plt.savefig(output_path, dpi=300, bbox_inches='tight')
+    print(f"Plot saved to: {output_path}")
+    plt.show()
+
+
 if __name__ == "__main__":
     import sys
 
@@ -185,3 +337,6 @@ if __name__ == "__main__":
         output_path = None
 
     plot_lsh_results(filepath, output_path)
+    plot_best_fpr_per_recall_bin(filepath)
+    plot_all_points(filepath)
+

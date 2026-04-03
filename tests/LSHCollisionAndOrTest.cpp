@@ -274,7 +274,18 @@ static bool LSHCollisionTestInnerInnerParallel(const HashInfo * hinfo, uint32_t 
 
 	alignas(64) std::vector<double> AverageCollision(N_seq, 0.0);
 	
-	std::vector<std::pair<uint32_t, uint32_t>> ANDOR_params = {{2,3}};//{{1,1},{2,1},{3,2},{1,2},{2,3},{2,2}}; //{{5,5}, {11,11}, {21,21}};
+	std::vector<std::pair<uint32_t, uint32_t>> ANDOR_params;
+	// Programmatically fill ANDOR_params reusing the ANN B/R range globals
+	assert(g_ANN_start_B > 0 && g_ANN_start_R > 0 && g_ANN_MAX_B >= g_ANN_start_B && g_ANN_MAX_R >= g_ANN_start_R);
+	for (uint32_t and_val = g_ANN_start_B; and_val <= g_ANN_MAX_B; ++and_val) {
+		for (uint32_t or_val = g_ANN_start_R; or_val <= g_ANN_MAX_R; ++or_val) {
+			ANDOR_params.push_back({and_val, or_val});
+		}
+	}
+	printf("Generated %zu (AND,OR) pairs for testing (AND from %u to %u, OR from %u to %u).\n", ANDOR_params.size(), g_ANN_start_B, g_ANN_MAX_B, g_ANN_start_R, g_ANN_MAX_R);
+
+	// std::vector<std::pair<uint32_t, uint32_t>> ANDOR_params = {{2,3}};//{{1,1},{2,1},{3,2},{1,2},{2,3},{2,2}}; //{{5,5}, {11,11}, {21,21}};
+	
 	for(auto andor_param : ANDOR_params){
 		uint32_t and_param = andor_param.first;
 		uint32_t or_param = andor_param.second;

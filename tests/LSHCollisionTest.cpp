@@ -41,7 +41,7 @@ static void LSHCollisionTestInnerInnerWorker(
 
   const bool useUniverseOpt = hinfo->hasUniverseVectorOptimisation();
     
-  printf("Inside LSHCollisionTestInnerInnerWorker: start=%d, end=%d\n", start, end);
+  printf("Inside LSHCollisionTestInnerInnerWorker: [start=%d, end=%d\n)", start, end);
   
   for (int rec_idx = start; rec_idx < end; rec_idx++) {
     SequenceRecordUnit &record = sequenceRecordsforTest.Records[rec_idx];
