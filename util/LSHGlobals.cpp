@@ -24,13 +24,15 @@ std::vector<uint32_t> g_tokenLengths_array = {13}; //{4 ,7, 13, 21, 31, 33};
 
 
 uint32_t g_sequenceLength_ANN = 45; // Sequence length for Approx Nearest Neighbour test. Adjust as needed.
-uint32_t g_Nseq_in_Database = 1000; // Number of sequences in the reference database for the Approx Nearest Neighbour test. Adjust as needed.
-uint32_t g_numQueriesForApproxNNTest = 100; // Number of query sequences to generate for the Approx Nearest Neighbour test. Adjust as needed.
+uint32_t g_Nseq_in_Database = 15000; // Number of sequences in the reference database for the Approx Nearest Neighbour test. Adjust as needed.
+uint32_t g_numQueriesForApproxNNTest = 200; // Number of query sequences to generate for the Approx Nearest Neighbour test. Adjust as needed.
 
+uint32_t g_ANN_runs_for_avg = 5;
 
-
-
-
+uint32_t g_ANN_start_B = 1; // Starting value of b (hashes per table) for the Approx Nearest Neighbour test. Adjust as needed.
+uint32_t g_ANN_start_R = 1; // Starting value of r (number of tables) for the Approx Nearest Neighbour test. Adjust as needed.
+uint32_t g_ANN_MAX_B = 3; // Maximum value of b (hashes per table) to test in the Approx Nearest Neighbour test. Adjust as needed.
+uint32_t g_ANN_MAX_R = 5; // Maximum value of r (number of tables) to test in the Approx Nearest Neighbour test. Adjust as needed.
 
 // Global variables for runtime communication
 const uint32_t g_bincount_full = 1000;

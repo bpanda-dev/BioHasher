@@ -36,6 +36,14 @@ extern uint32_t g_Nseq_in_Database;
 extern uint32_t g_numQueriesForApproxNNTest;
 extern uint32_t g_sequenceLength_ANN;
 
+extern uint32_t g_ANN_runs_for_avg;
+extern uint32_t g_ANN_start_B;
+extern uint32_t g_ANN_start_R;
+extern uint32_t g_ANN_MAX_B;
+extern uint32_t g_ANN_MAX_R;
+
+
+
 
 
 // #define MUTATION_EXPRESSION_DEL_EQUAL_SUB 0

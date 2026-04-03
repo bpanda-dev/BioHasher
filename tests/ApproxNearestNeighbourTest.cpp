@@ -239,13 +239,13 @@ static sim_bins_struct LSHCollisionTestInnerAgg(SequenceRecordsWithMetadataStruc
   printf("\n-----------------End AGG----------------");
 
   // Print Similarity values
-  out_file << ":13:";
-  for (size_t i = 0; i < sequenceRecordsForAgg.KeyCount; i++) {
-    if (i == sequenceRecordsForAgg.KeyCount - 1)
-      out_file << rand_error_param[i] << "\n";
-    else
-      out_file << rand_error_param[i] << ",";
-  }
+  // out_file << ":13:";
+  // for (size_t i = 0; i < sequenceRecordsForAgg.KeyCount; i++) {
+  //   if (i == sequenceRecordsForAgg.KeyCount - 1)
+  //     out_file << rand_error_param[i] << "\n";
+  //   else
+  //     out_file << rand_error_param[i] << ",";
+  // }
 
   // Extract similarity values
   for (uint32_t idx = 0; idx < sequenceRecordsForAgg.KeyCount; idx++) {
@@ -528,7 +528,20 @@ bool LSHApproxNearestNeighbourTest(const HashInfo *hinfo, bool extra, flags_t fl
   writeSequencesToFile(QuerySequenceRecord, "../results/query_sequences.txt", 0);
 
   // 3. Perform aggegration to get the bins from 95% to 100% similarity.
-  sim_bins_struct sim_bins = LSHCollisionTestInnerAgg(QuerySequenceRecord, seedGen, out_file);
+  SequenceRecordsWithMetadataStruct AggSequenceRecord;
+  AggSequenceRecord.KeyCount = g_norm_N_agg_cases;
+  AggSequenceRecord.OriginalSequenceLength = sequenceLength; // Sampled Queries which have not yet mutated are same length as reference.
+  AggSequenceRecord.isBasesDrawnFromUniformDist = true;
+  AggSequenceRecord.DatagenSeed = 0; // Not applicable, as we are sampling from reference sequences rather than generating new random sequences.
+  AggSequenceRecord.DataMutateSeed = seedGen.nextSeed();
+  AggSequenceRecord.DistanceClass =  setDistanceClassForHashInfo(hinfo->hash_flags);
+  
+  SequenceDataGenerator dataGenAgg(&AggSequenceRecord);
+  sim_bins_struct sim_bins = LSHCollisionTestInnerAgg(AggSequenceRecord, seedGen, out_file);
+  // remove the agg sequence records to free up memory, as we no longer need them. We have already extracted the binned error parameters and their statistics that we need for the next steps.
+  AggSequenceRecord.Records.clear();
+  AggSequenceRecord.Records.shrink_to_fit();
+  
   
   // print bin means and stddevs using
   if(REPORT(VERBOSE, flags)) {
@@ -551,8 +564,8 @@ bool LSHApproxNearestNeighbourTest(const HashInfo *hinfo, bool extra, flags_t fl
 
   // Generate new error parameters targeting similarity range [0.95, 1.0]
 
-  const double target_sim_low = 0.96;  // 95% similarity
-  const double target_sim_high = 0.99; // 100% similarity (no mutation)
+  const double target_sim_low = 0.90;  // 95% similarity
+  const double target_sim_high = 1.0; // 100% similarity (no mutation)
 
   Randbin rng_bin_sampler(seedGen.nextSeed());
   Randbin rng_bin_params_sampler(seedGen.nextSeed());
@@ -573,8 +586,7 @@ bool LSHApproxNearestNeighbourTest(const HashInfo *hinfo, bool extra, flags_t fl
 
     if (bin_fill_count == 0) {
       printf("Warning: Could not find non-empty bin after %u attempts\n", max_attempts);
-      // sequenceRecordsforTest.Records[idx].snpRate = 1.0; // Assign a default
-      // value
+      // sequenceRecordsforTest.Records[idx].snpRate = 1.0; // Assign a default value
       skipped_sequences++;
       continue; // Skip this sequence or handle error
     }
@@ -601,13 +613,13 @@ bool LSHApproxNearestNeighbourTest(const HashInfo *hinfo, bool extra, flags_t fl
   writeSequencesToFile(QuerySequenceRecord, "../results/query_sequences.txt", 2);
 
   // print the query, the mutated sequence and the similarity values to terminal
-  printf("\n\n");
-  for (uint32_t i = 0; i < QuerySequenceRecord.KeyCount; i++) {
-    printf("Foundational Parameter for record %u: %f\n", i, QuerySequenceRecord.Records[i].foundationalParameter);
-    printf("Similarity for record %u: %f\n", i, QuerySequenceRecord.Records[i].similarity);
-    printf("Query Sequence: %s\n", QuerySequenceRecord.Records[i].SeqASCIIOrg.c_str());
-    printf("Mutated Sequence: %s\n", QuerySequenceRecord.Records[i].SeqASCIIMut.c_str());
-  }
+  // printf("\n\n");
+  // for (uint32_t i = 0; i < QuerySequenceRecord.KeyCount; i++) {
+  //   printf("Foundational Parameter for record %u: %f\n", i, QuerySequenceRecord.Records[i].foundationalParameter);
+  //   printf("Similarity for record %u: %f\n", i, QuerySequenceRecord.Records[i].similarity);
+  //   printf("Query Sequence: %s\n", QuerySequenceRecord.Records[i].SeqASCIIOrg.c_str());
+  //   printf("Mutated Sequence: %s\n", QuerySequenceRecord.Records[i].SeqASCIIMut.c_str());
+  // }
 
   // Debug section: Print similarity statistics across all query records
   double sum_sim = 0.0;
@@ -725,16 +737,16 @@ bool LSHApproxNearestNeighbourTest(const HashInfo *hinfo, bool extra, flags_t fl
   printf("Ground truth computation complete for %u queries.\n", QuerySequenceRecord.KeyCount);
   
   // Write ground truth to output file
-  out_file << ":15:Ground Truth Top-" << TOP_K << " Nearest Sequences\n";
-  for(uint32_t q_idx = 0; q_idx < QuerySequenceRecord.KeyCount; q_idx++){
-    out_file << "Q" << q_idx << ":";
-    for(size_t k = 0; k < groundTruthNearest[q_idx].size(); k++){
-      const auto& entry = groundTruthNearest[q_idx][k];
-      out_file << entry.position << "," << entry.similarity;
-      if(k < groundTruthNearest[q_idx].size() - 1) out_file << ";";
-    }
-    out_file << "\n";
-  }
+  // out_file << ":15:Ground Truth Top-" << TOP_K << " Nearest Sequences\n";
+  // for(uint32_t q_idx = 0; q_idx < QuerySequenceRecord.KeyCount; q_idx++){
+  //   out_file << "Q" << q_idx << ":";
+  //   for(size_t k = 0; k < groundTruthNearest[q_idx].size(); k++){
+  //     const auto& entry = groundTruthNearest[q_idx][k];
+  //     out_file << entry.position << "," << entry.similarity;
+  //     if(k < groundTruthNearest[q_idx].size() - 1) out_file << ";";
+  //   }
+  //   out_file << "\n";
+  // }
   
   // ============================================================================
   // LSH Index Construction and Querying
@@ -747,16 +759,36 @@ bool LSHApproxNearestNeighbourTest(const HashInfo *hinfo, bool extra, flags_t fl
   }
 
   // Define LSH parameters and number of runs
-  const uint32_t NUM_RUNS = 5;
-  const std::vector<std::pair<uint32_t, uint32_t>> br_pairs = {
-      {1, 1},
-      {1, 2},
-      {2, 1},
-      {2, 2}
-  };
-  out_file << ":17:LSH Experiment Summary\n";
-  out_file << "b,r,Avg_Recall,Avg_Precision,Avg_FPR,Avg_F1_Score\n";
+  const uint32_t NUM_RUNS = g_ANN_runs_for_avg;
+  std::vector<std::pair<uint32_t, uint32_t>> br_pairs;
 
+  // Programmatically fill br_pairs from b=1 to 10 and r=1 to 10
+  assert(g_ANN_start_B > 0 && g_ANN_start_R > 0 && g_ANN_MAX_B >= g_ANN_start_B && g_ANN_MAX_R >= g_ANN_start_R);
+
+  for (uint32_t b_val = g_ANN_start_B; b_val <= g_ANN_MAX_B; ++b_val) {
+      for (uint32_t r_val = g_ANN_start_R; r_val <= g_ANN_MAX_R; ++r_val) {
+          br_pairs.push_back({b_val, r_val});
+      }
+  }
+  printf("Generated %zu (b,r) pairs for testing (b from %u to %u, r from %u to %u).\n", br_pairs.size(), g_ANN_start_B, g_ANN_MAX_B, g_ANN_start_R, g_ANN_MAX_R);
+
+
+  // File header
+  out_file << ":1:LSH Approx Nearest Neighbour Summary\n";
+  out_file << ":2:" << "Hashname," << "SequenceLength," << "TokenLength,"
+           << "Distance Metric," << "Mutation Model," << "Mutation Expression"
+           << std::endl;
+  out_file << ":3:" << hinfo->name << "," << g_sequenceLength_ANN << "," << g_TokenLength << ","
+           << setDistanceClassForHashInfo(hinfo->hash_flags) << ","
+           << g_mutation_model << "," << g_mutation_expression_type
+           << std::endl;
+  // Print hash function ultra-specific parameters to the output file
+  hinfo->printParameters(out_file);
+
+  out_file << ":5:b,r,Avg_Recall,Avg_Precision,Avg_FPR,Avg_F1_Score\n";
+  
+
+  
   for (const auto& br_pair : br_pairs) {
     uint32_t b = br_pair.first;  // Hashes per table
     uint32_t r = br_pair.second; // Number of tables
@@ -878,7 +910,7 @@ bool LSHApproxNearestNeighbourTest(const HashInfo *hinfo, bool extra, flags_t fl
     printf("-----------------------------------------------------\n");
 
     // Write summary for this (b,r) pair to file
-    out_file << b << "," << r << "," << final_avg_recall << "," << final_avg_precision << "," << final_avg_fpr << "," << final_avg_f1 << "\n";
+    out_file <<":6:" << b << "," << r << "," << final_avg_recall << "," << final_avg_precision << "," << final_avg_fpr << "," << final_avg_f1 << "\n";
   }
 
   // Cleanup: Reset LSH global variables after test completion

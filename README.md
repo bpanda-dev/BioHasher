@@ -2,7 +2,7 @@
 
 ## Overview
 
-BioHasher is a specialized Locality Sensitive Hash function testing framework designed for biological sequence analysis. It is built upon the core performance-testing architecture of SMHasher3[https://gitlab.com/fwojcik/smhasher3] (Wojcik), with locality-sensitive hashing (LSH) tests optimized for genomic data processing and similarity detection.
+BioHasher is a specialized Locality Sensitive Hash function testing framework designed for biological sequence analysis. It is built upon the hash function testing framework SMHasher3[https://gitlab.com/fwojcik/smhasher3], with locality-sensitive hashing (LSH) tests optimized for genomic data processing and similarity detection.
 
 ## Getting Started
 
@@ -12,6 +12,11 @@ To get started with BioHasher, follow these steps:
 
     ```bash
     git clone https://github.com/bpanda-dev/BioHasher.git
+    ```
+
+2. Build BioHasher:
+
+    ```bash
     cd BioHasher
     pip install -r requirements.txt
     cd build
@@ -23,10 +28,10 @@ To get started with BioHasher, follow these steps:
 
     The above run should generate a file named `collisionResults_SubseqHash-64.csv` in the `results` directory under `BioHasher`. This file contains the output of the collision test.
 
-2. To plot the curves from the output csv file,
+3. To plot the curves from the output csv file,
 
     ```bash
-        python ../analysis/plot.py ../results/collisionResults_SubseqHash-64.csv
+    python ../analysis/plot.py ../results/collisionResults_SubseqHash-64.csv
     ```
 
     This will generate various versions of collision curves plots in the analysis directory. We explain about the type of plots in section [[?]].
