@@ -80,6 +80,7 @@ static void minHash32(const void* in , const size_t len, const seed_t seed, void
       }
 
       std::vector<uint8_t> token(BytesInToken, 0); // Token storage.
+      // printf("MinHash: Using token length of %u bases (%u bytes) for hashing.\n", BasesInToken, BytesInToken);
 
       //Generate random number,
       Rand r(seed, 4);

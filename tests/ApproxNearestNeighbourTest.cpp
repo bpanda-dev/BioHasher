@@ -466,12 +466,13 @@ bool LSHApproxNearestNeighbourTest(const HashInfo *hinfo, bool extra, flags_t fl
   */
   uint32_t tokenlength;
   if (hinfo->hasTokenisationProperty()) {
-    printf(
-        "Hash %s has tokenisation property. Testing multiple token lengths.\n",hinfo->name);
+    printf("Hash %s has tokenisation property. Testing multiple token lengths.\n",hinfo->name);
     tokenlength = g_tokenLengths_array[0]; //TODO: make it similar to collision curve test.
   } else {
     tokenlength = 0; // No tokenization
   }
+
+  printf("Using token length: %u\n", tokenlength);
 
   // Note: The tokenlength is different from window size. Token is like a kmer.
   // Window size is the length of the sequence that we are hashing.
@@ -796,7 +797,7 @@ bool LSHApproxNearestNeighbourTest(const HashInfo *hinfo, bool extra, flags_t fl
     printf("\n\n==================================================================\n");
     printf("Running experiment for b=%u, r=%u over %u runs\n", b, r, NUM_RUNS);
     printf("==================================================================\n");
-
+    
     std::vector<double> all_runs_avg_recall;
     std::vector<double> all_runs_avg_precision;
     std::vector<double> all_runs_avg_fpr;

@@ -1,0 +1,708 @@
+Testing hash SubSeqHash-64
+64
+[[[ Approximate Nearest Neighbour Test ]]]
+
+Using token length: 0
+Record 0 Original Sequence: GTGAGAACGCAAGCGGCGTACCTCCGACTAAGCCGCACATCTGCC
+Record 1 Original Sequence: TAATAATACTTGATGTAGAATCTAACTGACCCGTTTTATCCGAGG
+Record 2 Original Sequence: GATGTCGTCAGACATTTGTGTAGTGATAAGGGTTGATACTGCAGG
+Record 3 Original Sequence: CTATGACTATGGGGATTCCCCGTAAGACAGGAATGGCCGCCAAGA
+Record 4 Original Sequence: TAGTACAGAGGGATATTCAATATAGAAGCCCATCTACCGTGACAC
+Record 5 Original Sequence: ATTTGCGCTCAAAGGACACGCACGATTTAATCGGTCGGGTGTAGT
+Record 6 Original Sequence: GGACTCTGCACTTTCTAAGAGAAATCGCTCGGATGGGTCACATCC
+Record 7 Original Sequence: GCAGGGACACCTACTAATAGGTATAGAAGTGATGTGTTCTTCTTA
+Record 8 Original Sequence: TTACCTTGGTTTCGGCTTTCAGTTGAGTGCAACCACCTTCCCTTA
+Record 9 Original Sequence: CCTGGTGCTGTAGTTGCAATTTAACCCTGGGATAACAAAACTCCG
+DataGeneration: SequenceLength = 45, KeyCount = 10000
+Original sequences written to ../results/reference_sequences.txt
+Original sequences written to ../results/query_sequences.txt
+Record 0 Original Sequence: ATCGTCCAGCTTCAACCTTTGTAAATACATTAACTACGATGGGGA
+Record 1 Original Sequence: GATGGGCTCAATTGAGCCTACCTTGCAACTTTCTTTGACTAAAGC
+Record 2 Original Sequence: TACTACCTATTACTGTGACCTCAGTGAAGTAAAATTAACTGGGTG
+Record 3 Original Sequence: AAGGACCCATATTCCCCTAGCCGCATGATCCACAGCGTAACGCGC
+Record 4 Original Sequence: GCAGATTGGAGTGGTTCGAGGTCATGTATATTGTCACGTATCCCC
+Record 5 Original Sequence: TCTTATCTACAACTCCTCCCTTCTAAGGACACACGTGCCTATTGG
+Record 6 Original Sequence: GCCGTTAGTAATTAATCGCTGTGAAATCGTGGTTCAGTGGTAACG
+Record 7 Original Sequence: TGGCCTACATCGGACGGTTACTTGAGTGAATCTTCAAGTCTGATC
+Record 8 Original Sequence: CCCACGGCTTGACCCCGCGAAGGCTGTGTCAGAATTAGTTACCGG
+Record 9 Original Sequence: TAGTACTGTGACTACGCCTCAGCATTTAACTTGACTTCCAAAGTC
+DataGeneration: SequenceLength = 45, KeyCount = 500000
+Inside get_params_aggregated_in_bins
+
+-----------------Start AGG----------------
+Using geometric mutator model for data mutation in aggregation phase.
+DataMutation: Applied Geometric mutations only. Distance Class = Edit Similarity.
+
+=== Record 0 ===
+Original Length: 45
+Mutated Length:  44
+Original: ATCGTCCAGCTTCAACCTTTGTAAATACATTAACTACGATGGGGA
+Mutated:  ATCGTCCGCTTCAACCTTTGTAAATACATTAACTACGATGGGGA
+Foundational Parameter: 0.007
+Similarity: 0.977778
+
+=== Record 1 ===
+Original Length: 45
+Mutated Length:  49
+Original: GATGGGCTCAATTGAGCCTACCTTGCAACTTTCTTTGACTAAAGC
+Mutated:  GGGGCTCATTGTGCCTTACCTTGCAACTTGTTCTTTAGAGACATAACGC
+Foundational Parameter: 0.078
+Similarity: 0.755102
+
+=== Record 2 ===
+Original Length: 45
+Mutated Length:  48
+Original: TACTACCTATTACTGTGACCTCAGTGAAGTAAAATTAACTGGGTG
+Mutated:  TATAACCGATGTCCGTTAACCTCCAGATTAGCTTTGTTAACTGGGTGC
+Foundational Parameter: 0.217
+Similarity: 0.625
+
+=== Record 3 ===
+Original Length: 45
+Mutated Length:  41
+Original: AAGGACCCATATTCCCCTAGCCGCATGATCCACAGCGTAACGCGC
+Mutated:  ATGGACCAATTCCCAGCTCGCTTGAGCGACAGAAGTAAGGG
+Foundational Parameter: 0.122
+Similarity: 0.688889
+
+=== Record 4 ===
+Original Length: 45
+Mutated Length:  52
+Original: GCAGATTGGAGTGGTTCGAGGTCATGTATATTGTCACGTATCCCC
+Mutated:  GCAGTCCATGTGTGGTGGTTGCAGGATCAGCGACCTAGTGTCACTTTATTCC
+Foundational Parameter: 0.238
+Similarity: 0.634615
+
+=== Record 5 ===
+Original Length: 45
+Mutated Length:  44
+Original: TCTTATCTACAACTCCTCCCTTCTAAGGACACACGTGCCTATTGG
+Mutated:  TCTTATCTACAACTCCTCCCTTCTAGGCAACACGTGCCTGTTGG
+Foundational Parameter: 0.035
+Similarity: 0.911111
+
+=== Record 6 ===
+Original Length: 45
+Mutated Length:  44
+Original: GCCGTTAGTAATTAATCGCTGTGAAATCGTGGTTCAGTGGTAACG
+Mutated:  GCCAGTGAACAATCGACTGTGAAACGTGCTTATCACTAGTAACG
+Foundational Parameter: 0.117
+Similarity: 0.711111
+
+=== Record 7 ===
+Original Length: 45
+Mutated Length:  44
+Original: TGGCCTACATCGGACGGTTACTTGAGTGAATCTTCAAGTCTGATC
+Mutated:  TGGCCTCACCGCAGGTTGAGTGAGATGAAGCGTCAAGGTTAGTC
+Foundational Parameter: 0.22
+Similarity: 0.688889
+
+=== Record 8 ===
+Original Length: 45
+Mutated Length:  42
+Original: CCCACGGCTTGACCCCGCGAAGGCTGTGTCAGAATTAGTTACCGG
+Mutated:  CCCGCGGCTGCCCCGCGAAGCCTGTGTCAGAATTAGTTACAG
+Foundational Parameter: 0.082
+Similarity: 0.866667
+
+=== Record 9 ===
+Original Length: 45
+Mutated Length:  47
+Original: TAGTACTGTGACTACGCCTCAGCATTTAACTTGACTTCCAAAGTC
+Mutated:  TAGTACTGTACTATGCATTAGCTTAAAATCGGTGACTTCCCAAAGTC
+Foundational Parameter: 0.103
+Similarity: 0.765957
+
+-----------------End AGG----------------Bin 0: Sum = 0.000000, Count = 0
+Bin 1: Sum = 0.000000, Count = 0
+Bin 2: Sum = 0.000000, Count = 0
+Bin 3: Sum = 0.000000, Count = 0
+Bin 4: Sum = 0.000000, Count = 0
+Bin 5: Sum = 0.000000, Count = 0
+Bin 6: Sum = 0.000000, Count = 0
+Bin 7: Sum = 0.000000, Count = 0
+Bin 8: Sum = 0.000000, Count = 0
+Bin 9: Sum = 0.000000, Count = 0
+Bin 10: Sum = 0.000000, Count = 0
+Bin 11: Sum = 0.000000, Count = 0
+Bin 12: Sum = 0.000000, Count = 0
+Bin 13: Sum = 0.000000, Count = 0
+Bin 14: Sum = 0.000000, Count = 0
+Bin 15: Sum = 0.000000, Count = 0
+Bin 16: Sum = 0.000000, Count = 0
+Bin 17: Sum = 0.000000, Count = 0
+Bin 18: Sum = 0.000000, Count = 0
+Bin 19: Sum = 0.000000, Count = 0
+Bin 20: Sum = 0.000000, Count = 0
+Bin 21: Sum = 0.000000, Count = 0
+Bin 22: Sum = 0.000000, Count = 0
+Bin 23: Sum = 0.000000, Count = 0
+Bin 24: Sum = 0.000000, Count = 0
+Bin 25: Sum = 0.000000, Count = 0
+Bin 26: Sum = 0.000000, Count = 0
+Bin 27: Sum = 0.000000, Count = 0
+Bin 28: Sum = 0.000000, Count = 0
+Bin 29: Sum = 0.000000, Count = 0
+Bin 30: Sum = 0.000000, Count = 0
+Bin 31: Sum = 0.000000, Count = 0
+Bin 32: Sum = 0.000000, Count = 0
+Bin 33: Sum = 0.000000, Count = 0
+Bin 34: Sum = 0.000000, Count = 0
+Bin 35: Sum = 0.000000, Count = 0
+Bin 36: Sum = 0.000000, Count = 0
+Bin 37: Sum = 0.000000, Count = 0
+Bin 38: Sum = 0.000000, Count = 0
+Bin 39: Sum = 0.229000, Count = 1
+Bin 40: Sum = 1.144000, Count = 4
+Bin 41: Sum = 1.747000, Count = 6
+Bin 42: Sum = 5.659000, Count = 21
+Bin 43: Sum = 5.186000, Count = 19
+Bin 44: Sum = 23.251000, Count = 88
+Bin 45: Sum = 19.380000, Count = 72
+Bin 46: Sum = 83.264000, Count = 312
+Bin 47: Sum = 70.668000, Count = 264
+Bin 48: Sum = 183.770000, Count = 700
+Bin 49: Sum = 68.561000, Count = 250
+Bin 50: Sum = 187.772000, Count = 700
+Bin 51: Sum = 182.100000, Count = 700
+Bin 52: Sum = 182.996000, Count = 700
+Bin 53: Sum = 178.245000, Count = 700
+Bin 54: Sum = 180.771000, Count = 700
+Bin 55: Sum = 173.293000, Count = 700
+Bin 56: Sum = 177.168000, Count = 700
+Bin 57: Sum = 172.224000, Count = 700
+Bin 58: Sum = 172.362000, Count = 700
+Bin 59: Sum = 169.238000, Count = 700
+Bin 60: Sum = 163.552000, Count = 700
+Bin 61: Sum = 165.388000, Count = 700
+Bin 62: Sum = 156.348000, Count = 700
+Bin 63: Sum = 154.363000, Count = 700
+Bin 64: Sum = 151.812000, Count = 700
+Bin 65: Sum = 147.603000, Count = 700
+Bin 66: Sum = 140.731000, Count = 700
+Bin 67: Sum = 139.849000, Count = 700
+Bin 68: Sum = 130.638000, Count = 700
+Bin 69: Sum = 128.676000, Count = 700
+Bin 70: Sum = 125.849000, Count = 700
+Bin 71: Sum = 114.316000, Count = 700
+Bin 72: Sum = 114.383000, Count = 700
+Bin 73: Sum = 101.616000, Count = 700
+Bin 74: Sum = 102.303000, Count = 700
+Bin 75: Sum = 92.113000, Count = 700
+Bin 76: Sum = 90.683000, Count = 700
+Bin 77: Sum = 80.158000, Count = 700
+Bin 78: Sum = 79.699000, Count = 700
+Bin 79: Sum = 75.943000, Count = 700
+Bin 80: Sum = 69.330000, Count = 700
+Bin 81: Sum = 66.577000, Count = 700
+Bin 82: Sum = 58.900000, Count = 700
+Bin 83: Sum = 58.007000, Count = 700
+Bin 84: Sum = 52.182000, Count = 700
+Bin 85: Sum = 50.215000, Count = 700
+Bin 86: Sum = 42.719000, Count = 700
+Bin 87: Sum = 42.119000, Count = 700
+Bin 88: Sum = 36.131000, Count = 700
+Bin 89: Sum = 35.463000, Count = 700
+Bin 90: Sum = 3.287000, Count = 71
+Bin 91: Sum = 28.766000, Count = 700
+Bin 92: Sum = 0.000000, Count = 0
+Bin 93: Sum = 21.840000, Count = 700
+Bin 94: Sum = 0.000000, Count = 0
+Bin 95: Sum = 15.770000, Count = 700
+Bin 96: Sum = 0.000000, Count = 0
+Bin 97: Sum = 10.260000, Count = 700
+Bin 98: Sum = 0.000000, Count = 0
+Bin 99: Sum = 5.314000, Count = 700
+DataMutation: Applied Geometric mutations only. Distance Class = Edit Similarity.
+
+=== Record 0 ===
+Original Length: 45
+Mutated Length:  47
+Original: ACTCAGGACACCAAAGTCCTAACGATAGCCCACTACCTCCTCGAT
+Mutated:  ACTCAGGACTACCAAAAGTCCTAACGATAGCCCATTACCTCCTCGAT
+Foundational Parameter: 0.037
+Similarity: 0.93617
+
+=== Record 1 ===
+Original Length: 45
+Mutated Length:  45
+Original: GGCTGTTGAGAATCCCGAATGGTTCATTCGAAAGTACCCTGACTG
+Mutated:  GGCTGTTGAGAATCCCGAATGGTTCATTCGAATGTACCCTGACTG
+Foundational Parameter: 0.003
+Similarity: 0.977778
+
+=== Record 2 ===
+Original Length: 45
+Mutated Length:  43
+Original: TACTCAGCTATGATTCGCGGATAGGCATCCGGCTTACTAACGCGG
+Mutated:  TACTCAGCTATGATTCGCGGATAGGCATCCGGCTTCTACGCGG
+Foundational Parameter: 0.017
+Similarity: 0.955556
+
+=== Record 3 ===
+Original Length: 45
+Mutated Length:  41
+Original: GCCTGAGCAAGCAACGGTGGGTAAAGGCGCGACGTCACCCAGGAA
+Mutated:  GCTGAGCAAGCAAGGTGGTAAGGCGCGACTCACCTCAGGAA
+Foundational Parameter: 0.034
+Similarity: 0.866667
+
+=== Record 4 ===
+Original Length: 45
+Mutated Length:  44
+Original: ACGCTCGCCGGCTCAGATGCGTCCTTGCTGAGGTTGTTTAAGGAA
+Mutated:  ACGCTCGCAGCCAGATGCGTCTTTGCATGAGGTGTGTAAGGATA
+Foundational Parameter: 0.0575472
+Similarity: 0.822222
+
+=== Record 5 ===
+Original Length: 45
+Mutated Length:  45
+Original: TACTACCGGTCGGCCGTATACCGTGATACTAAACCTTTTATACGG
+Mutated:  TACTACCGGTCGGCCGAATACCGTGATACTAAACCTTTTATACGG
+Foundational Parameter: 0.023
+Similarity: 0.977778
+
+=== Record 6 ===
+Original Length: 45
+Mutated Length:  45
+Original: TCGTTTCACGGGTGGAACTTGTTTCAGGGTCAACGTCCGCAATGG
+Mutated:  TCGTTTCACGGGTGGAACTTGTTTCAGGGTCAACGTCCGCAATGG
+Foundational Parameter: 0.006
+Similarity: 1
+
+=== Record 7 ===
+Original Length: 45
+Mutated Length:  48
+Original: TGCATTCTACCTCATTTGTTTAATCTCCTCGGCCATTTCCTTATG
+Mutated:  TGCATTCTACCTCATTGTCTCTAATCTCTTCGGCGCAATTTCTCTATG
+Foundational Parameter: 0.084
+Similarity: 0.833333
+
+=== Record 8 ===
+Original Length: 45
+Mutated Length:  44
+Original: TTGCAGGTAAAATCAGATCTTAAGGAGACAATCCCTCTGGCGAGG
+Mutated:  TTGCAGGTTAAATCAGATTTAAGGACACTATCCCTCTGGCGAGG
+Foundational Parameter: 0.031
+Similarity: 0.911111
+
+=== Record 9 ===
+Original Length: 45
+Mutated Length:  45
+Original: GATTTAAAAGCAGCAGATACTTTCTCTTCCCTTAGGCGTAGACGA
+Mutated:  GATTTAAAAGCAGCAGATACTATCTGTTCCCTTAGGCGTAGACGA
+Foundational Parameter: 0.033
+Similarity: 0.955556
+Completed mutation using geometric mutator model.
+Re-sampled mutated 50 sequences targeting similarity in [0.90, 1.00].
+Original sequences written to ../results/query_sequences.txt
+Similarity stats (50 records): Mean = 0.934999, Min = 0.755556, Max = 1.000000, Stddev = 0.054106
+Computing ground truth top-1 nearest sequences for 50 queries across 10000 reference sequences...
+Ground truth computation complete for 50 queries.
+Generated 15 (b,r) pairs for testing (b from 1 to 3, r from 1 to 5).
+
+
+==================================================================
+Running experiment for b=1, r=1 over 5 runs
+==================================================================
+
+--- Run 1/5 for b=1, r=1 ---
+  Run 1 Metrics: Recall=0.4400, Precision=0.0100, FPR=0.0153, F1=0.0196
+
+--- Run 2/5 for b=1, r=1 ---
+  Run 2 Metrics: Recall=0.4200, Precision=0.0225, FPR=0.0170, F1=0.0427
+
+--- Run 3/5 for b=1, r=1 ---
+  Run 3 Metrics: Recall=0.4800, Precision=0.0150, FPR=0.0291, F1=0.0291
+
+--- Run 4/5 for b=1, r=1 ---
+  Run 4 Metrics: Recall=0.4800, Precision=0.0554, FPR=0.0134, F1=0.0994
+
+--- Run 5/5 for b=1, r=1 ---
+  Run 5 Metrics: Recall=0.4800, Precision=0.0131, FPR=0.0189, F1=0.0254
+
+--- Average Metrics for b=1, r=1 (over 5 runs) ---
+Average Recall:    0.4600
+Average Precision: 0.0232
+Average FPR:       0.0187
+Average F1-Score:  0.0432
+-----------------------------------------------------
+
+
+==================================================================
+Running experiment for b=1, r=2 over 5 runs
+==================================================================
+
+--- Run 1/5 for b=1, r=2 ---
+  Run 1 Metrics: Recall=0.8000, Precision=0.0106, FPR=0.0479, F1=0.0209
+
+--- Run 2/5 for b=1, r=2 ---
+  Run 2 Metrics: Recall=0.6400, Precision=0.0028, FPR=0.0451, F1=0.0055
+
+--- Run 3/5 for b=1, r=2 ---
+  Run 3 Metrics: Recall=0.7000, Precision=0.0058, FPR=0.0394, F1=0.0114
+
+--- Run 4/5 for b=1, r=2 ---
+  Run 4 Metrics: Recall=0.7200, Precision=0.0243, FPR=0.0403, F1=0.0471
+
+--- Run 5/5 for b=1, r=2 ---
+  Run 5 Metrics: Recall=0.7000, Precision=0.0239, FPR=0.0455, F1=0.0462
+
+--- Average Metrics for b=1, r=2 (over 5 runs) ---
+Average Recall:    0.7120
+Average Precision: 0.0135
+Average FPR:       0.0436
+Average F1-Score:  0.0262
+-----------------------------------------------------
+
+
+==================================================================
+Running experiment for b=1, r=3 over 5 runs
+==================================================================
+
+--- Run 1/5 for b=1, r=3 ---
+  Run 1 Metrics: Recall=0.7600, Precision=0.0014, FPR=0.0703, F1=0.0027
+
+--- Run 2/5 for b=1, r=3 ---
+  Run 2 Metrics: Recall=0.6800, Precision=0.0018, FPR=0.0627, F1=0.0035
+
+--- Run 3/5 for b=1, r=3 ---
+  Run 3 Metrics: Recall=0.8200, Precision=0.0033, FPR=0.0710, F1=0.0065
+
+--- Run 4/5 for b=1, r=3 ---
+  Run 4 Metrics: Recall=0.8000, Precision=0.0021, FPR=0.0641, F1=0.0041
+
+--- Run 5/5 for b=1, r=3 ---
+  Run 5 Metrics: Recall=0.7600, Precision=0.0072, FPR=0.0605, F1=0.0143
+
+--- Average Metrics for b=1, r=3 (over 5 runs) ---
+Average Recall:    0.7640
+Average Precision: 0.0031
+Average FPR:       0.0657
+Average F1-Score:  0.0062
+-----------------------------------------------------
+
+
+==================================================================
+Running experiment for b=1, r=4 over 5 runs
+==================================================================
+
+--- Run 1/5 for b=1, r=4 ---
+  Run 1 Metrics: Recall=0.8600, Precision=0.0020, FPR=0.0802, F1=0.0040
+
+--- Run 2/5 for b=1, r=4 ---
+  Run 2 Metrics: Recall=0.9000, Precision=0.0022, FPR=0.0714, F1=0.0044
+
+--- Run 3/5 for b=1, r=4 ---
+  Run 3 Metrics: Recall=0.9200, Precision=0.0018, FPR=0.0916, F1=0.0035
+
+--- Run 4/5 for b=1, r=4 ---
+  Run 4 Metrics: Recall=0.8600, Precision=0.0018, FPR=0.0807, F1=0.0035
+
+--- Run 5/5 for b=1, r=4 ---
+  Run 5 Metrics: Recall=0.8800, Precision=0.0015, FPR=0.0828, F1=0.0031
+
+--- Average Metrics for b=1, r=4 (over 5 runs) ---
+Average Recall:    0.8840
+Average Precision: 0.0019
+Average FPR:       0.0813
+Average F1-Score:  0.0037
+-----------------------------------------------------
+
+
+==================================================================
+Running experiment for b=1, r=5 over 5 runs
+==================================================================
+
+--- Run 1/5 for b=1, r=5 ---
+  Run 1 Metrics: Recall=0.9200, Precision=0.0015, FPR=0.0943, F1=0.0031
+
+--- Run 2/5 for b=1, r=5 ---
+  Run 2 Metrics: Recall=0.9600, Precision=0.0016, FPR=0.0947, F1=0.0032
+
+--- Run 3/5 for b=1, r=5 ---
+  Run 3 Metrics: Recall=0.9600, Precision=0.0016, FPR=0.0980, F1=0.0031
+
+--- Run 4/5 for b=1, r=5 ---
+  Run 4 Metrics: Recall=0.8400, Precision=0.0010, FPR=0.1129, F1=0.0020
+
+--- Run 5/5 for b=1, r=5 ---
+  Run 5 Metrics: Recall=0.8800, Precision=0.0015, FPR=0.0958, F1=0.0029
+
+--- Average Metrics for b=1, r=5 (over 5 runs) ---
+Average Recall:    0.9120
+Average Precision: 0.0014
+Average FPR:       0.0991
+Average F1-Score:  0.0028
+-----------------------------------------------------
+
+
+==================================================================
+Running experiment for b=2, r=1 over 5 runs
+==================================================================
+
+--- Run 1/5 for b=2, r=1 ---
+  Run 1 Metrics: Recall=0.3400, Precision=0.2325, FPR=0.0005, F1=0.2762
+
+--- Run 2/5 for b=2, r=1 ---
+  Run 2 Metrics: Recall=0.5200, Precision=0.1670, FPR=0.0010, F1=0.2528
+
+--- Run 3/5 for b=2, r=1 ---
+  Run 3 Metrics: Recall=0.4000, Precision=0.2681, FPR=0.0005, F1=0.3210
+
+--- Run 4/5 for b=2, r=1 ---
+  Run 4 Metrics: Recall=0.3800, Precision=0.1934, FPR=0.0007, F1=0.2564
+
+--- Run 5/5 for b=2, r=1 ---
+  Run 5 Metrics: Recall=0.4000, Precision=0.1764, FPR=0.0006, F1=0.2449
+
+--- Average Metrics for b=2, r=1 (over 5 runs) ---
+Average Recall:    0.4080
+Average Precision: 0.2075
+Average FPR:       0.0007
+Average F1-Score:  0.2702
+-----------------------------------------------------
+
+
+==================================================================
+Running experiment for b=2, r=2 over 5 runs
+==================================================================
+
+--- Run 1/5 for b=2, r=2 ---
+  Run 1 Metrics: Recall=0.5000, Precision=0.1682, FPR=0.0015, F1=0.2517
+
+--- Run 2/5 for b=2, r=2 ---
+  Run 2 Metrics: Recall=0.5600, Precision=0.0999, FPR=0.0013, F1=0.1696
+
+--- Run 3/5 for b=2, r=2 ---
+  Run 3 Metrics: Recall=0.5400, Precision=0.1159, FPR=0.0011, F1=0.1908
+
+--- Run 4/5 for b=2, r=2 ---
+  Run 4 Metrics: Recall=0.3800, Precision=0.0930, FPR=0.0013, F1=0.1494
+
+--- Run 5/5 for b=2, r=2 ---
+  Run 5 Metrics: Recall=0.4600, Precision=0.1250, FPR=0.0010, F1=0.1966
+
+--- Average Metrics for b=2, r=2 (over 5 runs) ---
+Average Recall:    0.4880
+Average Precision: 0.1204
+Average FPR:       0.0012
+Average F1-Score:  0.1916
+-----------------------------------------------------
+
+
+==================================================================
+Running experiment for b=2, r=3 over 5 runs
+==================================================================
+
+--- Run 1/5 for b=2, r=3 ---
+  Run 1 Metrics: Recall=0.5600, Precision=0.0707, FPR=0.0019, F1=0.1255
+
+--- Run 2/5 for b=2, r=3 ---
+  Run 2 Metrics: Recall=0.5000, Precision=0.0681, FPR=0.0016, F1=0.1199
+
+--- Run 3/5 for b=2, r=3 ---
+  Run 3 Metrics: Recall=0.5400, Precision=0.0527, FPR=0.0025, F1=0.0959
+
+--- Run 4/5 for b=2, r=3 ---
+  Run 4 Metrics: Recall=0.5600, Precision=0.1040, FPR=0.0019, F1=0.1754
+
+--- Run 5/5 for b=2, r=3 ---
+  Run 5 Metrics: Recall=0.5800, Precision=0.1298, FPR=0.0016, F1=0.2121
+
+--- Average Metrics for b=2, r=3 (over 5 runs) ---
+Average Recall:    0.5480
+Average Precision: 0.0851
+Average FPR:       0.0019
+Average F1-Score:  0.1458
+-----------------------------------------------------
+
+
+==================================================================
+Running experiment for b=2, r=4 over 5 runs
+==================================================================
+
+--- Run 1/5 for b=2, r=4 ---
+  Run 1 Metrics: Recall=0.6000, Precision=0.0927, FPR=0.0028, F1=0.1606
+
+--- Run 2/5 for b=2, r=4 ---
+  Run 2 Metrics: Recall=0.6600, Precision=0.1176, FPR=0.0021, F1=0.1996
+
+--- Run 3/5 for b=2, r=4 ---
+  Run 3 Metrics: Recall=0.6800, Precision=0.0861, FPR=0.0032, F1=0.1529
+
+--- Run 4/5 for b=2, r=4 ---
+  Run 4 Metrics: Recall=0.5600, Precision=0.0610, FPR=0.0027, F1=0.1100
+
+--- Run 5/5 for b=2, r=4 ---
+  Run 5 Metrics: Recall=0.6000, Precision=0.0796, FPR=0.0036, F1=0.1406
+
+--- Average Metrics for b=2, r=4 (over 5 runs) ---
+Average Recall:    0.6200
+Average Precision: 0.0874
+Average FPR:       0.0029
+Average F1-Score:  0.1527
+-----------------------------------------------------
+
+
+==================================================================
+Running experiment for b=2, r=5 over 5 runs
+==================================================================
+
+--- Run 1/5 for b=2, r=5 ---
+  Run 1 Metrics: Recall=0.6800, Precision=0.0768, FPR=0.0039, F1=0.1380
+
+--- Run 2/5 for b=2, r=5 ---
+  Run 2 Metrics: Recall=0.7800, Precision=0.0827, FPR=0.0036, F1=0.1495
+
+--- Run 3/5 for b=2, r=5 ---
+  Run 3 Metrics: Recall=0.7000, Precision=0.0611, FPR=0.0027, F1=0.1124
+
+--- Run 4/5 for b=2, r=5 ---
+  Run 4 Metrics: Recall=0.7600, Precision=0.0760, FPR=0.0041, F1=0.1382
+
+--- Run 5/5 for b=2, r=5 ---
+  Run 5 Metrics: Recall=0.7000, Precision=0.0557, FPR=0.0036, F1=0.1032
+
+--- Average Metrics for b=2, r=5 (over 5 runs) ---
+Average Recall:    0.7240
+Average Precision: 0.0705
+Average FPR:       0.0036
+Average F1-Score:  0.1283
+-----------------------------------------------------
+
+
+==================================================================
+Running experiment for b=3, r=1 over 5 runs
+==================================================================
+
+--- Run 1/5 for b=3, r=1 ---
+  Run 1 Metrics: Recall=0.2800, Precision=0.2440, FPR=0.0000, F1=0.2608
+
+--- Run 2/5 for b=3, r=1 ---
+  Run 2 Metrics: Recall=0.2800, Precision=0.2317, FPR=0.0000, F1=0.2536
+
+--- Run 3/5 for b=3, r=1 ---
+  Run 3 Metrics: Recall=0.3000, Precision=0.2250, FPR=0.0000, F1=0.2571
+
+--- Run 4/5 for b=3, r=1 ---
+  Run 4 Metrics: Recall=0.2800, Precision=0.2600, FPR=0.0000, F1=0.2696
+
+--- Run 5/5 for b=3, r=1 ---
+  Run 5 Metrics: Recall=0.2800, Precision=0.2492, FPR=0.0001, F1=0.2637
+
+--- Average Metrics for b=3, r=1 (over 5 runs) ---
+Average Recall:    0.2840
+Average Precision: 0.2420
+Average FPR:       0.0000
+Average F1-Score:  0.2610
+-----------------------------------------------------
+
+
+==================================================================
+Running experiment for b=3, r=2 over 5 runs
+==================================================================
+
+--- Run 1/5 for b=3, r=2 ---
+  Run 1 Metrics: Recall=0.3800, Precision=0.3377, FPR=0.0001, F1=0.3576
+
+--- Run 2/5 for b=3, r=2 ---
+  Run 2 Metrics: Recall=0.3600, Precision=0.2973, FPR=0.0001, F1=0.3257
+
+--- Run 3/5 for b=3, r=2 ---
+  Run 3 Metrics: Recall=0.4000, Precision=0.3093, FPR=0.0001, F1=0.3489
+
+--- Run 4/5 for b=3, r=2 ---
+  Run 4 Metrics: Recall=0.4400, Precision=0.3573, FPR=0.0001, F1=0.3944
+
+--- Run 5/5 for b=3, r=2 ---
+  Run 5 Metrics: Recall=0.4000, Precision=0.3123, FPR=0.0000, F1=0.3508
+
+--- Average Metrics for b=3, r=2 (over 5 runs) ---
+Average Recall:    0.3960
+Average Precision: 0.3228
+Average FPR:       0.0001
+Average F1-Score:  0.3555
+-----------------------------------------------------
+
+
+==================================================================
+Running experiment for b=3, r=3 over 5 runs
+==================================================================
+
+--- Run 1/5 for b=3, r=3 ---
+  Run 1 Metrics: Recall=0.4400, Precision=0.3533, FPR=0.0001, F1=0.3919
+
+--- Run 2/5 for b=3, r=3 ---
+  Run 2 Metrics: Recall=0.4600, Precision=0.3173, FPR=0.0001, F1=0.3756
+
+--- Run 3/5 for b=3, r=3 ---
+  Run 3 Metrics: Recall=0.4400, Precision=0.3600, FPR=0.0001, F1=0.3960
+
+--- Run 4/5 for b=3, r=3 ---
+  Run 4 Metrics: Recall=0.3800, Precision=0.2377, FPR=0.0001, F1=0.2925
+
+--- Run 5/5 for b=3, r=3 ---
+  Run 5 Metrics: Recall=0.3800, Precision=0.3002, FPR=0.0001, F1=0.3354
+
+--- Average Metrics for b=3, r=3 (over 5 runs) ---
+Average Recall:    0.4200
+Average Precision: 0.3137
+Average FPR:       0.0001
+Average F1-Score:  0.3583
+-----------------------------------------------------
+
+
+==================================================================
+Running experiment for b=3, r=4 over 5 runs
+==================================================================
+
+--- Run 1/5 for b=3, r=4 ---
+  Run 1 Metrics: Recall=0.4800, Precision=0.3266, FPR=0.0002, F1=0.3887
+
+--- Run 2/5 for b=3, r=4 ---
+  Run 2 Metrics: Recall=0.5000, Precision=0.3725, FPR=0.0002, F1=0.4269
+
+--- Run 3/5 for b=3, r=4 ---
+  Run 3 Metrics: Recall=0.5000, Precision=0.3295, FPR=0.0002, F1=0.3972
+
+--- Run 4/5 for b=3, r=4 ---
+  Run 4 Metrics: Recall=0.4400, Precision=0.3460, FPR=0.0001, F1=0.3874
+
+--- Run 5/5 for b=3, r=4 ---
+  Run 5 Metrics: Recall=0.4800, Precision=0.3323, FPR=0.0002, F1=0.3927
+
+--- Average Metrics for b=3, r=4 (over 5 runs) ---
+Average Recall:    0.4800
+Average Precision: 0.3414
+Average FPR:       0.0002
+Average F1-Score:  0.3986
+-----------------------------------------------------
+
+
+==================================================================
+Running experiment for b=3, r=5 over 5 runs
+==================================================================
+
+--- Run 1/5 for b=3, r=5 ---
+  Run 1 Metrics: Recall=0.5800, Precision=0.3565, FPR=0.0001, F1=0.4416
+
+--- Run 2/5 for b=3, r=5 ---
+  Run 2 Metrics: Recall=0.4600, Precision=0.2311, FPR=0.0003, F1=0.3077
+
+--- Run 3/5 for b=3, r=5 ---
+  Run 3 Metrics: Recall=0.5200, Precision=0.2926, FPR=0.0002, F1=0.3745
+
+--- Run 4/5 for b=3, r=5 ---
+  Run 4 Metrics: Recall=0.5600, Precision=0.3516, FPR=0.0002, F1=0.4320
+
+--- Run 5/5 for b=3, r=5 ---
+  Run 5 Metrics: Recall=0.5200, Precision=0.3570, FPR=0.0001, F1=0.4234
+
+--- Average Metrics for b=3, r=5 (over 5 runs) ---
+Average Recall:    0.5280
+Average Precision: 0.3178
+Average FPR:       0.0002
+Average F1-Score:  0.3958
+-----------------------------------------------------

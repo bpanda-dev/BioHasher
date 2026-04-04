@@ -27,7 +27,7 @@ The test sweeps over a grid of `(AND, OR)` pairs and records the amplified colli
 
 ```
 Phase 1              Phase 2                  Phase 3
-Aggregation   →   Sequence Generation   →   AND-OR Collision
+Aggregation   ->   Sequence Generation   ->  AND-OR Collision
 Binning            & Mutation                Measurement
                                              (repeat per (AND,OR) pair)
 ```
@@ -197,7 +197,7 @@ Use the same collision curve plotting script as the basic collision test:
 
 ```bash
 pip install pandas numpy matplotlib scipy
-python analysis/plot.py results/collisionResults_<hashname>ANDOR.csv
+python analysis/plot_collisioncurves.py results/collisionResults_<hashname>ANDOR.csv
 ```
 
 The plots will show separate collision curves for each `(AND, OR)` configuration overlaid, making it easy to compare how different amplification settings reshape the S-curve.

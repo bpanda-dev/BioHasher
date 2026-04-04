@@ -695,10 +695,10 @@ bool LSHCollisionAndOrTest( const HashInfo * hinfo, bool extra, flags_t flags) {
 
 	if(hinfo->isSmallSequenceLength()){
 		printf("Hash %s is marked as very slow. Limiting test parameters for practicality.\n", hinfo->name);
-		sequenceLengths = {45}; //{20,30,40}; //{512};
+		sequenceLengths = g_sequenceLength_small;//{45}; //{20,30,40}; //{512};
 	}
 	else{
-		sequenceLengths = {512}; //{16, 24, 32, 48, 64, 80, 96, 128, 256, 512, 1024, 2048, 4096, 8192};
+		sequenceLengths = g_sequenceLength_large;//{512}; //{16, 24, 32, 48, 64, 80, 96, 128, 256, 512, 1024, 2048, 4096, 8192};
 	}
 
 	seed_t baseSeed = g_GoldenRatio ^ std::chrono::system_clock::now().time_since_epoch().count();

@@ -24,7 +24,7 @@ The key output: for each `(b, r)` configuration, how well does the hash trade of
 
 ```
 Phase 1          Phase 2            Phase 3          Phase 4              Phase 5
-Reference  →  Query Sampling  →  Aggregation  →  Ground Truth  →  LSH Index Build
+Reference  ->  Query Sampling  ->  Aggregation  ->  Ground Truth  ->  LSH Index Build
 Generation     & Mutation          Binning       (brute-force)     Query & Evaluate
                                                                   (repeat per (b,r))
 ```
@@ -189,11 +189,11 @@ Each `(b, r)` pair produces exactly one `:6:` line. The file appends if it alrea
 
 ## Plotting Results
 
-See [`analysis/plot_lsh_results.py`](../analysis/plot_lsh_results.py) for visualisation:
+See [`analysis/plot_ANN.py`](../analysis/plot_ANN.py) for visualisation:
 
 ```bash
 pip install matplotlib numpy adjustText
-python analysis/plot_lsh_results.py results/ApproxNearestNeighbourResults_<hashname>.csv
+python analysis/plot_ANN.py results/ApproxNearestNeighbourResults_<hashname>.csv
 ```
 
 Produces 6 plots (3 linear + 3 log-scale):

@@ -2,7 +2,8 @@
 
 ## Overview
 
-BioHasher is a specialized Locality Sensitive Hash function testing framework designed for biological sequence analysis. It is built upon the hash function testing framework SMHasher3[https://gitlab.com/fwojcik/smhasher3], with locality-sensitive hashing (LSH) tests optimized for genomic data processing and similarity detection.
+BioHasher is a specialized Locality Sensitive Hash function testing framework designed for biological sequence analysis. It is built upon the hash function testing framework SMHasher3[https://gitlab.com/fwojcik/smhasher3]. BioHasher currently supports three tests Collision Curve Test, Collision Curve Test with AND-OR amplification, and Approximate Nearest Neighbour Test.
+
 
 ## Getting Started
 
@@ -31,10 +32,10 @@ To get started with BioHasher, follow these steps:
 3. To plot the curves from the output csv file,
 
     ```bash
-    python ../analysis/plot.py ../results/collisionResults_SubseqHash-64.csv
+    python ../analysis/plot_collisioncurves.py ../results/collisionResults_SubseqHash-64.csv
     ```
 
-    This will generate various versions of collision curves plots in the analysis directory. We explain about the type of plots in section [[?]].
+    <!-- This will generate various versions of collision curves plots in the analysis directory. We explain about the type of plots in section [[?]]. -->
 
 
 ## Usage Guide for Novel Hash function testing
@@ -323,13 +324,13 @@ For a particular Hash function, each run **appends** to the CSV if it already ex
 
 ### Part 3 — Generating Plots
 
-#### 3a. Collision Curve Plots (`analysis/plot.py`)
+#### 3a. Collision Curve Plots (`analysis/plot_collisioncurves.py`)
 
 Works for both basic collision and AND-OR collision CSV files.
 
 ```bash
 pip install pandas numpy matplotlib scipy
-python analysis/plot.py results/collisionResults_<hashname>.csv
+python analysis/plot_collisioncurves.py results/collisionResults_<hashname>.csv
 ```
 
 All plots are saved in the current working directory.
@@ -342,13 +343,13 @@ All plots are saved in the current working directory.
 | `*_monocolor_multiplot.png`   | Single-color scatter subplots               |
 | `*_verificationCurves.png`    | Mutation parameter distributions (sanity check) |
 
-#### 3b. ANN Result Plots (`analysis/plot_lsh_results.py`)
+#### 3b. ANN Result Plots (`analysis/plot_ANN.py`)
 
 Visualises the Recall vs FPR trade-off across `(b, r)` configurations.
 
 ```bash
 pip install matplotlib numpy adjustText
-python analysis/plot_lsh_results.py results/ApproxNearestNeighbourResults_<hashname>.csv
+python analysis/plot_ANN.py results/ApproxNearestNeighbourResults_<hashname>.csv
 ```
 
 Produces **6 plots** (3 linear + 3 log-scale):
@@ -361,7 +362,7 @@ Produces **6 plots** (3 linear + 3 log-scale):
 
 ---
 
-### File Structure
+### Project Structure
 
 ```bash
 BioHasher/
@@ -375,8 +376,15 @@ BioHasher/
 │   ├── LSHCollisionAndOrTest.cpp       # Collision curve test with AND-OR amplification
 │   └── ApproxNearestNeighbourTest.cpp  # Approximate nearest neighbour test
 ├── analysis/                           # Plotting scripts
-│   ├── plot.py                         # Collision curve plotting
-│   └── plot_lsh_results.py             # ANN result plotting
+│   ├── plot_collisioncurves.py         # Collision curve plotting
+│   └── plot_ANN.py                     # ANN result plotting
+├── results/                            # Results
+├── documents/                          # Documentation
+│   ├── ANNtest.md                      # Approximate Nearest Neighbour Test
+│   ├── ANDORtest.md                    # AND-OR Amplification Test
+│   ├── createHashTemplate.md           # Adding a New Hash Function
+│   ├── MutationModels.md               # Mutation Models
+│   └── plot.md                         # Plotting Scripts
 ├── util/                               # Utilities & configuration
 │   └── LSHGlobals.cpp                  # Test parameter globals
 ├── include/                            # Header files
@@ -385,23 +393,12 @@ BioHasher/
 
 ---
 
-## Legacy SMHasher3 Information
-
-This project builds upon SMHasher3, a tool for testing the quality of [hash functions](https://en.wikipedia.org/wiki/Hash_function) in terms of their distribution, collision, and performance properties.
-
-### Original SMHasher3 Usage
-
-- `./SMHasher3 --tests` will show all available test suites
-
-- `./SMHasher3 --list` will show all available hashes and their descriptions
-
-- `./SMHasher3 <hashname>` will test the given hash with the default set of test suites
-
 ## License
 
 This project builds upon the SMHasher3 framework. Please refer to individual source files for specific licensing information.
 
 ## References
 
-- **SMHasher3**: Original hash testing framework
-- **Genomic Hashing**: Specialized applications in bioinformatics.
+- [SMHasher3](https://gitlab.com/fwojcik/smhasher3): Original hash testing framework BioHasher is based on.
+- Hash functions in genomic sequence analysis - Ke Chen, Xiang Li, Qian Shi, Mingfu Shao, Paul Medvedev
+- Shrivastava, Anshumali, and Ping Li. "In defense of minhash over simhash." Artificial intelligence and statistics. PMLR, 2014.
