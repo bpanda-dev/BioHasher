@@ -1,16 +1,11 @@
-*~
+/.DS_Store*
 /build*
-/raw*
-/runs.*
+/.idea*
 
-/notes
-/TAGS
-/.localdiffs
-/.gitattributes
-/.mailmap
-/.devbox
 
-*.vscode/
+version.h
+
+/.vscode*
 
 *.a
 *.o
@@ -18,15 +13,10 @@
 *.bin
 *.make
 a.out
-depend.internal
-
-SMHasher3
-misc/exactcoll
-
-analysis/extras/*
-
-extras/datasketch
-
-results/backupresults/
 
 .gdbinit
+
+
+
+*.csv
+*.png
