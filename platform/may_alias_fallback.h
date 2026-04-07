@@ -1,1 +1,0 @@
-#define MAY_ALIAS
