@@ -486,5 +486,6 @@ REGISTER_HASH(SubseqHash_64,
    $.parameterNames  = {"k", "d"},
    $.parameterDescriptions  = {"Subsequence length 'k'", "Parameter 'd' from the paper"},
    $.parameterValues = {SUBSEQUENCE_LENGTH, D_PARAM},
-   $.similarityfn   = EditSimilarity
+   $.similarityfn   = EditSimilarity,
+   $.similarity_name = "Edit"
 );

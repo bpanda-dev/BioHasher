@@ -527,12 +527,6 @@ bool LSHCollisionTest( const HashInfo * hinfo, flags_t flags) {
 		throw std::runtime_error("Error: Could not open output file");
 	}
 
-	// // Check the hash function and see if is hamming. If hamming then set the mutation model to simple SNP only.
-	// if(hinfo->hash_flags & FLAG_HASH_HAMMING_SIMILARITY){
-	// 	printf("Hash %s uses Hamming similarity. Setting mutation model to simple SNP only for testing.\n", hinfo->name);
-	// 	g_mutation_model = MUTATION_MODEL_SIMPLE_SNP_ONLY;
-	// }
-
 	uint32_t sequenceLength;
 
 	if(hinfo->onlyShortSequenceLength()){

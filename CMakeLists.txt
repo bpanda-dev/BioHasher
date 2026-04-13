@@ -84,8 +84,7 @@ add_library(BioHasherTests STATIC
         lib/BioDataGeneration.cpp
         lib/LSHGlobals.cpp
         tests/LSHCollision.cpp
-#        tests/LSHCollisionAndOrTest.cpp
-#        tests/ApproxNearestNeighbourTest.cpp
+        tests/ApproxNearestNeighbour.cpp
 )
 target_include_directories(BioHasherTests PUBLIC
         ${CMAKE_SOURCE_DIR}/lib

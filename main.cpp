@@ -6,6 +6,7 @@
 
 
 #include "LSHCollision.h"
+#include "ApproxNearestNeighbour.h"
 
 static bool g_testAll;
 static bool g_testLSHCollision;
@@ -145,23 +146,13 @@ static bool test( const HashInfo * hInfo, const flags_t flags ) {
         if (!result) { exit(-1); }   // Failure case.
     }
 
-    // //-----------------------------------------------------------------------------
-    // // Test for Collision Curve for LSH family of hashes
-    //
-    // if (g_testLSHCollisionAndOr) {
-    //     result &= LSHCollisionAndOrTest<hashtype>(hInfo, g_testExtra, flags);
-    //     if (g_dumpAllVCodes) { DumpVCodes(); }        // This is for the purpose of debugging only by the tests in smhasher3
-    //     if (!result && g_exitOnFailure) { goto out; }
-    // }
-    //
-    // //-----------------------------------------------------------------------------
-    // // Test for Nearest Neighbour search for LSH family of hashes
-    //
-    // if (g_testLSHApproxNearestNeighbour) {
-    //     result &= LSHApproxNearestNeighbourTest<hashtype>(hInfo, g_testExtra, flags);
-    //     if (g_dumpAllVCodes) { DumpVCodes(); }        // This is for the purpose of debugging only by the tests in smhasher3
-    //     if (!result && g_exitOnFailure) { goto out; }
-    // }
+    //-----------------------------------------------------------------------------
+    // Test for Nearest Neighbour search for LSH family of hashes
+
+    if (g_testLSHApproxNearestNeighbour) {
+        result &= LSHApproxNearestNeighbourTest<hashtype>(hInfo, flags);
+        if (!result) { exit(-1); }   // Failure case.
+    }
 
 
 

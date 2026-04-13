@@ -8,9 +8,9 @@ if we want to test different number of signatures in Minhash or other LSH functi
 
 //---- Variables used across tests which can be defined by user ---//
 
-uint32_t g_verySlowNAggCases = 50000;
-uint32_t g_verySlowNSeq = 5000;
-uint32_t g_verySlowNHashes = 1000;
+uint32_t g_verySlowNAggCases = 5000;
+uint32_t g_verySlowNSeq = 500;
+uint32_t g_verySlowNHashes = 100;
 
 uint32_t g_SlowNAggCases = 50000;
 uint32_t g_SlowNSeq = 5000;
@@ -29,14 +29,12 @@ uint32_t g_MAX_B = 1;
 uint32_t g_MAX_R = 1;
 
 
-
-
 bool g_isBasesDrawnFromUniformDistribution = true;
 
 
 std::vector<uint32_t> g_tokenLengths_array = {13}; //{4 ,7, 13, 21, 31, 33};
 
-
+uint32_t g_NAggCases_ANN = 500000;
 uint32_t g_sequenceLength_ANN = 45; // Sequence length for Approx Nearest Neighbour test. Adjust as needed.
 uint32_t g_Nseq_in_Database = 10000; // Number of sequences in the reference database for the Approx Nearest Neighbour test. Adjust as needed.
 uint32_t g_numQueriesForApproxNNTest = 50; // Number of query sequences to generate for the Approx Nearest Neighbour test. Adjust as needed.

@@ -50,6 +50,6 @@
 #include "BioDataGeneration.h"
 
 template <typename hashtype>
-bool LSHApproxNearestNeighbourTest( const HashInfo * info, bool extra, flags_t flags );
+bool LSHApproxNearestNeighbourTest( const HashInfo * info, flags_t flags );
 
 
