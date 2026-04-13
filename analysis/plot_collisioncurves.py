@@ -11,7 +11,7 @@ import matplotlib.patches as mpatches
 mutation_model = {0:"MUTATION_MODEL_SIMPLE_SNP_ONLY",1:"MUTATION_MODEL_GEOMETRIC_MUTATOR"}
 mutation_expressions = {0:"BALANCED",1:"SUB_ONLY",2:"DEL_LITE",3:"INS_LITE",4:"SUB_LITE"}
 
-distance_metric = {0:"None",1:"Hamming Similarity",2:"Jaccard Similarity",3:"Cosine Similarity",4:"Angular Similarity",5:"Edit Similarity"}
+# distance_metric = {0:"None",1:"Hamming Similarity",2:"Jaccard Similarity",3:"Cosine Similarity",4:"Angular Similarity",5:"Edit Similarity"}
 
 def read_collision_data_complete(filename):
     with open(filename, 'r') as file:
@@ -47,7 +47,7 @@ def read_collision_data_complete(filename):
             line_parts = line_content.split(',')
             base_metadata['Hashname'] = line_parts[0].strip()
             base_metadata['SequenceLength'] = int(line_parts[1].strip())
-            base_metadata['DistanceMetric'] = int(line_parts[2].strip())
+            base_metadata['DistanceMetric'] = str(line_parts[2].strip())
             base_metadata['MutationModel'] = int(line_parts[3].strip())
             base_metadata['MutationExpression'] = int(line_parts[4].strip())
         elif line.startswith(':4.1:'):  # Parameter names
@@ -101,7 +101,7 @@ def read_collision_data_complete(filename):
                 'hashname': base_metadata.get('Hashname', ''),
                 'sequencelength': base_metadata.get('SequenceLength', 0),
                 'tokenlength': base_metadata.get('TokenLength', 0),
-                'DistanceMetric': base_metadata.get('DistanceMetric', 0),
+                'DistanceMetric': base_metadata.get('DistanceMetric', ''),
                 'MutationModel': base_metadata.get('MutationModel', 0),
                 'MutationExpression': base_metadata.get('MutationExpression', 0),
                 'AND_param': current_AND_param,
@@ -119,7 +119,7 @@ def read_collision_data_complete(filename):
             if 'param_names' in hash_parameters and 'param_values' in hash_parameters:
                 for name, value in zip(hash_parameters['param_names'], hash_parameters['param_values']):
                     row_data[name] = value
-                    print(value)
+                    # print(value)
 
             # Add a new column to store parameter names
             row_data['parameter_columns'] = hash_parameters.get('param_names', [])
@@ -864,8 +864,8 @@ def main():
     # if args.similarity is not None:
     #     similarity = args.similarity
     # else:
-    metric_id = df.iloc[0].get('DistanceMetric', 0)
-    similarity = distance_metric.get(metric_id, "Similarity")
+    metric_id = df.iloc[0].get('DistanceMetric', '')
+    similarity = metric_id + " " + "Similarity";
     print(f"Auto-detected similarity label: {similarity}")
 
     hashname = df.iloc[0]['hashname']
@@ -879,7 +879,7 @@ def main():
     if not args.no_verification:
         print("Plotting verification distribution curves...")
         plot_verification_curves(df, save_filename=os.path.join(output_dir, hashname), show_plot=False)
-        print(f"Saved")
+        # print(f"Saved")
 
     # --- Average per bin ---
     print("Plotting binned average curve...")
@@ -899,7 +899,7 @@ def main():
         plot_binned_average_curve(row, ax=ax)
     savename = os.path.join(output_dir, f"{hashname}_binaveraged.png")
     finalize_binned_average_plot(ax, similarity_label=similarity, s1=args.s1, s2=args.s2, savename=savename)
-    # print(f"Saved: {savename}")
+    print(f"Saved: {savename}")
     # plt.show()
 
     # --- Color Scatter Plot ---

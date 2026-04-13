@@ -51,7 +51,9 @@ static void oneBaseSamplingHash_32(const void* in, const size_t len, const seed_
 
 double HammingSimilarity(const std::string& seq1, const std::string& seq2, const uint32_t in1_len, const uint32_t in2_len) {
     // Hamming distance only defined for equal-length sequences
-    assert(in1_len == in2_len && "For hamming, we need both the sequences to be of same length.");
+    assert(in1_len == in2_len && "For hamming, we need both the sequences to be of same length. "
+                                 "\n Either use substitution-Only mutation model or"
+                                 "\n Change the similarity function of the hash Family to one which supports unequal length input pair!");
 
     uint32_t length = in1_len;
     uint32_t similar = 0;
@@ -77,6 +79,7 @@ REGISTER_HASH(OneBaseSamplingHash_32,
    $.impl_flags     = 0,
    $.bits           = 32,
    $.hashfn         = oneBaseSamplingHash_32,
+   $.similarity_name = "Hamming",
    $.similarityfn   = HammingSimilarity
 );
 

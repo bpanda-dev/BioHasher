@@ -335,8 +335,7 @@ void SequenceDataGenerator::decodeSequencesToASCII(const std::vector<uint8_t>& s
 SequenceDataMutatorSubstitutionOnly::SequenceDataMutatorSubstitutionOnly(SequenceRecordsWithMetadataStruct *sequenceRecordsWithMetadata, std::vector<double> *rand_error_param, SimilarityFn similarity_fn){
 	assert(sequenceRecordsWithMetadata != nullptr);
 	assert(!sequenceRecordsWithMetadata->Records.empty());
-	assert(sequenceRecordsWithMetadata->DistanceClass != 0 && "Distance class is required for mutation. Please Add Appropriate Distance metric in your LSH file.");
-	assert(similarity_fn != nullptr);
+	assert(similarity_fn != nullptr && "Similarity metric is required for mutation. Please Add Appropriate Similarity metric in your LSH file.");
 
 	// Initialise seed .
 	std::mt19937 rng_snp_rate(sequenceRecordsWithMetadata->DataMutateSeed);
@@ -387,43 +386,6 @@ SequenceDataMutatorSubstitutionOnly::SequenceDataMutatorSubstitutionOnly(Sequenc
 		record.similarity = similarity_fn(record.SeqASCIIOrg, record.SeqASCIIMut, record.OriginalLength, record.MutatedLength);
 	}
 
-	// if(sequenceRecordsWithMetadata->DistanceClass == 1){	// Hamming
-	// 	for(uint32_t rec_idx = 0; rec_idx < sequenceRecordsWithMetadata->KeyCount; rec_idx++) {
-	// 		auto& record = sequenceRecordsWithMetadata->Records[rec_idx];
-	// 		record.similarity = ComputeHammingSimilarity(record.SeqASCIIOrg, record.SeqASCIIMut, record.OriginalLength);
-	// 	}
-	// 	std::cout << "DataMutation: Applied SNP mutations only. Distance Class = Hamming." << std::endl;
-	// }
-	// if(sequenceRecordsWithMetadata->DistanceClass == 2){	// Jaccard
-	// 	for(uint32_t rec_idx = 0; rec_idx < sequenceRecordsWithMetadata->KeyCount; rec_idx++) {
-	// 		auto& record = sequenceRecordsWithMetadata->Records[rec_idx];
-	// 		record.similarity = ComputeJaccardSimilarity(record.SeqASCIIOrg, record.SeqASCIIMut, g_TokenLength);
-	// 		// printf("Record %u: Jaccard Similarity = %f\n", rec_idx, record.similarity);
-	// 	}
-	// 	std::cout << "DataMutation: Applied SNP mutations only. Distance Class = Jaccard." << std::endl;
-	// }
-	// if(sequenceRecordsWithMetadata->DistanceClass == 3){	// Cosine
-	// 	for(uint32_t rec_idx = 0; rec_idx < sequenceRecordsWithMetadata->KeyCount; rec_idx++) {
-	// 		auto& record = sequenceRecordsWithMetadata->Records[rec_idx];
-	// 		record.similarity = ComputeCosineSimilarity(record.SeqASCIIOrg, record.SeqASCIIMut, g_TokenLength);
-	// 	}
-	// 	std::cout << "DataMutation: Applied SNP mutations only. Distance Class = Cosine." << std::endl;
-	// }
-	// if(sequenceRecordsWithMetadata->DistanceClass == 4){	// Angular
-	// 	for(uint32_t rec_idx = 0; rec_idx < sequenceRecordsWithMetadata->KeyCount; rec_idx++) {
-	// 		auto& record = sequenceRecordsWithMetadata->Records[rec_idx];
-	// 		record.similarity = ComputeAngularSimilarity(record.SeqASCIIOrg, record.SeqASCIIMut, g_TokenLength);
-	// 	}
-	// 	std::cout << "DataMutation: Applied SNP mutations only. Distance Class = Angular." << std::endl;
-	// }
-	// if(sequenceRecordsWithMetadata->DistanceClass == 5){	// Edit Distance
-	// 	for(uint32_t rec_idx = 0; rec_idx < sequenceRecordsWithMetadata->KeyCount; rec_idx++) {
-	// 		auto& record = sequenceRecordsWithMetadata->Records[rec_idx];
-	// 		record.similarity = ComputeEditSimilarity(record.SeqASCIIOrg, record.SeqASCIIMut);
-	// 	}
-	// 	std::cout << "DataMutation: Applied SNP mutations only. Distance Class = Edit Similarity." << std::endl;
-	// }
-
 	// Debugging output
     for(uint32_t rec_idx = 0; rec_idx < std::min(sequenceRecordsWithMetadata->KeyCount, 10u); rec_idx++) {
         auto& record = sequenceRecordsWithMetadata->Records[rec_idx];
@@ -443,8 +405,7 @@ SequenceDataMutatorSubstitutionOnly::SequenceDataMutatorSubstitutionOnly(Sequenc
 SequenceDataMutatorSubstitutionOnly::SequenceDataMutatorSubstitutionOnly(SequenceRecordsWithMetadataStruct *sequenceRecordsWithMetadata, SimilarityFn similarity_fn){
 	assert(sequenceRecordsWithMetadata != nullptr);
 	assert(!sequenceRecordsWithMetadata->Records.empty());
-	assert(sequenceRecordsWithMetadata->DistanceClass != 0 && "Distance class is required for mutation. Please Add Appropriate Distance metric in your LSH file.");
-	assert(similarity_fn != nullptr);
+	assert(similarity_fn != nullptr && "Similarity metric is required for mutation. Please Add Appropriate Similarity metric in your LSH file.");
 
 	// Initialise seed and reserve memory.
     std::mt19937 rng_mut(sequenceRecordsWithMetadata->DataMutateSeed);
@@ -484,43 +445,6 @@ SequenceDataMutatorSubstitutionOnly::SequenceDataMutatorSubstitutionOnly(Sequenc
 	}
 	std::cout << "DataMutation: Applied SNP mutations only." << std::endl;
 
-	// if(sequenceRecordsWithMetadata->DistanceClass == 1){	// Hamming
-	// 	for(uint32_t rec_idx = 0; rec_idx < sequenceRecordsWithMetadata->KeyCount; rec_idx++) {
-	// 		auto& record = sequenceRecordsWithMetadata->Records[rec_idx];
-	// 		record.similarity = ComputeHammingSimilarity(record.SeqASCIIOrg, record.SeqASCIIMut, record.OriginalLength);
-	// 	}
-	// 	std::cout << "DataMutation: Applied SNP mutations only. Distance Class = Hamming." << std::endl;
-	// }
-	// if(sequenceRecordsWithMetadata->DistanceClass == 2){	// Jaccard
-	// 	for(uint32_t rec_idx = 0; rec_idx < sequenceRecordsWithMetadata->KeyCount; rec_idx++) {
-	// 		auto& record = sequenceRecordsWithMetadata->Records[rec_idx];
-	// 		record.similarity = ComputeJaccardSimilarity(record.SeqASCIIOrg, record.SeqASCIIMut, g_TokenLength);
-	// 		// printf("Record %u: Jaccard Similarity = %f\n", rec_idx, record.similarity);
-	// 	}
-	// 	std::cout << "DataMutation: Applied SNP mutations only. Distance Class = Jaccard." << std::endl;
-	// }
-	// if(sequenceRecordsWithMetadata->DistanceClass == 3){	// Cosine
-	// 	for(uint32_t rec_idx = 0; rec_idx < sequenceRecordsWithMetadata->KeyCount; rec_idx++) {
-	// 		auto& record = sequenceRecordsWithMetadata->Records[rec_idx];
-	// 		record.similarity = ComputeCosineSimilarity(record.SeqASCIIOrg, record.SeqASCIIMut, g_TokenLength);
-	// 	}
-	// 	std::cout << "DataMutation: Applied SNP mutations only. Distance Class = Cosine." << std::endl;
-	// }
-	// if(sequenceRecordsWithMetadata->DistanceClass == 4){	// Angular
-	// 	for(uint32_t rec_idx = 0; rec_idx < sequenceRecordsWithMetadata->KeyCount; rec_idx++) {
-	// 		auto& record = sequenceRecordsWithMetadata->Records[rec_idx];
-	// 		record.similarity = ComputeAngularSimilarity(record.SeqASCIIOrg, record.SeqASCIIMut, g_TokenLength);
-	// 	}
-	// 	std::cout << "DataMutation: Applied SNP mutations only. Distance Class = Angular." << std::endl;
-	// }
-	// if(sequenceRecordsWithMetadata->DistanceClass == 5){	// Edit Distance
-	// 	for(uint32_t rec_idx = 0; rec_idx < sequenceRecordsWithMetadata->KeyCount; rec_idx++) {
-	// 		auto& record = sequenceRecordsWithMetadata->Records[rec_idx];
-	// 		record.similarity = ComputeEditSimilarity(record.SeqASCIIOrg, record.SeqASCIIMut);
-	// 	}
-	// 	std::cout << "DataMutation: Applied SNP mutations only. Distance Class = Edit Similarity." << std::endl;
-	// }
-
 	// Debugging output
     for(uint32_t rec_idx = 0; rec_idx < std::min(sequenceRecordsWithMetadata->KeyCount, 10u); rec_idx++) {
         auto& record = sequenceRecordsWithMetadata->Records[rec_idx];
@@ -537,13 +461,12 @@ SequenceDataMutatorSubstitutionOnly::SequenceDataMutatorSubstitutionOnly(Sequenc
 }
 
 
-
 // For Agg
 SequenceDataMutatorGeometric::SequenceDataMutatorGeometric(SequenceRecordsWithMetadataStruct *sequenceRecordsWithMetadata, std::vector<double> *rand_error_param, SimilarityFn similarity_fn){
 	assert(sequenceRecordsWithMetadata != nullptr);
 	assert(rand_error_param != nullptr);
 	assert(!sequenceRecordsWithMetadata->Records.empty());
-	assert(sequenceRecordsWithMetadata->DistanceClass != 0 && "Distance class is required for mutation. Please Add Appropriate Distance metric in your LSH file.");
+	assert(similarity_fn != nullptr && "Similarity metric is required for mutation. Please Add Appropriate Similarity metric in your LSH file.");
 
 	// Initialise seed and reserve memory.
     std::mt19937 rng_gmean(sequenceRecordsWithMetadata->DataMutateSeed);	// For drawing the geometric mean.
@@ -700,42 +623,6 @@ SequenceDataMutatorGeometric::SequenceDataMutatorGeometric(SequenceRecordsWithMe
 	}
 	std::cout << "DataMutation: Applied Geometric mutations only." << std::endl;
 
-
-	// if(sequenceRecordsWithMetadata->DistanceClass == 1){	// Hamming
-	// 	//TODO:Print an error since geometric mutator cannot maintain Hamming distance due to change in length.
-	// 	std::cout << "DataMutation Error: Hamming distance is not suitable for geometric mutations due to variable sequence lengths. Please set a different distance class for your Hash." << std::endl;
-	// 	exit(1);
-	// }
-	// if(sequenceRecordsWithMetadata->DistanceClass == 2){	// Jaccard
-	// 	for(uint32_t rec_idx = 0; rec_idx < sequenceRecordsWithMetadata->KeyCount; rec_idx++) {
-	// 		auto& record = sequenceRecordsWithMetadata->Records[rec_idx];
-	// 		record.similarity = ComputeJaccardSimilarity(record.SeqASCIIOrg, record.SeqASCIIMut, g_TokenLength);
-	// 		// printf("Record %u: Jaccard Similarity = %f\n", rec_idx, record.similarity);
-	// 	}
-	// 	std::cout << "DataMutation: Applied Geometric mutations only. Distance Class = Jaccard." << std::endl;
-	// }
-	// if(sequenceRecordsWithMetadata->DistanceClass == 3){	// Cosine
-	// 	for(uint32_t rec_idx = 0; rec_idx < sequenceRecordsWithMetadata->KeyCount; rec_idx++) {
-	// 		auto& record = sequenceRecordsWithMetadata->Records[rec_idx];
-	// 		record.similarity = ComputeCosineSimilarity(record.SeqASCIIOrg, record.SeqASCIIMut, g_TokenLength);
-	// 	}
-	// 	std::cout << "DataMutation: Applied Geometric mutations only. Distance Class = Cosine." << std::endl;
-	// }
-	// if(sequenceRecordsWithMetadata->DistanceClass == 4){	// Angular
-	// 	for(uint32_t rec_idx = 0; rec_idx < sequenceRecordsWithMetadata->KeyCount; rec_idx++) {
-	// 		auto& record = sequenceRecordsWithMetadata->Records[rec_idx];
-	// 		record.similarity = ComputeAngularSimilarity(record.SeqASCIIOrg, record.SeqASCIIMut, g_TokenLength);
-	// 	}
-	// 	std::cout << "DataMutation: Applied Geometric mutations only. Distance Class = Angular." << std::endl;
-	// }
-	// if(sequenceRecordsWithMetadata->DistanceClass == 5){	// Edit Distance
-	// 	for(uint32_t rec_idx = 0; rec_idx < sequenceRecordsWithMetadata->KeyCount; rec_idx++) {
-	// 		auto& record = sequenceRecordsWithMetadata->Records[rec_idx];
-	// 		record.similarity = ComputeEditSimilarity(record.SeqASCIIOrg, record.SeqASCIIMut);
-	// 	}
-	// 	std::cout << "DataMutation: Applied Geometric mutations only. Distance Class = Edit Similarity." << std::endl;
-	// }
-
 	// Debugging output
     for(uint32_t rec_idx = 0; rec_idx < std::min(sequenceRecordsWithMetadata->KeyCount, 10u); rec_idx++) {
         auto& record = sequenceRecordsWithMetadata->Records[rec_idx];
@@ -756,7 +643,7 @@ SequenceDataMutatorGeometric::SequenceDataMutatorGeometric(SequenceRecordsWithMe
 SequenceDataMutatorGeometric::SequenceDataMutatorGeometric(SequenceRecordsWithMetadataStruct *sequenceRecordsWithMetadata, SimilarityFn similarity_fn){
 	assert(sequenceRecordsWithMetadata != nullptr);
 	assert(!sequenceRecordsWithMetadata->Records.empty());
-	assert(sequenceRecordsWithMetadata->DistanceClass != 0 && "Distance class is required for mutation. Please Add Appropriate Distance metric in your LSH file.");
+	assert(similarity_fn != nullptr && "Similarity metric is required for mutation. Please Add Appropriate Similarity metric in your LSH file.");
 
 	// Initialise seed and reserve memory.
     std::mt19937 rng_sub_del(sequenceRecordsWithMetadata->DataMutateSeed + 11);
@@ -895,40 +782,6 @@ SequenceDataMutatorGeometric::SequenceDataMutatorGeometric(SequenceRecordsWithMe
 		record.similarity = similarity_fn(record.SeqASCIIOrg, record.SeqASCIIMut, record.OriginalLength, record.MutatedLength);
 	}
 	std::cout << "DataMutation: Applied Geometric mutations only." << std::endl;
-
-
-	// if(sequenceRecordsWithMetadata->DistanceClass == 1){	// Hamming
-	// 	//TODO:Print an error since geometric mutator cannot maintain Hamming distance due to change in length.
-	// }
-	// if(sequenceRecordsWithMetadata->DistanceClass == 2){	// Jaccard
-	// 	for(uint32_t rec_idx = 0; rec_idx < sequenceRecordsWithMetadata->KeyCount; rec_idx++) {
-	// 		auto& record = sequenceRecordsWithMetadata->Records[rec_idx];
-	// 		record.similarity = ComputeJaccardSimilarity(record.SeqASCIIOrg, record.SeqASCIIMut, g_TokenLength);
-	// 		// printf("Record %u: Jaccard Similarity = %f\n", rec_idx, record.similarity);
-	// 	}
-	// 	std::cout << "DataMutation: Applied Geometric mutations only. Distance Class = Jaccard." << std::endl;
-	// }
-	// if(sequenceRecordsWithMetadata->DistanceClass == 3){	// Cosine
-	// 	for(uint32_t rec_idx = 0; rec_idx < sequenceRecordsWithMetadata->KeyCount; rec_idx++) {
-	// 		auto& record = sequenceRecordsWithMetadata->Records[rec_idx];
-	// 		record.similarity = ComputeCosineSimilarity(record.SeqASCIIOrg, record.SeqASCIIMut, g_TokenLength);
-	// 	}
-	// 	std::cout << "DataMutation: Applied Geometric mutations only. Distance Class = Cosine." << std::endl;
-	// }
-	// if(sequenceRecordsWithMetadata->DistanceClass == 4){	// Angular
-	// 	for(uint32_t rec_idx = 0; rec_idx < sequenceRecordsWithMetadata->KeyCount; rec_idx++) {
-	// 		auto& record = sequenceRecordsWithMetadata->Records[rec_idx];
-	// 		record.similarity = ComputeAngularSimilarity(record.SeqASCIIOrg, record.SeqASCIIMut, g_TokenLength);
-	// 	}
-	// 	std::cout << "DataMutation: Applied Geometric mutations only. Distance Class = Angular." << std::endl;
-	// }
-	// if(sequenceRecordsWithMetadata->DistanceClass == 5){	// Edit Distance
-	// 	for(uint32_t rec_idx = 0; rec_idx < sequenceRecordsWithMetadata->KeyCount; rec_idx++) {
-	// 		auto& record = sequenceRecordsWithMetadata->Records[rec_idx];
-	// 		record.similarity = ComputeEditSimilarity(record.SeqASCIIOrg, record.SeqASCIIMut);
-	// 	}
-	// 	std::cout << "DataMutation: Applied Geometric mutations only. Distance Class = Edit Similarity." << std::endl;
-	// }
 
 	// Debugging output
     for(uint32_t rec_idx = 0; rec_idx < std::min(sequenceRecordsWithMetadata->KeyCount, 10u); rec_idx++) {

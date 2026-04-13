@@ -49,7 +49,7 @@ uint32_t g_ANN_MAX_B = 3; // Maximum value of b (hashes per table) to test in th
 uint32_t g_ANN_MAX_R = 5; // Maximum value of r (number of tables) to test in the Approx Nearest Neighbour test. Adjust as needed.
 
 // Global variables for runtime communication
-const uint32_t g_bincount_full = 700;
+const uint32_t g_bincount_full = 1000;
 
 uint32_t g_TokenLength = 0;     // Default token/kmer length
 
@@ -62,7 +62,7 @@ bool g_IsTestActive = false;     // Whether test is currently running
 const uint32_t g_GoldenRatio = 0x9e3779b1;	
 
 // Change to MUTATION_MODEL_SIMPLE_SNP_ONLY (0) or MUTATION_MODEL_GEOMETRIC_MUTATOR (1)
-uint32_t g_mutation_model = MUTATION_MODEL_GEOMETRIC_MUTATOR; //MUTATION_MODEL_SIMPLE_SNP_ONLY;//MUTATION_MODEL_GEOMETRIC_MUTATOR; // MUTATION_MODEL_SIMPLE_SNP_ONLY; // 0: Simple SNP only, 1: Geometric Mutator   // Change the mutation model here.
+uint32_t g_mutation_model = MUTATION_MODEL_SIMPLE_SNP_ONLY; //MUTATION_MODEL_GEOMETRIC_MUTATOR; //MUTATION_MODEL_SIMPLE_SNP_ONLY;//MUTATION_MODEL_GEOMETRIC_MUTATOR; // MUTATION_MODEL_SIMPLE_SNP_ONLY; // 0: Simple SNP only, 1: Geometric Mutator   // Change the mutation model here.
 const uint32_t g_mutation_expression_type = MUTATION_EXPRESSION_BALANCED;//MUTATION_EXPRESSION_BALANCED;	// Change the mutation expression type here as needed.
 
 // Setter functions (called by LSHCollision test)
@@ -151,24 +151,24 @@ bool is_valid_mutation_parameters(double P_sub, double P_del){
 }
 
 
-uint32_t setDistanceClassForHashInfo(const uint64_t hash_flags) {
-	// Determine the distance class based on the hash function's properties
-	if (hash_flags & FLAG_HASH_HAMMING_SIMILARITY) {
-		return 1U; // Hamming distance
-	} 
-	else if (hash_flags & FLAG_HASH_JACCARD_SIMILARITY) {
-		return 2U; // Jaccard distance
-	}
-	else if(hash_flags & FLAG_HASH_COSINE_SIMILARITY){
-		return 3U; // Cosine similarity
-	}
-	else if(hash_flags & FLAG_HASH_ANGULAR_SIMILARITY){
-		return 4U; // angular similarity
-	}
-	else if(hash_flags & FLAG_HASH_EDIT_SIMILARITY){
-		return 5U; // Edit similarity
-	}
-	else {
-		return 0U; // Default or unknown or distance not supported.
-	}
-}
+// uint32_t setDistanceClassForHashInfo(const uint64_t hash_flags) {
+// 	// Determine the distance class based on the hash function's properties
+// 	if (hash_flags & FLAG_HASH_HAMMING_SIMILARITY) {
+// 		return 1U; // Hamming distance
+// 	}
+// 	else if (hash_flags & FLAG_HASH_JACCARD_SIMILARITY) {
+// 		return 2U; // Jaccard distance
+// 	}
+// 	else if(hash_flags & FLAG_HASH_COSINE_SIMILARITY){
+// 		return 3U; // Cosine similarity
+// 	}
+// 	else if(hash_flags & FLAG_HASH_ANGULAR_SIMILARITY){
+// 		return 4U; // angular similarity
+// 	}
+// 	else if(hash_flags & FLAG_HASH_EDIT_SIMILARITY){
+// 		return 5U; // Edit similarity
+// 	}
+// 	else {
+// 		return 0U; // Default or unknown or distance not supported.
+// 	}
+// }

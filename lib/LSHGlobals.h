@@ -1,7 +1,7 @@
 #pragma once
 
 #include <vector>
-
+#include <cstdint>
 
 
 #define MUTATION_MODEL_SIMPLE_SNP_ONLY 0
@@ -100,4 +100,4 @@ void mutation_expression(double g_mean, uint32_t expression_type, double *P_sub_
 
 bool is_valid_mutation_parameters(double P_sub, double P_del);
 
-uint32_t setDistanceClassForHashInfo(const uint64_t hash_flags);
+// uint32_t setDistanceClassForHashInfo(const uint64_t hash_flags);

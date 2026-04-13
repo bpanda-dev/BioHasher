@@ -27,15 +27,9 @@
 
 
 // Threading includes and global state
+// Threading includes and global state
 #if defined(HAVE_THREADS)
-  #ifdef _MSC_VER
-    #pragma push_macro("unreachable")
-    #undef unreachable
-  #endif
   #include <thread>
-  #ifdef _MSC_VER
-    #pragma pop_macro("unreachable")
-  #endif
   extern unsigned g_NCPU;
 #else
 extern const unsigned g_NCPU;

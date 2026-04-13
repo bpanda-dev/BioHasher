@@ -13,6 +13,9 @@
 #include <vector>
 #include <string>
 #include <stdexcept>
+#include <cstdint>
+#include <cstring>
+
 
 typedef uint64_t  seed_t; 
 
@@ -105,6 +108,7 @@ class HashInfo {
     HashSeedfixFn     seedfixfn;
     HashSeedFn        seedfn;
     HashFn            hashfn;
+    const char *      similarity_name;
     SimilarityFn      similarityfn;
 
     enum fixupseed : size_t {
@@ -119,7 +123,7 @@ class HashInfo {
     HashInfo( const char * n, const char * f ) :
         name( _fixup_name( n ) ), family( f ), desc( "" ),
         initfn( nullptr ), seedfixfn( nullptr ), seedfn( nullptr ),
-        hashfn( nullptr ), similarityfn(nullptr) {}
+        hashfn( nullptr ), similarity_name(""), similarityfn(nullptr) {}
 
     ~HashInfo() {
         free(const_cast<char *>(name));

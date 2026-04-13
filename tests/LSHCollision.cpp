@@ -23,7 +23,6 @@ struct common_params_struct{
 	seed_t DataGenSeed;
 	seed_t DataMutateSeed;
 	bool isBasesDrawnFromUniformDist;
-	uint32_t distanceClass;
 };
 
 
@@ -91,7 +90,6 @@ static bool LSHCollisionTestInnerInnerParallel(const HashInfo * hinfo, uint32_t 
 
 	SequenceRecordsWithMetadataStruct sequenceRecordsforTest;
 	sequenceRecordsforTest.OriginalSequenceLength = common_params.seqLen;
-	sequenceRecordsforTest.DistanceClass = common_params.distanceClass;
 	sequenceRecordsforTest.isBasesDrawnFromUniformDist = common_params.isBasesDrawnFromUniformDist;
 	sequenceRecordsforTest.DataGenSeed = seedGen.nextSeed();	// A seed that is different from the seed that is used in AGG step.
 	sequenceRecordsforTest.DataMutateSeed = seedGen.nextSeed();
@@ -193,7 +191,7 @@ static bool LSHCollisionTestInnerInnerParallel(const HashInfo * hinfo, uint32_t 
 		}
 	}
 
-	std::vector<double> AverageCollision(N_seq, 0.0);
+	alignas(64) std::vector<double> AverageCollision(N_seq, 0.0);
 	
 	std::vector<std::pair<uint32_t, uint32_t>> AND_OR_params;
 
@@ -277,7 +275,6 @@ static sim_bins_struct LSHCollisionTestInnerAgg(const HashInfo * hinfo, uint32_t
 	SequenceRecordsWithMetadataStruct sequenceRecordsForAgg;
 
 	sequenceRecordsForAgg.OriginalSequenceLength = common_params.seqLen;
-	sequenceRecordsForAgg.DistanceClass = common_params.distanceClass;
 	sequenceRecordsForAgg.isBasesDrawnFromUniformDist = common_params.isBasesDrawnFromUniformDist;
 	sequenceRecordsForAgg.DataGenSeed = common_params.DataGenSeed;
 	sequenceRecordsForAgg.DataMutateSeed = common_params.DataMutateSeed;
@@ -454,7 +451,7 @@ static bool LSHCollisionTestInner( const HashInfo * hinfo, const uint32_t seqLen
 	// File header
 	out_file << ":1:LSH Collision Test Results\n";
 	out_file << ":2:" << "Hashname," << "SequenceLength,"<< "Distance Metric," << "Mutation Model,"<< "Mutation Expression" << std::endl;
-	out_file << ":3:" << hinfo->name << "," << seqLen << "," << setDistanceClassForHashInfo(hinfo->hash_flags) << "," << g_mutation_model << "," << g_mutation_expression_type << std::endl;
+	out_file << ":3:" << hinfo->name << "," << seqLen << "," << hinfo->similarity_name << "," << g_mutation_model << "," << g_mutation_expression_type << std::endl;
 	
 	hinfo->printParameters(out_file); //TODO:PARAMETERS IN THE test FILE.
 
@@ -467,7 +464,6 @@ static bool LSHCollisionTestInner( const HashInfo * hinfo, const uint32_t seqLen
 	common_params.DataGenSeed = DataGenSeed;
 	common_params.DataMutateSeed = DataMutateSeed;
 	common_params.isBasesDrawnFromUniformDist = g_isBasesDrawnFromUniformDistribution;
-	common_params.distanceClass = setDistanceClassForHashInfo(hinfo->hash_flags);
 
 	uint32_t N_agg = 0;
 
@@ -510,7 +506,6 @@ static bool LSHCollisionTestInner( const HashInfo * hinfo, const uint32_t seqLen
     return result;	//TODO: For now, the result is always true. We need to add logic to find where the test fails.
 }
 
-
 //----------------------------------------------------------------------------//
 template <typename hashtype>
 bool LSHCollisionTest( const HashInfo * hinfo, flags_t flags) {
@@ -518,6 +513,7 @@ bool LSHCollisionTest( const HashInfo * hinfo, flags_t flags) {
 
 	assert(hinfo->isLocalSensitive() && "Flag FLAG_HASH_LOCALITY_SENSITIVE not found. Please ensure that your LSH hash function is defined with FLAG_HASH_LOCALITY_SENSITIVE tag.");
 	assert(hinfo->similarityfn != nullptr && "LSH function should be defined with a similarity metric.");
+	assert((std::strlen(hinfo->similarity_name) > 0) && "The similarity metric should be named.");
 
 	bool result = true;
 
@@ -531,11 +527,11 @@ bool LSHCollisionTest( const HashInfo * hinfo, flags_t flags) {
 		throw std::runtime_error("Error: Could not open output file");
 	}
 
-	// Check the hash function and see if is hamming. If hamming then set the mutation model to simple SNP only.
-	if(hinfo->hash_flags & FLAG_HASH_HAMMING_SIMILARITY){
-		printf("Hash %s uses Hamming similarity. Setting mutation model to simple SNP only for testing.\n", hinfo->name);
-		g_mutation_model = MUTATION_MODEL_SIMPLE_SNP_ONLY;
-	}
+	// // Check the hash function and see if is hamming. If hamming then set the mutation model to simple SNP only.
+	// if(hinfo->hash_flags & FLAG_HASH_HAMMING_SIMILARITY){
+	// 	printf("Hash %s uses Hamming similarity. Setting mutation model to simple SNP only for testing.\n", hinfo->name);
+	// 	g_mutation_model = MUTATION_MODEL_SIMPLE_SNP_ONLY;
+	// }
 
 	uint32_t sequenceLength;
 

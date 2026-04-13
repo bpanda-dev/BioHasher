@@ -19,11 +19,6 @@
 
 #include "Hashlib.h"
 
-#include <cstdio>
-#include <string>
-#include <algorithm>
-
-
 const char * HashInfo::_fixup_name( const char * in ) {
     // Since dashes can't be in C/C++ identifiers, but humans want
     // them in names, replace underscores with dashes. Similarly,

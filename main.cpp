@@ -268,7 +268,6 @@ int main( int argc, const char ** argv ){
                                     printf("WARNING: limiting to 32 threads\n");
                                     Ncpu = 32;
                                 }
-
                                 g_NCPU = Ncpu;
                                 continue;
                 #else

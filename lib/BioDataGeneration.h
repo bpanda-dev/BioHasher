@@ -38,10 +38,10 @@ struct NearestKmerEntry {
 };
 
 // double ComputeHammingSimilarity(const std::string& seq1, const std::string& seq2, const uint32_t length);
-double ComputeJaccardSimilarity(const std::string& seq1, const std::string& seq2, int k);
-double ComputeCosineSimilarity(const std::string& seq1, const std::string& seq2, int k);
-double ComputeAngularSimilarity(const std::string& seq1, const std::string& seq2, int k);
-double ComputeEditSimilarity(const std::string& seq1, const std::string& seq2);
+// double ComputeJaccardSimilarity(const std::string& seq1, const std::string& seq2, int k);
+// double ComputeCosineSimilarity(const std::string& seq1, const std::string& seq2, int k);
+// double ComputeAngularSimilarity(const std::string& seq1, const std::string& seq2, int k);
+// double ComputeEditSimilarity(const std::string& seq1, const std::string& seq2);
 
 
 UnionBitVectorsStruct CreateUnionBitVectors(const std::string& seq1, const std::string& seq2, int k);
@@ -89,8 +89,7 @@ struct sim_bins_struct{
 struct SequenceRecordsWithMetadataStruct{
 	uint32_t KeyCount;                    // Number of sequence pairs
     uint32_t OriginalSequenceLength;      // Original length (before mutations)
-	uint32_t DistanceClass;			// Distance class for the sequences (Hamming, Jaccard, etc.)
-	
+
 	seed_t DataGenSeed;                          // For reproducibility, we have base seed
 	seed_t DataMutateSeed;                        // For reproducibility, we have mutation seed
 	seed_t HashSeed;		// Seed for hash family generation
@@ -113,7 +112,7 @@ struct SequenceRecordsWithMetadataStruct{
     std::vector<SequenceRecordUnit> Records;
 	
 
-	SequenceRecordsWithMetadataStruct() : KeyCount(0), OriginalSequenceLength(0),DistanceClass(0), DataGenSeed(0), DataMutateSeed(0),
+	SequenceRecordsWithMetadataStruct() : KeyCount(0), OriginalSequenceLength(0), DataGenSeed(0), DataMutateSeed(0),
 		A_percentage(0.25), C_percentage(0.25), G_percentage(0.25), T_percentage(0.25),
 		binsize(0.01f), binstart(0.0f), binend(1.0f), bincount(100) {}
 };
