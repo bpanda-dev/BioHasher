@@ -11,7 +11,7 @@ find_package(Git REQUIRED)  #Required for versioning.
 ########################################
 include(hashes/Hashsrc.cmake)
 set(HASH_SRC_FULL_PATHS ""
-        lib/Specifics.h
+        lib/specifics.h
         lib/specifics.cpp
 #        hashes/minhashWithSignature.cpp
 #        hashes/minhash.cpp
