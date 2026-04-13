@@ -16,18 +16,29 @@
 #define MUTATION_EXPRESSION_SUB_LITE 4
 
 
+extern bool g_isBasesDrawnFromUniformDistribution;
 
 
-extern uint32_t g_slow_N_agg_cases;
-extern uint32_t g_slow_N_seq;
-extern uint32_t g_slow_N_hashes;
+extern uint32_t g_verySlowNAggCases;
+extern uint32_t g_verySlowNSeq;
+extern uint32_t g_verySlowNHashes;
 
-extern uint32_t g_norm_N_agg_cases;
-extern uint32_t g_norm_N_seq;
-extern uint32_t g_norm_N_hashes;
+extern uint32_t g_SlowNAggCases;
+extern uint32_t g_SlowNSeq;
+extern uint32_t g_SlowNHashes;
 
-extern std::vector<uint32_t> g_sequenceLength_small;
-extern std::vector<uint32_t> g_sequenceLength_large;
+extern uint32_t g_NAggCases;
+extern uint32_t g_NSeq;
+extern uint32_t g_NHashes;
+
+extern uint32_t g_ShortSequenceLength;
+extern uint32_t g_LongSequenceLength;
+
+
+extern uint32_t g_start_B;
+extern uint32_t g_start_R;
+extern uint32_t g_MAX_B;
+extern uint32_t g_MAX_R;
 
 extern std::vector<uint32_t> g_tokenLengths_array;
 

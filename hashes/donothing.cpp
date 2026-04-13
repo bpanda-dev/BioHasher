@@ -35,7 +35,7 @@
 
 static void DoNothingHash( const void * in, const size_t len, const seed_t seed, void * out ) {
     unused(in); unused(len); unused(seed); unused(out);
-    printf("Hello World");
+    // printf("Hello World");
 }
 
 REGISTER_FAMILY(donothing,

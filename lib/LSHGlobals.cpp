@@ -7,16 +7,31 @@ if we want to test different number of signatures in Minhash or other LSH functi
 */
 
 //---- Variables used across tests which can be defined by user ---//
-uint32_t g_slow_N_agg_cases = 50000; // Number of sequences to generate for aggregation phase for slow hashes. Ajust as needed.
-uint32_t g_slow_N_seq = 5000;
-uint32_t g_slow_N_hashes = 1000;
 
-uint32_t g_norm_N_agg_cases = 500000;
-uint32_t g_norm_N_seq = 5000;
-uint32_t g_norm_N_hashes = 2000;
+uint32_t g_verySlowNAggCases = 50000;
+uint32_t g_verySlowNSeq = 5000;
+uint32_t g_verySlowNHashes = 1000;
 
-std::vector<uint32_t> g_sequenceLength_small = {45};
-std::vector<uint32_t> g_sequenceLength_large = {512};
+uint32_t g_SlowNAggCases = 50000;
+uint32_t g_SlowNSeq = 5000;
+uint32_t g_SlowNHashes = 1000;
+
+uint32_t g_NAggCases = 500000;
+uint32_t g_NSeq = 5000;
+uint32_t g_NHashes = 2000;
+
+uint32_t g_ShortSequenceLength = 45;
+uint32_t g_LongSequenceLength = 256;
+
+uint32_t g_start_B = 1;
+uint32_t g_start_R = 1;
+uint32_t g_MAX_B = 1;
+uint32_t g_MAX_R = 1;
+
+
+
+
+bool g_isBasesDrawnFromUniformDistribution = true;
 
 
 std::vector<uint32_t> g_tokenLengths_array = {13}; //{4 ,7, 13, 21, 31, 33};

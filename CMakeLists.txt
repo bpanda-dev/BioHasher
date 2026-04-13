@@ -4,7 +4,7 @@ project(BioHasher)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(Git REQUIRED)
+find_package(Git REQUIRED)  #Required for versioning.
 
 ########################################
 # The list of hash source files
@@ -12,7 +12,15 @@ find_package(Git REQUIRED)
 include(hashes/Hashsrc.cmake)
 set(HASH_SRC_FULL_PATHS ""
         lib/Specifics.h
-        lib/specifics.cpp)
+        lib/specifics.cpp
+#        hashes/minhashWithSignature.cpp
+#        hashes/minhash.cpp
+#        hashes/simhash.cpp
+#        hashes/ssh1.cpp
+#        hashes/ssh1.h
+#        lib/BioDataMutationModels.cpp
+#        lib/BioDataMutationModels.h
+    )
 foreach(hashsrc ${HASH_SRC_FILES})
     list(APPEND HASH_SRC_FULL_PATHS "${CMAKE_SOURCE_DIR}/${hashsrc}")
 endforeach()
@@ -57,7 +65,7 @@ add_library(BioHasherTests STATIC
         lib/specifics.cpp
         lib/BioDataGeneration.cpp
         lib/LSHGlobals.cpp
-        tests/LSHCollisionTest.cpp
+        tests/LSHCollision.cpp
 #        tests/LSHCollisionAndOrTest.cpp
 #        tests/ApproxNearestNeighbourTest.cpp
 )
@@ -70,7 +78,7 @@ target_link_libraries(BioHasherTests PUBLIC BioHasherHashlib)
 ########################################
 # Main executable
 ########################################
-add_executable(BioHasher main.cpp housekeeping.cpp)
+add_executable(BioHasher main.cpp)
 target_link_libraries(BioHasher PRIVATE BioHasherTests)
 target_include_directories(BioHasher PRIVATE
         ${CMAKE_SOURCE_DIR}

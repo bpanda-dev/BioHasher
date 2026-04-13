@@ -7,6 +7,8 @@
 #include <unordered_set>
 #include <fstream>
 #include <iomanip>
+
+#include "HashInfo.h"
 #include "LSHGlobals.h"
 
 //Not used
@@ -35,7 +37,7 @@ struct NearestKmerEntry {
 	double similarity;     // Similarity to the query
 };
 
-double ComputeHammingSimilarity(const std::string& seq1, const std::string& seq2, const uint32_t length);
+// double ComputeHammingSimilarity(const std::string& seq1, const std::string& seq2, const uint32_t length);
 double ComputeJaccardSimilarity(const std::string& seq1, const std::string& seq2, int k);
 double ComputeCosineSimilarity(const std::string& seq1, const std::string& seq2, int k);
 double ComputeAngularSimilarity(const std::string& seq1, const std::string& seq2, int k);
@@ -89,7 +91,7 @@ struct SequenceRecordsWithMetadataStruct{
     uint32_t OriginalSequenceLength;      // Original length (before mutations)
 	uint32_t DistanceClass;			// Distance class for the sequences (Hamming, Jaccard, etc.)
 	
-	seed_t DatagenSeed;                          // For reproducibility, we have base seed
+	seed_t DataGenSeed;                          // For reproducibility, we have base seed
 	seed_t DataMutateSeed;                        // For reproducibility, we have mutation seed
 	seed_t HashSeed;		// Seed for hash family generation
 	
@@ -111,7 +113,7 @@ struct SequenceRecordsWithMetadataStruct{
     std::vector<SequenceRecordUnit> Records;
 	
 
-	SequenceRecordsWithMetadataStruct() : KeyCount(0), OriginalSequenceLength(0),DistanceClass(0), DatagenSeed(0), DataMutateSeed(0),
+	SequenceRecordsWithMetadataStruct() : KeyCount(0), OriginalSequenceLength(0),DistanceClass(0), DataGenSeed(0), DataMutateSeed(0),
 		A_percentage(0.25), C_percentage(0.25), G_percentage(0.25), T_percentage(0.25),
 		binsize(0.01f), binstart(0.0f), binend(1.0f), bincount(100) {}
 };
@@ -166,8 +168,8 @@ class SequenceDataMutatorSubstitutionOnly{
 		// void SetBaseAtPosition(std::vector<uint8_t>& seq, uint32_t pos, uint8_t base);	// Helper: Set base at position
 		// bool simulateSNP(SequenceRecordUnit &record, const uint32_t pos, std::mt19937 &randGen);
 	public:
-		SequenceDataMutatorSubstitutionOnly(SequenceRecordsWithMetadataStruct *sequenceRecordsWithMetadata, std::vector<double> *rand_error_param);
-		SequenceDataMutatorSubstitutionOnly(SequenceRecordsWithMetadataStruct *sequenceRecordsWithMetadata);
+		SequenceDataMutatorSubstitutionOnly(SequenceRecordsWithMetadataStruct *sequenceRecordsWithMetadata, std::vector<double> *rand_error_param, SimilarityFn similarity_fn);
+		SequenceDataMutatorSubstitutionOnly(SequenceRecordsWithMetadataStruct *sequenceRecordsWithMetadata, SimilarityFn similarity_fn);
 };
 
 class SequenceDataMutatorGeometric{
@@ -176,6 +178,6 @@ class SequenceDataMutatorGeometric{
 		// void SetBaseAtPosition(std::vector<uint8_t>& seq, uint32_t pos, uint8_t base);	// Helper: Set base at position
 		// bool simulateSNP(SequenceRecordUnit &record, const uint32_t pos, std::mt19937 &randGen);
 	public:
-		SequenceDataMutatorGeometric(SequenceRecordsWithMetadataStruct *sequenceRecordsWithMetadata, std::vector<double> *rand_error_param);
-		SequenceDataMutatorGeometric(SequenceRecordsWithMetadataStruct *sequenceRecordsWithMetadata);
+		SequenceDataMutatorGeometric(SequenceRecordsWithMetadataStruct *sequenceRecordsWithMetadata, std::vector<double> *rand_error_param, SimilarityFn similarity_fn);
+		SequenceDataMutatorGeometric(SequenceRecordsWithMetadataStruct *sequenceRecordsWithMetadata, SimilarityFn similarity_fn);
 };

@@ -493,7 +493,7 @@ bool LSHApproxNearestNeighbourTest(const HashInfo *hinfo, bool extra, flags_t fl
   ReferenceSequenceRecord.OriginalSequenceLength = sequenceLength;
   ReferenceSequenceRecord.DistanceClass = 0; // not applicable
   ReferenceSequenceRecord.isBasesDrawnFromUniformDist = true;
-  ReferenceSequenceRecord.DatagenSeed = seedGen.nextSeed();
+  ReferenceSequenceRecord.DataGenSeed = seedGen.nextSeed();
   ReferenceSequenceRecord.DataMutateSeed = 0; // not applicable
 
   SequenceDataGenerator dataGenReference(&ReferenceSequenceRecord);
@@ -513,7 +513,7 @@ bool LSHApproxNearestNeighbourTest(const HashInfo *hinfo, bool extra, flags_t fl
   QuerySequenceRecord.KeyCount = numQueries;
   QuerySequenceRecord.OriginalSequenceLength = sequenceLength; // Sampled Queries which have not yet mutated are same length as reference.
   QuerySequenceRecord.isBasesDrawnFromUniformDist = true;
-  QuerySequenceRecord.DatagenSeed = 0; // Not applicable, as we are sampling from reference sequences rather than generating new random sequences.
+  QuerySequenceRecord.DataGenSeed = 0; // Not applicable, as we are sampling from reference sequences rather than generating new random sequences.
   QuerySequenceRecord.DataMutateSeed = seedGen.nextSeed();
   QuerySequenceRecord.DistanceClass =  setDistanceClassForHashInfo(hinfo->hash_flags);
 
@@ -533,7 +533,7 @@ bool LSHApproxNearestNeighbourTest(const HashInfo *hinfo, bool extra, flags_t fl
   AggSequenceRecord.KeyCount = g_norm_N_agg_cases;
   AggSequenceRecord.OriginalSequenceLength = sequenceLength; // Sampled Queries which have not yet mutated are same length as reference.
   AggSequenceRecord.isBasesDrawnFromUniformDist = true;
-  AggSequenceRecord.DatagenSeed = 0; // Not applicable, as we are sampling from reference sequences rather than generating new random sequences.
+  AggSequenceRecord.DataGenSeed = 0; // Not applicable, as we are sampling from reference sequences rather than generating new random sequences.
   AggSequenceRecord.DataMutateSeed = seedGen.nextSeed();
   AggSequenceRecord.DistanceClass =  setDistanceClassForHashInfo(hinfo->hash_flags);
   

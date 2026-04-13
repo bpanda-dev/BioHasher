@@ -8,6 +8,8 @@
 
 #include <set>
 #include <cstdlib>
+#include <variant>
+#include <ostream>
 #include <vector>
 #include <string>
 #include <stdexcept>
@@ -22,6 +24,11 @@ typedef uint64_t  seed_t;
 # define FORCE_INLINE inline
 #endif
 
+
+inline std::ostream& operator<<(std::ostream& os, const std::variant<int, float, double>& v) {
+    std::visit([&os](const auto& val) { os << val; }, v);
+    return os;
+}
 
 
 //--------------------------------------------------------------------------------------------------------------------//
@@ -79,6 +86,7 @@ typedef seed_t     (* HashSeedfixFn)( const HashInfo * hinfo, const seed_t seed 
 typedef uintptr_t  (* HashSeedFn)( const seed_t seed ); //Important for seeding.
 
 typedef void       (* HashFn)( const void * in, const size_t len, const seed_t seed, void * out );
+typedef double     (* SimilarityFn)(const std::string& seq1, const std::string& seq2, const uint32_t in1_len, const uint32_t in2_len);
 
 class HashInfo {
     friend class HashFamilyInfo;
@@ -97,21 +105,21 @@ class HashInfo {
     HashSeedfixFn     seedfixfn;
     HashSeedFn        seedfn;
     HashFn            hashfn;
+    SimilarityFn      similarityfn;
 
     enum fixupseed : size_t {
         SEED_ALLOWFIX = 0,  // Seed via a SeedfixFn, if the hash has one
         SEED_FORCED   = 1   // Seed using the given seed, always
     };
 
-    //TODO: Make it polymorphic
     std::vector<std::string>    parameterNames;
     std::vector<std::string>    parameterDescriptions;
-    std::vector<double>         parameterDefaults;
+    std::vector<std::variant<int, float, double>> parameterValues;
 
     HashInfo( const char * n, const char * f ) :
         name( _fixup_name( n ) ), family( f ), desc( "" ),
         initfn( nullptr ), seedfixfn( nullptr ), seedfn( nullptr ),
-        hashfn( nullptr ) {}
+        hashfn( nullptr ), similarityfn(nullptr) {}
 
     ~HashInfo() {
         free(const_cast<char *>(name));
@@ -119,6 +127,10 @@ class HashInfo {
 
     [[nodiscard]] FORCE_INLINE HashFn hashFn() const {  //REM: Remember Here i removed hashfn endianness.   //{ return _is_native(endian) ? hashfn_native : hashfn_bswap;
         return hashfn;
+    }
+
+    [[nodiscard]] FORCE_INLINE SimilarityFn distFn() const {
+        return similarityfn;
     }
 
     [[nodiscard]] FORCE_INLINE bool Init() const {
@@ -161,7 +173,7 @@ class HashInfo {
         return !!(impl_flags & FLAG_IMPL_VERY_SLOW);
     }
 
-    [[nodiscard]] FORCE_INLINE bool isSmallSequenceLength() const {
+    [[nodiscard]] FORCE_INLINE bool onlyShortSequenceLength() const {
         return !!(impl_flags & FLAG_IMPL_SMALL_SEQUENCE_LENGTH);
     }
 
@@ -180,9 +192,11 @@ class HashInfo {
     [[nodiscard]] FORCE_INLINE bool hasJaccardSimilarity() const {
         return !!(hash_flags & FLAG_HASH_JACCARD_SIMILARITY);
     }
+
     [[nodiscard]] FORCE_INLINE bool hasAngularSimilarity() const {
         return !!(hash_flags & FLAG_HASH_ANGULAR_SIMILARITY);
     }
+
     [[nodiscard]] FORCE_INLINE bool hasCosineSimilarity() const {
         return !!(hash_flags & FLAG_HASH_COSINE_SIMILARITY);
     }
@@ -196,13 +210,46 @@ class HashInfo {
     // Method to register parameters
     void registerParameters(const std::vector<std::string>& names,
                             const std::vector<std::string>& descriptions,
-                            const std::vector<double>& defaults) {
-        if (names.size() != descriptions.size() || names.size() != defaults.size()) {
+                            const std::vector<std::variant<int, float, double>>& defaults) {
+        if ((names.size() != descriptions.size()) || (names.size() != defaults.size()) || (descriptions.size() != defaults.size())) {
             throw std::runtime_error("Parameter registration mismatch: names, descriptions, and defaults must have the same size.");
         }
         parameterNames = names;
         parameterDescriptions = descriptions;
-        parameterDefaults = defaults;
+        parameterValues = defaults;
+    }
+
+    // Method to print all parameters
+    void printParameters(std::ostream& out) const {
+        // Print parameter names
+        out << ":4.1: ";
+        for (size_t i = 0; i < parameterNames.size(); ++i) {
+            out << parameterNames[i];
+            if (i != parameterNames.size() - 1) {
+                out << ",";
+            }
+        }
+        out << "\n";
+
+        // Print parameter descriptions
+        out << ":4.2: ";
+        for (size_t i = 0; i < parameterDescriptions.size(); ++i) {
+            out << parameterDescriptions[i];
+            if (i != parameterDescriptions.size() - 1) {
+                out << ",";
+            }
+        }
+        out << "\n";
+
+        // Print parameter default values
+        out << ":4.3: ";
+        for (size_t i = 0; i < parameterValues.size(); ++i) {
+            out << parameterValues[i];
+            if (i != parameterValues.size() - 1) {
+                out << ",";
+            }
+        }
+        out << "\n";
     }
 
 }; // class HashInfo

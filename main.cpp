@@ -1,16 +1,14 @@
 #include <cstdlib>
 #include <iostream>
-#include "housekeeping.h"
 #include "version.h"
 #include "Hashlib.h"
 #include "TestGlobals.h"
 
 
-#include "LSHCollisionTest.h"
+#include "LSHCollision.h"
 
 static bool g_testAll;
 static bool g_testLSHCollision;
-static bool g_testLSHCollisionAndOr;
 static bool g_testLSHApproxNearestNeighbour;
 
 struct TestOpts {
@@ -21,7 +19,6 @@ struct TestOpts {
 
 static TestOpts g_testopts[] = {
     { g_testLSHCollision,   false,   "LSHCollision" },
-    { g_testLSHCollisionAndOr,   false,    "LSHCollisionAndOr" },
     { g_testLSHApproxNearestNeighbour,   false,    "LSHApproxNearestNeighbour" },
 };
 
@@ -103,7 +100,14 @@ static void parse_tests( const char * str, bool enable_tests ) {
     exit(1);
 }
 
-
+void usage() {
+    printf("Usage: BioHasher [--[no]test=<testname>[,...]] [--verbose] [--ncpu=N]\n"
+           "                 [<hashname>]\n"
+           "\n"
+           "       BioHasher [--list]|[--listnames]|[--tests]|[--version]\n"
+           "\n"
+           "  Hashnames can be supplied using any case letters.\n");
+}
 
 //-----------------------------------------------------------------------------
 
@@ -175,7 +179,7 @@ static bool testHash( const char * name, const flags_t flags ) {
     }
 
     printf("Testing hash %s\n", name);
-    printf("%u\n",hInfo->bits);
+    // printf("%u\n",hInfo->bits);
 
     // If you extend these statements by adding a new bitcount/type, you
     // need to adjust HASHTYPELIST in util/Instantiate.h also.
