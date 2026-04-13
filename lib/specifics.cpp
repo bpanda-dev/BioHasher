@@ -17,6 +17,7 @@
  * <https://www.gnu.org/licenses/>.
  */
 #include "specifics.h"
+#include <cstdio>
 
 #if defined(HAVE_THREADS)
 unsigned g_NCPU       = 4;

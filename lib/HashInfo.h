@@ -15,6 +15,7 @@
 #include <stdexcept>
 #include <cstdint>
 #include <cstring>
+#include <algorithm>
 
 
 typedef uint64_t  seed_t; 

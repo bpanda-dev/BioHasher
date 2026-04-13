@@ -8,7 +8,6 @@
 #define BIOHASHER_HASHLIB_H
 
 #include "HashInfo.h"
-#include <vector>
 
 /*
  * SMHasher3
