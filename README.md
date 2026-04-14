@@ -64,16 +64,24 @@ conda env update -f environment.yaml --prune
 
 ---
 
-## A brief idea of Tests included in BioHasher
+## A brief description of tests included in BioHasher
 
 ### Test A:  Collision Curve
 
 The Collision Curve test measures how often a hash function produces the same output for pairs of sequences at varying levels of similarity. BioHasher generates many sequence pairs, mutates one sequence in each pair at a controlled rate, and then checks whether the hash value of both sequences in the pair collide. By plotting the collision rate against the true similarity, we get a curve that shows how well the hash function distinguishes similar sequences from dissimilar ones. A good LSH should collide frequently for highly similar pairs and rarely for dissimilar pairs. The test also supports AND-OR amplification, which reshapes this curve by combining `b` hashes per band (AND-ing) and `r` independent bands (OR-ing). This lets us trace how different (b, r) configurations shift the effective similarity threshold and steepen the transition between the high-collision and low-collision regimes.
 
-### Teast B:  c-ANN Test
+<img src="documentation/CollisionCurve.png" alt="Collision Curve" width="600"/>
+
+
+### Test B:  c-ANN Test
 
 The c-Approximate Nearest Neighbour test evaluates how well an LSH function performs when used as a hashing scheme for similarity search. BioHasher builds a database of reference sequences, creates mutated query sequences with known nearest neighbours, and then uses the hash function to retrieve candidates from the database. For each `(b, r)` configuration, it measures how many true neighbours were found (Recall) and how many of the returned candidates were incorrect (False Positive Rate). This tells you how the hash function will behave in a real similarity-search pipeline and helps you pick the right `(b, r)` parameters for your desired balance of accuracy and efficiency.
 > **Why is this test needed?**:  While collision curve analysis characterizes the sensitivity of a hash family to pairwise similarity variations, it does not capture factors that matter in practice like the ability to correctly retrieve true neighbors from a database while minimizing false positive candidates. Minimizing false positives is important because real similarity-search pipelines include a re-scoring step using computationally expensive algorithms (e.g., full sequence alignment), and an inflated candidate set directly increases that cost.
+
+<img src="documentation/c-ANN.png" alt="c-ANN concept" width="600"/>
+todo:caption
+<img src="documentation/ANN_flowchart.png" alt="ANN flowchart" width="600"/>
+todo:caption
 
 ## Usage Guide for Adding a Novel Hash function for testing
 
@@ -212,7 +220,9 @@ make
 
 #### Test 1 : LSH Collision Test (`--test=LSHCollision`)
 
-**What it does:** The collision test measures how faithfully a hash function preserves sequence similarity. It generates thousands of random genomic sequence pairs, mutates one copy at controlled rates, bins the pairs into 100 similarity buckets (0.00–1.00), and records the average hash-collision rate per bucket. The resulting *collision curve* should closely track the diagonal for an ideal LSH : deviations reveal where the hash over- or under-estimates similarity, helping you understand its quality before deploying it in a real pipeline.
+The `(AND, OR)` grid is configured in [`lib/LSHGlobals.cpp`](lib/LSHGlobals.cpp) via `g_ANN_start_B`, `g_ANN_MAX_B`, `g_ANN_start_R`, `g_ANN_MAX_R` variables.
+
+> **Full documentation:** See [`Collisiontest.md`](documentation/CollisionTest.md) for the complete reference including AND-OR basics, internal pipeline, pseudocode, all configurable parameters, and caveats.
 
 ```bash
 # Run LSH collision test (multi-threaded recommended)
@@ -220,6 +230,8 @@ make
 ```
 
 **Output:** `results/collisionResults_<hashname>.csv`
+
+> For a particular Hash function, each run **appends** to the CSV if it already exists, so you can accumulate results across multiple token lengths or configurations.
 
 **Test parameters** (automatically adjusted based on hash flags):
 
@@ -231,25 +243,7 @@ make
 
 ---
 
-#### Test 2 : LSH Collision AND-OR Test (`--test=LSHCollisionAndOrTest`)
-
-**What it does:** AND-OR amplification reshapes the collision probability's S-curve to give you finer control over the trade-off between false positives and false negatives. The **AND** parameter `b` raises the base collision probability to the `b`-th power (making the curve steeper i.e. fewer false positives), while the **OR** parameter `r` takes `r` independent AND-bands and reports a collision if *any* band matches (recovering recall). This test sweeps over a grid of `(AND, OR)` pairs and records the amplified collision curve for each, so you can visually compare how different configurations sharpen or flatten the curve.
-
-The `(AND, OR)` grid is configured in [`lib/LSHGlobals.cpp`](lib/LSHGlobals.cpp) via `g_ANN_start_B`, `g_ANN_MAX_B`, `g_ANN_start_R`, `g_ANN_MAX_R`.
-
-```bash
-./SMHasher3 --test=LSHCollisionAndOrTest SubSeqHash-64 --ncpu=16
-```
-
-**Output:** `results/collisionResults_<hashname>ANDOR.csv`
-
-The output format is the same tagged-line CSV as the basic collision test, with additional `:10:` (AND/OR headers) and `:11:` (AND/OR values) lines for each parameter pair, followed by `:12:` collision rates.
-
-> **Full documentation:** See [`ANDORtest.md`](documentation/CollisionTest.md) for the complete reference including AND-OR basics, internal pipeline, pseudocode, all configurable parameters, and caveats.
-
----
-
-#### Test 3 : Approximate Nearest Neighbour Test (`--test=LSHApproxNearestNeighbour`)
+#### Test 2 : Approximate Nearest Neighbour Test (`--test=LSHApproxNearestNeighbour`)
 
 **What it does:** This test evaluates the hash function as an *LSH index* for nearest-neighbour search which is the end-to-end use case most genomic LSH pipelines care about. It:
 
@@ -269,6 +263,8 @@ This helps you select the optimal `(b, r)` parameters for your application by di
 
 **Output:** `results/ApproxNearestNeighbourResults_<hashname>.csv`
 
+> For a particular Hash function, each run **appends** to the CSV if it already exists, so you can accumulate results across multiple configurations.
+
 **Output format:**
 
 ```
@@ -283,13 +279,13 @@ This helps you select the optimal `(b, r)` parameters for your application by di
 **Configuration** (all in [`lib/LSHGlobals.cpp`](lib/LSHGlobals.cpp)):
 
 | Variable                       | Description                        | Default |
-| ------------------------------ | ---------------------------------- | ------- |
-| `g_ANN_start_B` / `g_ANN_MAX_B` | Range of `b` (hashes per table)  | 1–5     |
-| `g_ANN_start_R` / `g_ANN_MAX_R` | Range of `r` (number of tables)  | 1–7     |
-| `g_ANN_runs_for_avg`           | Independent runs to average over   | 3       |
-| `g_sequenceLength_ANN`         | Length of reference/query sequences | —       |
-| `g_Nseq_in_Database`           | Number of reference sequences      | —       |
-| `g_numQueriesForApproxNNTest`  | Number of query sequences          | —       |
+| ------------------------------ | ---------------------------------- |---------|
+| `g_ANN_start_B` / `g_ANN_MAX_B` | Range of `b` (hashes per table)  | 1–2     |
+| `g_ANN_start_R` / `g_ANN_MAX_R` | Range of `r` (number of tables)  | 1–3     |
+| `g_avgRunsForApproxNN`          | Independent runs to average over   | 5       |
+| `g_sequenceLengthForApproxNNTest`| Length of reference/query sequences | 45      |
+| `g_Nseq_in_Database`           | Number of reference sequences      | 10000   |
+| `g_numQueriesForApproxNNTest`  | Number of query sequences          | 100     |
 
 ---
 
@@ -312,39 +308,15 @@ After changing these values, rebuild:
 cd build && make -j$(nproc)
 ```
 
-#### Output File Format
-
-Results are written to `results/collisionResults_<hashname>.csv` using tagged lines:
-
-```md
-:1: LSH Collision Test Results (header)
-:2: Column names: Hashname, SequenceLength, TokenLength, DistanceMetric, MutationModel, MutationExpression
-:3: Values for the above columns
-:5: Similarity values (comma-separated floats)
-:6: SNP rates per bin
-:7: Deletion rates per bin (geometric mutator only)
-:8: Insertion means per bin (geometric mutator only)
-:9: Stay rates per bin (geometric mutator only)
-:10: AND/OR parameter headers
-:11: AND/OR parameter values (1,1 for basic test)
-:12: Average collision rates per bin (comma-separated floats)
-:13: Raw error parameters from aggregation
-:14: Insertion rates (geometric mutator only)
-```
-
-For a particular Hash function, each run **appends** to the CSV if it already exists, so you can accumulate results across multiple token lengths or configurations.
-
 ---
 
 ### Part 3 : Generating Plots
 
 #### 3a. Collision Curve Plots (`analysis/plot_collisioncurves.py`)
 
-Works for both basic collision and AND-OR collision CSV files.
-
 ```bash
-pip install pandas numpy matplotlib scipy
-python analysis/plot_collisioncurves.py results/collisionResults_<hashname>.csv
+  # ensure that you have activate biohasher conda environment and are in the root directory of BioHasher.  
+  python analysis/plot_collisioncurves.py results/collisionResults_<hashname>.csv
 ```
 
 All plots are saved in the current working directory.
@@ -362,8 +334,8 @@ All plots are saved in the current working directory.
 Visualises the Recall vs FPR trade-off across `(b, r)` configurations.
 
 ```bash
-pip install matplotlib numpy adjustText
-python analysis/plot_ANN.py results/ApproxNearestNeighbourResults_<hashname>.csv
+  # ensure that you have activate biohasher conda environment and are in the root directory of BioHasher.  
+  python analysis/plot_ANN.py results/ApproxNearestNeighbourResults_<hashname>.csv
 ```
 
 Produces **6 plots** (3 linear + 3 log-scale):
