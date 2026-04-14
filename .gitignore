@@ -2,11 +2,12 @@
 /build*
 /.idea*
 /.results*
+results/
 
 version.h
-
+tests/.DS_Store
 /.vscode*
-
+temp.md
 *.a
 *.o
 *.d

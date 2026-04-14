@@ -81,7 +81,7 @@ This section walks through the complete workflow of: **adding a new hash functio
 
 ---
 
-### Part 1 — Adding a New Hash Function
+### Part 1 : Adding a New Hash Function
 
 There are two approaches to add a new hash function to BioHasher: using the **interactive template generator script**, or **manually** from the example files.
 
@@ -110,7 +110,7 @@ The script walks you through **11 guided steps**:
 | 10   | Similarity Name     | Built-in (`Hamming`, `Jaccard`, `Cosine`, `Angular`, `Edit`) or custom name   |
 | 11   | Similarity Function | Auto-set for built-in metrics; prompts for a C++ function name if custom      |
 
-Every input is validated (naming rules, C++ keyword checks, URL format, etc.). The script **never exits on bad input** — it re-prompts until valid input is provided.
+Every input is validated (naming rules, C++ keyword checks, URL format, etc.). The script **never exits on bad input** : it re-prompts until valid input is provided.
 The only early exit is at Step 9: if the hash is not an LSH candidate, the script stops with a message that BioHasher only supports LSH-related tests.
 
 **What it generates:**
@@ -123,30 +123,17 @@ The only early exit is at Step 9: if the hash is not an LSH candidate, the scrip
     - Correct `PUT_U32` / `PUT_U64` output calls
 2. An updated `hashes/Hashsrc.cmake` with the new file registered
 
-> **Full documentation:** See [`createHashTemplate.md`](documents/createHashTemplate.md) for the complete reference including validation rules, example sessions, and troubleshooting.
+> **Full documentation:** See [`createHashTemplate.md`](documentation/createHashTemplate.md) for the complete reference including validation rules, example sessions, and troubleshooting.
 
 #### Option B: Manual Creation
 
-Copy one of the example templates and fill in the placeholders:
-
-```bash
-cp hashes/EXAMPLE-mit.cpp hashes/myhash.cpp # MIT license template
-# or
-cp hashes/EXAMPLE.cpp hashes/myhash.cpp # Generic template
-```
-
-Then manually:
-
-1. Replace all `###YOUR...` placeholders in the file
-2. Add `hashes/myhash.cpp` to the `set(HASH_SRC_FILES ...)` block in `hashes/Hashsrc.cmake`
-
-[//]: # (See [`hashes/README.addinghashes.md`]&#40;hashes/README.addinghashes.md&#41; for the original SMHasher3 walkthrough.)
+TODO
 
 #### After Creating the Template
 
 Regardless of the methods used above:
 
-**1. Implement your hash logic** — open `hashes/<hashname>.cpp` and replace the placeholder body:
+**1. Implement your hash logic** : open `hashes/<hashname>.cpp` and replace the placeholder body:
 
 ```cpp
 
@@ -170,7 +157,7 @@ static void MyHash( const void * in, const size_t len, const seed_t seed, void *
 | `FLAG_IMPL_VERY_SLOW`                    | Very slow (reduces LSH test parameters automatically) | IMPL      |
 | `FLAG_IMPL_SMALL_SEQUENCE_LENGTH`        | Uses small sequences (40 bases instead of 512)        | IMPL      |
 
-- **IMPL flags** are for controlling **test execution behaviour** — they tell the testing module how to adjust parameters (e.g., fewer iterations, shorter sequences) based on the computational cost of your hash implementation. They do not affect hash semantics.
+- **IMPL flags** are for controlling **test execution behaviour** : they tell the testing module how to adjust parameters (e.g., fewer iterations, shorter sequences) based on the computational cost of your hash implementation. They do not affect hash semantics.
 - **HASH flags** are for declaring the **mathematical properties** of your hash function. They tell the testing module whether the hash function is an LSH candidate or not.
 
 #### Example: Adding Flags in `REGISTER_HASH(...)`
@@ -187,7 +174,7 @@ REGISTER_HASH(MyMinHash_64,
 ```
 Note that we use ORing of the flags to combine them.
 
-> **Tip:** If your hash is extremely slow (minutes per test), use `FLAG_IMPL_VERY_SLOW` which reduces the number of sequence pairs to work on.
+> **Tip:** If your hash is extremely slow (minutes per test), use `FLAG_IMPL_VERY_SLOW` which _significantly_ reduces the number of sequence pairs to work on.
 
 **3. Build and verify:**
 
@@ -196,13 +183,13 @@ cd build
 cmake ..
 make 
 
-# Confirm your hash is registered
+# Confirm your hash is registered. The following command should return the name of your Hash.
 ./SMHasher3 --list | grep MyHash
 ```
 
 ---
 
-### Part 2 — Running Tests
+### Part 2 : Running Tests
 
 #### CLI Reference
 
@@ -223,9 +210,9 @@ make
 | `--verbose`             | Verbose output with more stats and diagrams                   | Not Active              |
 | `--version`             | Print version string                                          | Active                  |
 
-#### Test 1 — LSH Collision Test (`--test=LSHCollision`)
+#### Test 1 : LSH Collision Test (`--test=LSHCollision`)
 
-**What it does:** The collision test measures how faithfully a hash function preserves sequence similarity. It generates thousands of random genomic sequence pairs, mutates one copy at controlled rates, bins the pairs into 100 similarity buckets (0.00–1.00), and records the average hash-collision rate per bucket. The resulting *collision curve* should closely track the diagonal for an ideal LSH — deviations reveal where the hash over- or under-estimates similarity, helping you understand its quality before deploying it in a real pipeline.
+**What it does:** The collision test measures how faithfully a hash function preserves sequence similarity. It generates thousands of random genomic sequence pairs, mutates one copy at controlled rates, bins the pairs into 100 similarity buckets (0.00–1.00), and records the average hash-collision rate per bucket. The resulting *collision curve* should closely track the diagonal for an ideal LSH : deviations reveal where the hash over- or under-estimates similarity, helping you understand its quality before deploying it in a real pipeline.
 
 ```bash
 # Run LSH collision test (multi-threaded recommended)
@@ -244,11 +231,11 @@ make
 
 ---
 
-#### Test 2 — LSH Collision AND-OR Test (`--test=LSHCollisionAndOrTest`)
+#### Test 2 : LSH Collision AND-OR Test (`--test=LSHCollisionAndOrTest`)
 
-**What it does:** AND-OR amplification reshapes the collision probability's S-curve to give you finer control over the trade-off between false positives and false negatives. The **AND** parameter `b` raises the base collision probability to the `b`-th power (making the curve steeper — fewer false positives), while the **OR** parameter `r` takes `r` independent AND-bands and reports a collision if *any* band matches (recovering recall). This test sweeps over a grid of `(AND, OR)` pairs and records the amplified collision curve for each, so you can visually compare how different configurations sharpen or flatten the curve.
+**What it does:** AND-OR amplification reshapes the collision probability's S-curve to give you finer control over the trade-off between false positives and false negatives. The **AND** parameter `b` raises the base collision probability to the `b`-th power (making the curve steeper i.e. fewer false positives), while the **OR** parameter `r` takes `r` independent AND-bands and reports a collision if *any* band matches (recovering recall). This test sweeps over a grid of `(AND, OR)` pairs and records the amplified collision curve for each, so you can visually compare how different configurations sharpen or flatten the curve.
 
-The `(AND, OR)` grid is configured in [`util/LSHGlobals.cpp`](util/LSHGlobals.cpp) via `g_ANN_start_B`, `g_ANN_MAX_B`, `g_ANN_start_R`, `g_ANN_MAX_R`.
+The `(AND, OR)` grid is configured in [`lib/LSHGlobals.cpp`](lib/LSHGlobals.cpp) via `g_ANN_start_B`, `g_ANN_MAX_B`, `g_ANN_start_R`, `g_ANN_MAX_R`.
 
 ```bash
 ./SMHasher3 --test=LSHCollisionAndOrTest SubSeqHash-64 --ncpu=16
@@ -258,13 +245,13 @@ The `(AND, OR)` grid is configured in [`util/LSHGlobals.cpp`](util/LSHGlobals.cp
 
 The output format is the same tagged-line CSV as the basic collision test, with additional `:10:` (AND/OR headers) and `:11:` (AND/OR values) lines for each parameter pair, followed by `:12:` collision rates.
 
-> **Full documentation:** See [`ANDORtest.md`](documents/ANDORtest.md) for the complete reference including AND-OR basics, internal pipeline, pseudocode, all configurable parameters, and caveats.
+> **Full documentation:** See [`ANDORtest.md`](documentation/CollisionTest.md) for the complete reference including AND-OR basics, internal pipeline, pseudocode, all configurable parameters, and caveats.
 
 ---
 
-#### Test 3 — Approximate Nearest Neighbour Test (`--test=LSHApproxNearestNeighbour`)
+#### Test 3 : Approximate Nearest Neighbour Test (`--test=LSHApproxNearestNeighbour`)
 
-**What it does:** This test evaluates the hash function as an *LSH index* for nearest-neighbour search — the end-to-end use case most genomic LSH pipelines care about. It:
+**What it does:** This test evaluates the hash function as an *LSH index* for nearest-neighbour search which is the end-to-end use case most genomic LSH pipelines care about. It:
 
 1. Generates a reference database of random sequences.
 2. Samples query sequences from the reference, then mutates them to target 90–100% similarity.
@@ -274,7 +261,7 @@ The output format is the same tagged-line CSV as the basic collision test, with 
 
 This helps you select the optimal `(b, r)` parameters for your application by directly measuring retrieval quality.
 
-> **Full documentation:** See [`ANNtest.md`](documents/ANNtest.md) for the complete reference including the 5-phase pipeline internals, all configurable parameters, evaluation metrics, and caveats.
+> **Full documentation:** See [ApproximateNearestNeighbour.md](documentation/ApproximateNearestNeighbour.md) for the complete reference including the 5-phase pipeline internals, all configurable parameters, evaluation metrics, and caveats.
 
 ```bash
 ./SMHasher3 --test=LSHApproxNearestNeighbour SubSeqHash-64 --ncpu=16
@@ -293,7 +280,7 @@ This helps you select the optimal `(b, r)` parameters for your application by di
 :6: <one data row per (b,r) pair>
 ```
 
-**Configuration** (all in [`util/LSHGlobals.cpp`](util/LSHGlobals.cpp)):
+**Configuration** (all in [`lib/LSHGlobals.cpp`](lib/LSHGlobals.cpp)):
 
 | Variable                       | Description                        | Default |
 | ------------------------------ | ---------------------------------- | ------- |
@@ -308,16 +295,16 @@ This helps you select the optimal `(b, r)` parameters for your application by di
 
 #### Configuring the Mutation Model
 
-The mutation model is set at compile time in [`util/LSHGlobals.cpp`](util/LSHGlobals.cpp):
+The mutation model is set at compile time in [`lib/LSHGlobals.cpp`](lib/LSHGlobals.cpp):
 
 | Variable                     | Options                                                                                                                                                                            | Default         |
 | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------- |
 | `g_mutation_model`           | `MUTATION_MODEL_SIMPLE_SNP_ONLY` (0), `MUTATION_MODEL_GEOMETRIC_MUTATOR` (1)                                                                                                       | `1` (Geometric) |
 | `g_mutation_expression_type` | `MUTATION_EXPRESSION_BALANCED` (0), `MUTATION_EXPRESSION_SUB_ONLY` (1), `MUTATION_EXPRESSION_DEL_LITE` (2), `MUTATION_EXPRESSION_INS_LITE` (3), `MUTATION_EXPRESSION_SUB_LITE` (4) | `0` (Balanced)  |
 
-> **Note:** If a hash has `FLAG_HASH_HAMMING_SIMILARITY`, the mutation model is automatically forced to `MUTATION_MODEL_SIMPLE_SNP_ONLY` at runtime (since the geometric mutator changes sequence lengths, which is incompatible with Hamming distance).
+> **Note:** If a hash has hamming similarity metric, please ensure that you only use substitution only mutation model, i.e. `MUTATION_MODEL_SIMPLE_SNP_ONLY`. 
 
-See [`MutationModels.md`](documents/MutationModels.md) for full documentation on what each mutation expression does.
+See [`MutationModels.md`](documentation/MutationModels.md) for full documentation on what each mutation expression does.
 
 After changing these values, rebuild:
 
@@ -349,7 +336,7 @@ For a particular Hash function, each run **appends** to the CSV if it already ex
 
 ---
 
-### Part 3 — Generating Plots
+### Part 3 : Generating Plots
 
 #### 3a. Collision Curve Plots (`analysis/plot_collisioncurves.py`)
 
