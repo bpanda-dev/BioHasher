@@ -59,9 +59,18 @@ conda env update -f environment.yaml --prune
 ```
 -->
 
+---
+
 ## A brief idea of Tests included in BioHasher
-### Collision Curve
-### c-ANN Test
+
+### Test A:  Collision Curve
+
+The Collision Curve test measures how often a hash function produces the same output for pairs of sequences at varying levels of similarity. BioHasher generates many sequence pairs, mutates one sequence in each pair at a controlled rate, and then checks whether the hash value of both sequences in the pair collide. By plotting the collision rate against the true similarity, we get a curve that shows how well the hash function distinguishes similar sequences from dissimilar ones. A good LSH should collide frequently for highly similar pairs and rarely for dissimilar pairs. The test also supports AND-OR amplification, which reshapes this curve by combining `b` hashes per band (AND-ing) and `r` independent bands (OR-ing). This lets us trace how different (b, r) configurations shift the effective similarity threshold and steepen the transition between the high-collision and low-collision regimes.
+
+### Teast B:  c-ANN Test
+
+The c-Approximate Nearest Neighbour test evaluates how well an LSH function performs when used as a hashing scheme for similarity search. BioHasher builds a database of reference sequences, creates mutated query sequences with known nearest neighbours, and then uses the hash function to retrieve candidates from the database. For each `(b, r)` configuration, it measures how many true neighbours were found (Recall) and how many of the returned candidates were incorrect (False Positive Rate). This tells you how the hash function will behave in a real similarity-search pipeline and helps you pick the right `(b, r)` parameters for your desired balance of accuracy and efficiency. 
+> **Why is this test needed?**:  While collision curve analysis characterizes the sensitivity of a hash family to pairwise similarity variations, it does not capture factors that matter in practice like the ability to correctly retrieve true neighbors from a database while minimizing false positive candidates. Minimizing false positives is important because real similarity-search pipelines include a re-scoring step using computationally expensive algorithms (e.g., full sequence alignment), and an inflated candidate set directly increases that cost.
 
 ## Usage Guide for Adding a Novel Hash function for testing
 
@@ -127,21 +136,20 @@ See [`hashes/README.addinghashes.md`](hashes/README.addinghashes.md) for the ori
 
 #### After Creating the Template
 
-Regardless of any of the methods used above:
+Regardless of the methods used above:
 
 **1. Implement your hash logic** — open `hashes/<hashname>.cpp` and replace the placeholder body:
 
 ```cpp
 
-template <bool bswap>
 static void MyHash( const void * in, const size_t len, const seed_t seed, void * out ) {
     // Your hash implementation goes here
-    // 'in' = pointer to input data (2-bit encoded for genomic sequences)
+    // 'in' = pointer to input data (genomic sequence, unencoded)
     // 'len' = input length in bytes
     // 'seed' = seed value
     uint32_t hash = 0;
     // ... your logic ...
-    PUT_U32<bswap>(hash, (uint8_t *)out, 0);
+    PUT_U32(hash, (uint8_t *)out, 0);
 }
 ```
 
@@ -150,21 +158,12 @@ static void MyHash( const void * in, const size_t len, const seed_t seed, void *
 | Flag                                     | When to use                                           | FLAG TYPE |
 | ---------------------------------------- | ----------------------------------------------------- | --------- |
 | `FLAG_HASH_LOCALITY_SENSITIVE`           | Your hash is an LSH function                          | HASH      |
-| `FLAG_HASH_TOKENISATION_PROPERTY`        | Your hash decomposes input into k-mers/tokens         | HASH      |
-| `FLAG_HASH_HAMMING_SIMILARITY`           | Preserves Hamming distance                            | HASH      |
-| `FLAG_HASH_JACCARD_SIMILARITY`           | Preserves Jaccard similarity                          | HASH      |
-| `FLAG_HASH_COSINE_SIMILARITY`            | Preserves Cosine similarity                           | HASH      |
-| `FLAG_HASH_ANGULAR_SIMILARITY`           | Preserves Angular similarity                          | HASH      |
-| `FLAG_HASH_EDIT_SIMILARITY`              | Preserves Edit distance                               | HASH      |
-| `FLAG_HASH_OVERLAPPING_TOKENS`           | Uses overlapping k-mers                               | HASH      |
-| `FLAG_HASH_NONOVERLAPPING_TOKENS`        | Uses non-overlapping k-mers                           | HASH      |
-| `FLAG_HASH_UNIVERSE_VECTOR_OPTIMISATION` | Enable pre-computed union bit vectors                 | HASH      |
 | `FLAG_IMPL_SLOW`                         | Hash is computationally expensive                     | IMPL      |
 | `FLAG_IMPL_VERY_SLOW`                    | Very slow (reduces LSH test parameters automatically) | IMPL      |
 | `FLAG_IMPL_SMALL_SEQUENCE_LENGTH`        | Uses small sequences (40 bases instead of 512)        | IMPL      |
 
 - **IMPL flags** are for controlling **test execution behaviour** — they tell the testing module how to adjust parameters (e.g., fewer iterations, shorter sequences) based on the computational cost of your hash implementation. They do not affect hash semantics.
-- **HASH flags** are for declaring the **mathematical properties and similarity semantics** of your hash function. They tell the testing module which distance metric to use when measuring collision rates, how input is tokenised, and whether LSH-specific test logic should be activated.
+- **HASH flags** are for declaring the **mathematical properties** of your hash function. They tell the testing module whether the hash function is an LSH candidate or not.
 
 #### Example: Adding Flags in `REGISTER_HASH(...)`
 
@@ -173,14 +172,14 @@ If your hash is a locality-sensitive MinHash that preserves Jaccard similarity u
 ```cpp
 REGISTER_HASH(MyMinHash_64,
    $.desc            = "My custom MinHash (64-bit, Jaccard, overlapping k-mers)",
-   $.hash_flags      = FLAG_HASH_LOCALITY_SENSITIVE | FLAG_HASH_TOKENISATION_PROPERTY | FLAG_HASH_JACCARD_SIMILARITY | FLAG_HASH_OVERLAPPING_TOKENS,
+   $.hash_flags      = FLAG_HASH_LOCALITY_SENSITIVE,
    $.impl_flags      = FLAG_IMPL_VERY_SLOW,
    // ... other registration fields ...
 );
 ```
 Note that we use ORing of the flags to combine them.
 
-> **Tip:** If your hash is extremely slow (minutes per test), use `FLAG_IMPL_VERY_SLOW` — this reduces the number of sequence pairs to work on.
+> **Tip:** If your hash is extremely slow (minutes per test), use `FLAG_IMPL_VERY_SLOW` which reduces the number of sequence pairs to work on.
 
 **3. Build and verify:**
 
@@ -203,23 +202,18 @@ make
 ./SMHasher3 [options] [<hashname>]
 ```
 
-**Key flags:**
+**Key arguments:**
 
-| Flag                    | Description                                                   | Status in BioHasher |
-| ----------------------- | ------------------------------------------------------------- | ------------------- |
-| `--list`                | List all registered hashes with descriptions                  | Active              |
-| `--listnames`           | List just hash names (useful for scripting)                   | Active              |
-| `--tests`               | Print all valid test suite names                              | Active              |
-| `--test=<name>[,...]`   | Enable **only** these tests (disables all others first)       | Active              |
-| `--notest=<name>[,...]` | Disable specific tests                                        | Active              |
-| `--ncpu=N`              | Number of threads for parallel tests                          | Active              |
-| `--extra`               | Run extended/thorough testing                                 | Active              |
-| `--verbose`             | Verbose output with more stats and diagrams                   | Not Active          |
-| `--seed=<value>`        | Set hash default seed (hex or decimal)                        | Active              |
-| `--randseed=<value>`    | Set base RNG seed for reproducibility                         | Active              |
-| `--endian=<mode>`       | Force endianness (`default`, `native`, `big`, `little`, etc.) | Active              |
-| `--exit-on-failure`     | Stop on first test failure                                    | Active              |
-| `--version`             | Print version string                                          | Active              |
+| Arguments               | Description                                                   | Status in BioHasher     |
+|-------------------------| ------------------------------------------------------------- |-------------------------|
+| `--list`                | List all registered hashes with descriptions                  | Active                  |
+| `--listnames`           | List just hash names (useful for scripting)                   | Active                  |
+| `--tests`               | Print all valid test suite names                              | Active                  |
+| `--test=<name>[,...]`   | Enable **only** these tests (disables all others first)       | Active                  |
+| `--notest=<name>[,...]` | Disable specific tests                                        | In Progress             |
+| `--ncpu=N`              | Number of threads for parallel tests                          | Active in CollisionTest |
+| `--verbose`             | Verbose output with more stats and diagrams                   | Not Active              |
+| `--version`             | Print version string                                          | Active                  |
 
 #### Test 1 — LSH Collision Test (`--test=LSHCollision`)
 
