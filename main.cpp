@@ -285,6 +285,31 @@ int main( int argc, const char ** argv ){
         hashToTest = arg;
     }
 
+    // Check that at least one test was selected
+    bool anyTestSelected = false;
+    for (size_t i = 0; i < sizeof(g_testopts) / sizeof(TestOpts); i++) {
+        if (g_testopts[i].var) {
+            anyTestSelected = true;
+            break;
+        }
+    }
+    if (!anyTestSelected) {
+        printf("Error: No test specified. Use --test=<testname> to select a test.\n");
+        printf("Valid tests: ");
+        for (size_t i = 0; i < sizeof(g_testopts) / sizeof(TestOpts); i++) {
+            if (i > 0) printf(", ");
+            printf("%s", g_testopts[i].name);
+        }
+        printf("\n");
+        exit(1);
+    }
+
+    if (hashToTest[0] == '\0') {
+        printf("Error: No hash name specified.\n");
+        usage();
+        exit(1);
+    }
+
     bool result = testHash(hashToTest, flags);
 
 

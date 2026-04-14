@@ -6,5 +6,4 @@ set(HASH_SRC_FILES
 #  hashes/simhash.cpp
 #  hashes/xxhash.cpp
 #  hashes/fnv.cpp
-  hashes/paulhash.cpp
 )

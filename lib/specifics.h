@@ -76,8 +76,18 @@ extern const unsigned g_NCPU;
 #define unpredictable(x) __builtin_unpredictable(x)
 
 // Compiler behavioral bounds hints
+#if defined(__clang__)
 #define assume(x) __builtin_assume(x)
+#elif defined(__GNUC__)
+#define assume(x) do { if (!(x)) __builtin_unreachable(); } while (0)
+#else
+#define assume(x) ((void)0)
+#endif
 #define unreachable() __builtin_unreachable()
+
+// // Compiler behavioral bounds hints
+// #define assume(x) __builtin_assume(x)
+// #define unreachable() __builtin_unreachable()
 
 // Compiler/CPU data prefetching
 #define prefetch(ptr) __builtin_prefetch(ptr)
