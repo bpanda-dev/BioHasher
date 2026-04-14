@@ -479,7 +479,7 @@ REGISTER_FAMILY(SubseqHash,
 
 REGISTER_HASH(SubseqHash_64,
    $.desc            = "Subsequence hash with edit distance tolerance (64-bit)",
-   $.hash_flags      = FLAG_HASH_LOCALITY_SENSITIVE | FLAG_HASH_EDIT_SIMILARITY,
+   $.hash_flags      = FLAG_HASH_LOCALITY_SENSITIVE,
    $.impl_flags      = FLAG_IMPL_VERY_SLOW | FLAG_IMPL_SMALL_SEQUENCE_LENGTH,
    $.bits            = 64,
    $.hashfn			 = SubseqHash64,

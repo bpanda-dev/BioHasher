@@ -1,4 +1,4 @@
-# BioHasher - Genomic Hash Function Testing Framework
+# BioHasher : Genomic Hash Function Testing Framework
 
 ## Overview
 
@@ -17,17 +17,17 @@ To get started with BioHasher, follow these steps:
 
 2. Build BioHasher:
 
-    ```bash
+   ```bash
     cd BioHasher
-    pip install -r requirements.txt
+    mkdir build
     cd build
     cmake ..
     make -j$(nproc)
-    # Perform a sample test run to perform collison analysis of an included hash function (subseqhash1)
-    ./SMHasher3 --test=LSHCollision SubSeqHash-64 --ncpu=16
+    # Perform a sample test run to perform collison analysis of an included hash function (OneBaseSamplingHash-32)
+    ./SMHasher3 --test=LSHCollision OneBaseSamplingHash-32 --ncpu=16
     ```
-
-    The above run should generate a file named `collisionResults_SubseqHash-64.csv` in the `results` directory under `BioHasher`. This file contains the output of the collision test.
+   
+    If everything works correctly, the above run should generate a file named `collisionResults_OneBaseSamplingHash-32.csv` in the `results` directory under `BioHasher`. This file contains the output of the collision test.
 
 3. To plot the curves from the output csv file,
 
@@ -36,6 +36,50 @@ To get started with BioHasher, follow these steps:
     ```
 
     <!-- This will generate various versions of collision curves plots in the analysis directory. We explain about the type of plots in section [[?]]. -->
+
+> Add the code for setting up environment.
+
+## Python Analysis Environment
+
+The analysis and plotting scripts (in `analysis/`) require a Python environment with several scientific packages. A conda environment file is provided for reproducibility.
+
+### Prerequisites
+
+- [Miniconda](https://docs.conda.io/en/latest/miniconda.html) or [Anaconda](https://www.anaconda.com/download)
+
+### Setting up the environment
+
+1. **Create the conda environment** from the provided `environment.yaml`:
+
+   ```bash
+   conda env create -f environment.yaml
+   ```
+
+2. **Activate the environment**:
+
+   ```bash
+   conda activate biohasher
+   ```
+
+3. **Verify** the installation:
+
+   ```bash
+   python -c "import matplotlib; import numpy; import pandas; import scipy; import plotly; import adjustText; print('All packages OK')"
+   ```
+
+4. **Deactivate** when done:
+
+   ```bash
+   conda deactivate
+   ```
+
+### Updating the environment
+
+If `environment.yaml` is modified (e.g., a new dependency is added), update your existing environment with:
+
+```bash
+conda env update -f environment.yaml --prune
+```
 
 
 ## Usage Guide for Novel Hash function testing

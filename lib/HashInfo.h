@@ -40,15 +40,6 @@ inline std::ostream& operator<<(std::ostream& os, const std::variant<int, float,
     FLAG_EXPAND(HASH_FLOATING_POINT)     \
     FLAG_EXPAND(HASH_LOOKUP_TABLE)       \
     FLAG_EXPAND(HASH_LOCALITY_SENSITIVE)    \
-    FLAG_EXPAND(HASH_TOKENISATION_PROPERTY) \
-    FLAG_EXPAND(HASH_HAMMING_SIMILARITY)    \
-    FLAG_EXPAND(HASH_JACCARD_SIMILARITY)   \
-    FLAG_EXPAND(HASH_COSINE_SIMILARITY)    \
-    FLAG_EXPAND(HASH_ANGULAR_SIMILARITY)    \
-    FLAG_EXPAND(HASH_EDIT_SIMILARITY)    \
-    FLAG_EXPAND(HASH_OVERLAPPING_TOKENS) \
-    FLAG_EXPAND(HASH_NONOVERLAPPING_TOKENS) \
-    FLAG_EXPAND(HASH_UNIVERSE_VECTOR_OPTIMISATION)  // TODO: I need to remove this.
 
 
 #define IMPL_FLAGS                          \
@@ -186,31 +177,31 @@ class HashInfo {
         return !!(hash_flags & FLAG_HASH_LOCALITY_SENSITIVE);
     }
 
-    [[nodiscard]] FORCE_INLINE bool hasTokenisationProperty() const {
-        return !!(hash_flags & FLAG_HASH_TOKENISATION_PROPERTY);
-    }
-
-    [[nodiscard]] FORCE_INLINE bool hasHammingSimilarity() const {
-        return !!(hash_flags & FLAG_HASH_HAMMING_SIMILARITY);
-    }
-
-    [[nodiscard]] FORCE_INLINE bool hasJaccardSimilarity() const {
-        return !!(hash_flags & FLAG_HASH_JACCARD_SIMILARITY);
-    }
-
-    [[nodiscard]] FORCE_INLINE bool hasAngularSimilarity() const {
-        return !!(hash_flags & FLAG_HASH_ANGULAR_SIMILARITY);
-    }
-
-    [[nodiscard]] FORCE_INLINE bool hasCosineSimilarity() const {
-        return !!(hash_flags & FLAG_HASH_COSINE_SIMILARITY);
-    }
-    [[nodiscard]] FORCE_INLINE bool hasEditSimilarity() const {
-        return !!(hash_flags & FLAG_HASH_EDIT_SIMILARITY);
-    }
-    [[nodiscard]] FORCE_INLINE bool hasUniverseVectorOptimisation() const {
-        return !!(hash_flags & FLAG_HASH_UNIVERSE_VECTOR_OPTIMISATION);
-    }
+    // [[nodiscard]] FORCE_INLINE bool hasTokenisationProperty() const {
+    //     return !!(hash_flags & FLAG_HASH_TOKENISATION_PROPERTY);
+    // }
+    //
+    // [[nodiscard]] FORCE_INLINE bool hasHammingSimilarity() const {
+    //     return !!(hash_flags & FLAG_HASH_HAMMING_SIMILARITY);
+    // }
+    //
+    // [[nodiscard]] FORCE_INLINE bool hasJaccardSimilarity() const {
+    //     return !!(hash_flags & FLAG_HASH_JACCARD_SIMILARITY);
+    // }
+    //
+    // [[nodiscard]] FORCE_INLINE bool hasAngularSimilarity() const {
+    //     return !!(hash_flags & FLAG_HASH_ANGULAR_SIMILARITY);
+    // }
+    //
+    // [[nodiscard]] FORCE_INLINE bool hasCosineSimilarity() const {
+    //     return !!(hash_flags & FLAG_HASH_COSINE_SIMILARITY);
+    // }
+    // [[nodiscard]] FORCE_INLINE bool hasEditSimilarity() const {
+    //     return !!(hash_flags & FLAG_HASH_EDIT_SIMILARITY);
+    // }
+    // [[nodiscard]] FORCE_INLINE bool hasUniverseVectorOptimisation() const {
+    //     return !!(hash_flags & FLAG_HASH_UNIVERSE_VECTOR_OPTIMISATION);
+    // }
 
     // Method to register parameters
     void registerParameters(const std::vector<std::string>& names,
