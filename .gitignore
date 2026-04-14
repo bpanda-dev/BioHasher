@@ -1,7 +1,7 @@
 /.DS_Store*
 /build*
 /.idea*
-
+/.results*
 
 version.h
 
@@ -19,4 +19,4 @@ a.out
 
 
 *.csv
-*.png
+
