@@ -7,12 +7,15 @@
 #include "LSHGlobals.h"
 #include "ApproxNearestNeighbour.h"
 
-#include<random>
+#include <random>
 #include <fstream>
 #include <iostream>
 #include <filesystem>
 
+#include <algorithm>
+#include <map>
 #include <unordered_map>
+#include <set>
 
 #if defined(HAVE_THREADS)
 #include <atomic>
@@ -33,10 +36,10 @@ private:
     uint32_t num_tables_r;
     uint32_t hashes_per_table_b;
     HashFn hash_func;
-    
+
     // Seeds: Outer vector is tables (r), inner vector is hash functions (b)
     std::vector<std::vector<seed_t>> table_seeds;
-    
+
     // Hash Tables: Outer vector corresponds to the r tables
     std::vector<std::unordered_map<uint64_t, std::vector<uint32_t>>> hash_tables;
 
@@ -47,9 +50,9 @@ private:
         return seed ^ (hash_val + 0x9e3779b97f4a7c15ULL + (seed << 6) + (seed >> 2));
     }
 
-    uint64_t compute_band_signature(const std::string& kmer, uint32_t table_idx) const {
+    [[nodiscard]] uint64_t compute_band_signature(const std::string& kmer, uint32_t table_idx) const {
         uint64_t band_signature = 0; // Initial seed for the combiner
-        const uint8_t* strPtr = reinterpret_cast<const uint8_t *>(kmer.c_str());
+        const auto* strPtr = reinterpret_cast<const uint8_t *>(kmer.c_str());
         size_t strLen = kmer.length();
 
         for (uint32_t k = 0; k < hashes_per_table_b; k++) {
@@ -61,9 +64,9 @@ private:
     }
 
 public:
-    ANN_LSH_Index(uint32_t r, uint32_t b, HashFn h_fn, SeedGenerator& seedGen) 
+    ANN_LSH_Index(uint32_t r, uint32_t b, HashFn h_fn, SeedGenerator& seedGen)
         : num_tables_r(r), hashes_per_table_b(b), hash_func(h_fn) {
-        
+
         table_seeds.resize(r, std::vector<seed_t>(b));
         hash_tables.resize(r);
 
@@ -82,7 +85,7 @@ public:
         }
     }
 
-    std::vector<uint32_t> query(const std::string& query_seq) const {
+    [[nodiscard]] std::vector<uint32_t> query(const std::string& query_seq) const {
         std::set<uint32_t> unique_candidates;
 
         for (uint32_t l = 0; l < num_tables_r; l++) {
@@ -94,7 +97,7 @@ public:
                 }
             }
         }
-        return std::vector<uint32_t>(unique_candidates.begin(), unique_candidates.end());
+        return {unique_candidates.begin(), unique_candidates.end()};
     }
 
     void print_stats() const {
@@ -173,8 +176,8 @@ static sim_bins_struct LSHInnerAgg(const HashInfo * hinfo,SequenceRecordsWithMet
 
     // Perform binning on similarity values
     for (size_t i = 0; i < sequenceRecordsForAgg.KeyCount; i++) {
-        float sim_value = similarity_values[i];
-        uint32_t bin_index = static_cast<uint32_t>((sim_value - sequenceRecordsForAgg.binstart) / sequenceRecordsForAgg.binsize);
+        double sim_value = similarity_values[i];
+        auto bin_index = static_cast<uint32_t>((sim_value - sequenceRecordsForAgg.binstart) / sequenceRecordsForAgg.binsize);
         if (bin_index >= sequenceRecordsForAgg.bincount) {
           bin_index = sequenceRecordsForAgg.bincount - 1; // Clamp to last bin
         }
@@ -308,7 +311,6 @@ static sim_bins_struct LSHInnerAgg(const HashInfo * hinfo,SequenceRecordsWithMet
 
 
 
-// Function to write sequences to a file
 void writeSequencesToFile(const SequenceRecordsWithMetadataStruct& sequenceRecords, const std::string& outputFilename, int flag) {
     // Open the file in write mode
     std::ofstream outFile(outputFilename);
@@ -345,14 +347,43 @@ void writeSequencesToFile(const SequenceRecordsWithMetadataStruct& sequenceRecor
     std::cout << "Original sequences written to " << outputFilename << "\n";
 }
 
+void print_uniqueKmerPositions(const std::unordered_map<std::string, std::vector<uint32_t>>&  uniqueKmerPositions) {
+    // --- Code to print uniqueKmerPositions (for debugging/verification) ---
+    printf("\n--- Contents of uniqueKmerPositions (%zu unique kmers) ---\n", uniqueKmerPositions.size());
+    uint32_t print_count = 0;
+    for (const auto& pair : uniqueKmerPositions) {
+        printf("Kmer: %s -> Positions: [", pair.first.c_str());
+        for (size_t i = 0; i < pair.second.size(); ++i) {
+            printf("%u", pair.second[i]);
+            if (i < pair.second.size() - 1) {
+                printf(", ");
+            }
+        }
+        printf("]\n");
+        if (++print_count >= 10 && uniqueKmerPositions.size() > 10) { // Limit output to first 10 for large maps
+            printf("... (showing first 10 entries of %zu)\n", uniqueKmerPositions.size());
+            break;
+        }
+    }
+    printf("----------------------------------------------------------\n\n");
+}
+
 //----------------------------------------------------------------------------//
 template <typename hashtype>
 bool LSHApproxNearestNeighbourTest(const HashInfo *hinfo, flags_t flags) {
     printf("[[[ Approximate Nearest Neighbour Test ]]]\n\n");
 
+    // assert(hinfo->hashfn == nullptr && "Error: hash function pointer is null!");
+    HashFn hash = hinfo->hashFn();
+    if (!hash) {
+        printf("Error: hash function pointer is null!\n");
+        exit(EXIT_FAILURE);
+    }
+
     assert(hinfo->isLocalSensitive() && "Flag FLAG_HASH_LOCALITY_SENSITIVE not found. Please ensure that your LSH hash function is defined with FLAG_HASH_LOCALITY_SENSITIVE tag.");
     assert(hinfo->similarityfn != nullptr && "LSH function should be defined with a similarity metric.");
     assert((std::strlen(hinfo->similarity_name) > 0) && "The similarity metric should be named.");
+
 
     bool result = true;
 
@@ -370,58 +401,62 @@ bool LSHApproxNearestNeighbourTest(const HashInfo *hinfo, flags_t flags) {
     uint32_t sequenceLength;
     if(hinfo->onlyShortSequenceLength()){
         printf("Hash %s is marked for only Short Sequence Length.\n", hinfo->name);
-        sequenceLength = g_ShortSequenceLength;
+        sequenceLength = g_sequenceLengthForApproxNNTest;  // Same
     }
     else{
-        sequenceLength = g_LongSequenceLength;
+        sequenceLength = g_sequenceLengthForApproxNNTest; // Same
     }
+
+    SetIsTestActive(true);
 
     SeedGenerator seedGen(g_GoldenRatio ^ std::chrono::system_clock::now().time_since_epoch().count());
 
     // -----------------------------------------------------------------------------------------------------
     // 1. Generate Ref sequences.
-    SequenceRecordsWithMetadataStruct ReferenceSequenceRecord;
-    ReferenceSequenceRecord.KeyCount = g_Nseq_in_Database;
-    ReferenceSequenceRecord.OriginalSequenceLength = sequenceLength;
-    ReferenceSequenceRecord.isBasesDrawnFromUniformDist = true;
-    ReferenceSequenceRecord.DataGenSeed = seedGen.nextSeed();
-    ReferenceSequenceRecord.DataMutateSeed = 0; // not applicable
+    SequenceRecordsWithMetadataStruct ReferenceSequenceRecords;
+    ReferenceSequenceRecords.KeyCount = g_Nseq_in_Database;
+    ReferenceSequenceRecords.OriginalSequenceLength = sequenceLength;
+    ReferenceSequenceRecords.isBasesDrawnFromUniformDist = true;
+    ReferenceSequenceRecords.DataGenSeed = seedGen.nextSeed();
+    ReferenceSequenceRecords.DataMutateSeed = 0; // not applicable
 
-    [[maybe_unused]] SequenceDataGenerator dataGenReference(&ReferenceSequenceRecord);
+    [[maybe_unused]] SequenceDataGenerator dataGenReference(&ReferenceSequenceRecords);
 
     // print the reference sequence to the output file  //TODO: Add a random number as suffix. and proper output file positing.
-    writeSequencesToFile(ReferenceSequenceRecord, "../results/reference_sequences.txt", 0);
+    writeSequencesToFile(ReferenceSequenceRecords, "../results/reference_sequences.txt", 0);
 
     // -----------------------------------------------------------------------------------------------------
     // 2. Generate query sequences by randomly sampling from the reference sequences.
 
     const uint32_t numQueries = g_numQueriesForApproxNNTest;
-    assert(numQueries < g_Nseq_in_Database && "Number of queries exceeds number of available sequences"); // Ensure we don't sample more queries than available sequences
+    assert(numQueries < g_Nseq_in_Database && "Number of queries exceeds number of available reference sequences"); // Ensure we don't sample more queries than available sequences
 
     std::mt19937 rngQuery(seedGen.nextSeed());
-    std::uniform_int_distribution<uint32_t> distribution(0, g_Nseq_in_Database - 1);
+    std::uniform_int_distribution<uint32_t> distribution(0, g_Nseq_in_Database - 1);    // [a,b], both boundaries are inclusive, thus subtracted 1.
 
-    SequenceRecordsWithMetadataStruct QuerySequenceRecord;
-    QuerySequenceRecord.KeyCount = numQueries;
-    QuerySequenceRecord.OriginalSequenceLength = sequenceLength; // Sampled Queries which have not yet mutated are same length as reference.
-    QuerySequenceRecord.isBasesDrawnFromUniformDist = g_isBasesDrawnFromUniformDistribution;
-    QuerySequenceRecord.DataGenSeed = 0; // Not applicable, as we are sampling from reference sequences rather than generating new random sequences.
-    QuerySequenceRecord.DataMutateSeed = seedGen.nextSeed();
+    SequenceRecordsWithMetadataStruct QuerySequenceRecords;
+    QuerySequenceRecords.KeyCount = numQueries;
+    QuerySequenceRecords.OriginalSequenceLength = sequenceLength; // Sampled Queries which have not yet mutated are same length as reference.
+    QuerySequenceRecords.isBasesDrawnFromUniformDist = g_isBasesDrawnFromUniformDistribution;
+    QuerySequenceRecords.DataGenSeed = 0; // Not applicable, as we are sampling from reference sequences rather than generating new random sequences.
+    QuerySequenceRecords.DataMutateSeed = seedGen.nextSeed();
 
     // Manual population of query sequences by sampling from unique k-mers
-    QuerySequenceRecord.Records.resize(numQueries);
+    QuerySequenceRecords.Records.resize(numQueries);
     for (uint32_t i = 0; i < numQueries; i++) {
-    uint32_t idx = distribution(rngQuery);
-    QuerySequenceRecord.Records[i].SeqASCIIOrg = ReferenceSequenceRecord.Records[idx].SeqASCIIOrg;
-    QuerySequenceRecord.Records[i].OriginalLength = sequenceLength;
+        uint32_t idx = distribution(rngQuery);
+        QuerySequenceRecords.Records[i].SeqASCIIOrg = ReferenceSequenceRecords.Records[idx].SeqASCIIOrg;
+        QuerySequenceRecords.Records[i].OriginalLength = sequenceLength;
     }
 
     // Print the query sequences to the output file
-    writeSequencesToFile(QuerySequenceRecord, "../results/query_sequences.txt", 0);
+    writeSequencesToFile(QuerySequenceRecords, "../results/query_sequences.txt", 0);
 
-    // 3. Perform aggegration to get the bins from 95% to 100% similarity.
+    // -----------------------------------------------------------------------------------------------------
+    // 3. Perform aggegration to get the bins from simx% to simy% similarity (note: simy>simx).
+
     SequenceRecordsWithMetadataStruct AggSequenceRecord;
-    AggSequenceRecord.KeyCount = g_NAggCases_ANN;
+    AggSequenceRecord.KeyCount = g_NAggCasesApproxNNTest;
     AggSequenceRecord.OriginalSequenceLength = sequenceLength; // Sampled Queries which have not yet mutated are same length as reference.
     AggSequenceRecord.isBasesDrawnFromUniformDist = g_isBasesDrawnFromUniformDistribution;
     AggSequenceRecord.DataGenSeed = 0; // Not applicable, as we are sampling from reference sequences rather than generating new random sequences.
@@ -430,7 +465,9 @@ bool LSHApproxNearestNeighbourTest(const HashInfo *hinfo, flags_t flags) {
     [[maybe_unused]] SequenceDataGenerator dataGenAgg(&AggSequenceRecord);
     sim_bins_struct sim_bins = LSHInnerAgg(hinfo,AggSequenceRecord, seedGen, out_file);
 
-    // remove the agg sequence records to free up memory, as we no longer need them. We have already extracted the binned error parameters and their statistics that we need for the next steps.
+    // remove the agg sequence records to free up memory, as we no longer need them.
+    // We have already extracted the binned error parameters and their statistics
+    // that we need for the next steps.
     AggSequenceRecord.Records.clear();
     AggSequenceRecord.Records.shrink_to_fit();
 
@@ -442,34 +479,44 @@ bool LSHApproxNearestNeighbourTest(const HashInfo *hinfo, flags_t flags) {
     }
 
     // Reset mutation-related fields in each record
-    for (uint32_t i = 0; i < QuerySequenceRecord.KeyCount; i++) {
-        QuerySequenceRecord.Records[i].SeqASCIIMut.clear();
-        QuerySequenceRecord.Records[i].similarity = 0.0;
-        QuerySequenceRecord.Records[i].foundationalParameter = 0.0;
-        QuerySequenceRecord.Records[i].snpRate = 0.0;
-        QuerySequenceRecord.Records[i].delRate = 0.0;
-        QuerySequenceRecord.Records[i].stayRate = 0.0;
-        QuerySequenceRecord.Records[i].insmean = 0.0;
-        QuerySequenceRecord.Records[i].insRate = 0.0;
+    for (uint32_t i = 0; i < QuerySequenceRecords.KeyCount; i++) {
+        QuerySequenceRecords.Records[i].SeqASCIIMut.clear();
+        QuerySequenceRecords.Records[i].similarity = 0.0;
+        QuerySequenceRecords.Records[i].foundationalParameter = 0.0;
+        QuerySequenceRecords.Records[i].snpRate = 0.0;
+        QuerySequenceRecords.Records[i].delRate = 0.0;
+        QuerySequenceRecords.Records[i].stayRate = 0.0;
+        QuerySequenceRecords.Records[i].insmean = 0.0;
+        QuerySequenceRecords.Records[i].insRate = 0.0;
     }
 
-    // Generate new error parameters targeting similarity range [0.95, 1.0]
+    // Generate new error parameters targeting similarity range [low, high]
+    constexpr double target_sim_low = 0.95; // Only two digits are allowed after decimal.
+    constexpr double target_sim_high = 1.0; // Only two digits are allowed after decimal.
 
-    constexpr double target_sim_low = 0.90;  // 95% similarity
-    constexpr double target_sim_high = 1.0; // 100% similarity (no mutation)
+    // Convert similarity values to bin indices using the same formula as the binning step
+    // bin_index = (sim - binstart) / binsize, clamped to [0, bincount-1]
+    // This makes the intent explicit and stays consistent with how bins are defined.
+    auto sim_to_bin_idx = [&](double sim) -> int32_t {
+        int32_t idx = static_cast<int32_t>((sim - AggSequenceRecord.binstart) / AggSequenceRecord.binsize);
+        return std::clamp(idx, 0, static_cast<int32_t>(AggSequenceRecord.bincount) - 1);
+    };
+
+    const int32_t target_bin_low  = sim_to_bin_idx(target_sim_low);   // = 95
+    const int32_t target_bin_high = sim_to_bin_idx(target_sim_high);  // = 99, not 100
 
     Randbin rng_bin_sampler(seedGen.nextSeed());
     Randbin rng_bin_params_sampler(seedGen.nextSeed());
 
     uint32_t skipped_sequences = 0;
-    for (uint32_t idx = 0; idx < QuerySequenceRecord.KeyCount; idx++) {
+    for (uint32_t idx = 0; idx < QuerySequenceRecords.KeyCount; idx++) {
         uint32_t bin_fill_count = 0;
         int sampled_binid = -1;
         uint32_t attempts = 0;
         constexpr uint32_t max_attempts = 1000;
 
         while (bin_fill_count == 0 && attempts < max_attempts) {
-            sampled_binid = rng_bin_sampler.rand_custom_range(target_sim_low * 100, target_sim_high * 100);
+            sampled_binid = rng_bin_sampler.rand_custom_range(target_bin_low, target_bin_high);
             // printf("Attempt %u: Sampled bin ID = %d\n", attempts + 1,sampled_binid);
             bin_fill_count = sim_bins.bin_fill_count[sampled_binid];  // get the number of entries in this bin. We get this from the agg computation step.
             attempts++;
@@ -484,7 +531,7 @@ bool LSHApproxNearestNeighbourTest(const HashInfo *hinfo, flags_t flags) {
 
         uint32_t rand_param_idx = rng_bin_params_sampler.rand_range(bin_fill_count);
         double sampled_error_param = sim_bins.bin_error_parameters[sampled_binid][rand_param_idx];
-        QuerySequenceRecord.Records[idx].foundationalParameter = sampled_error_param;
+        QuerySequenceRecords.Records[idx].foundationalParameter = sampled_error_param;
     }
 
     if (skipped_sequences > 0) {
@@ -492,16 +539,16 @@ bool LSHApproxNearestNeighbourTest(const HashInfo *hinfo, flags_t flags) {
     }
 
     if (g_mutation_model == MUTATION_MODEL_SIMPLE_SNP_ONLY) {
-        [[maybe_unused]] SequenceDataMutatorSubstitutionOnly dataMutTest(&QuerySequenceRecord, hinfo->similarityfn);
+        [[maybe_unused]] SequenceDataMutatorSubstitutionOnly dataMutTest(&QuerySequenceRecords, hinfo->similarityfn);
         printf("Completed mutation using simple SNP only model.\n");
     } else if (g_mutation_model == MUTATION_MODEL_GEOMETRIC_MUTATOR) {
-        [[maybe_unused]] SequenceDataMutatorGeometric dataMutTest(&QuerySequenceRecord, hinfo->similarityfn);
+        [[maybe_unused]] SequenceDataMutatorGeometric dataMutTest(&QuerySequenceRecords, hinfo->similarityfn);
         printf("Completed mutation using geometric mutator model.\n");
     }
 
-    printf("Re-sampled mutated %u sequences targeting similarity in [%.2f, %.2f].\n", QuerySequenceRecord.KeyCount, target_sim_low, target_sim_high);
+    printf("Re-sampled mutated %u sequences targeting similarity in [%.2f, %.2f].\n", QuerySequenceRecords.KeyCount, target_sim_low, target_sim_high);
 
-    writeSequencesToFile(QuerySequenceRecord, "../results/query_sequences.txt", 2);
+    writeSequencesToFile(QuerySequenceRecords, "../results/query_sequences.txt", 2);
 
     // print the query, the mutated sequence and the similarity values to terminal
     // printf("\n\n");
@@ -516,130 +563,98 @@ bool LSHApproxNearestNeighbourTest(const HashInfo *hinfo, flags_t flags) {
     double sum_sim = 0.0;
     double min_sim = 1.0;
     double max_sim = 0.0;
-    for (uint32_t i = 0; i < QuerySequenceRecord.KeyCount; i++) {
-    double s = QuerySequenceRecord.Records[i].similarity;
+    for (uint32_t i = 0; i < QuerySequenceRecords.KeyCount; i++) {
+    double s = QuerySequenceRecords.Records[i].similarity;
     sum_sim += s;
     if (s < min_sim)
       min_sim = s;
     if (s > max_sim)
       max_sim = s;
     }
-    double mean_sim = sum_sim / QuerySequenceRecord.KeyCount;
+    double mean_sim = sum_sim / QuerySequenceRecords.KeyCount;
 
     double sq_diff_sum = 0.0;
-    for (uint32_t i = 0; i < QuerySequenceRecord.KeyCount; i++) {
-        double diff = QuerySequenceRecord.Records[i].similarity - mean_sim;
+    for (uint32_t i = 0; i < QuerySequenceRecords.KeyCount; i++) {
+        double diff = QuerySequenceRecords.Records[i].similarity - mean_sim;
         sq_diff_sum += diff * diff;
     }
-    double stddev_sim = sqrt(sq_diff_sum / QuerySequenceRecord.KeyCount);
+    double stddev_sim = sqrt(sq_diff_sum / QuerySequenceRecords.KeyCount);
 
-    printf("Similarity stats (%u records): Mean = %f, Min = %f, Max = %f, Stddev = %f\n", QuerySequenceRecord.KeyCount, mean_sim, min_sim, max_sim, stddev_sim);
+    printf("Similarity stats (%u records): Mean = %f, Min = %f, Max = %f, Stddev = %f\n", QuerySequenceRecords.KeyCount, mean_sim, min_sim, max_sim, stddev_sim);
 
     //-----------------------------------------------------------------------------------------------------
-
-    // ReferenceSequenceRecord.Records[999999].SeqASCIIOrg = ReferenceSequenceRecord.Records[999998].SeqASCIIOrg;   //just for testing
-
-    // It is importnat that we perform this uniqification, since in certain cases there is a high chance of generating duplicate sequences in the reference.
+    // 4: Uniquification
+    // It is important that we perform this uniquification, since in certain cases of probability distributions(low complexity)
+    // there is a high chance of generating duplicate sequences in the reference.
 
     // Create a mapping of unique k-mers in the reference to their positions for efficient similarity lookups.
     std::unordered_map<std::string, std::vector<uint32_t>> uniqueKmerPositions;
     for (uint32_t pos = 0; pos < g_Nseq_in_Database; pos++) {
-    std::string sequence = ReferenceSequenceRecord.Records[pos].SeqASCIIOrg;
-    uniqueKmerPositions[sequence].push_back(pos);
+        std::string sequence = ReferenceSequenceRecords.Records[pos].SeqASCIIOrg;
+        uniqueKmerPositions[sequence].push_back(pos);
     }
-
-    // // --- Code to print uniqueKmerPositions (for debugging/verification) ---
-    // printf("\n--- Contents of uniqueKmerPositions (%zu unique kmers) ---\n", uniqueKmerPositions.size());
-    // uint32_t print_count = 0;
-    // for (const auto& pair : uniqueKmerPositions) {
-    //     printf("Kmer: %s -> Positions: [", pair.first.c_str());
-    //     for (size_t i = 0; i < pair.second.size(); ++i) {
-    //         printf("%u", pair.second[i]);
-    //         if (i < pair.second.size() - 1) {
-    //             printf(", ");
-    //         }
-    //     }
-    //     printf("]\n");
-    //     if (++print_count >= 10 && uniqueKmerPositions.size() > 10) { // Limit output to first 10 for large maps
-    //         printf("... (showing first 10 entries of %zu)\n", uniqueKmerPositions.size());
-    //         break;
-    //     }
-    // }
-    // printf("----------------------------------------------------------\n\n");
-
+    // print_uniqueKmerPositions(uniqueKmerPositions);
 
     // -----------------------------------------------------------------------------------------------------
-    // Compute Ground Truth: For each mutated query, find the TOP_K closest sequences
-    // in the entire reference database via brute-force comparison.
-    // -----------------------------------------------------------------------------------------------------
-    constexpr uint32_t TOP_K = 1; // Find top 10 nearest neighbors
+    // 5: Compute Ground Truth for c-ANN: For each mutated query, compute similarity to all reference sequences
+    // and store entires above the minimum c threshold floor. At evaluation time, for each c value,
+    // the true neighbour set = all entries with sim >= c * target_sim_low.
+    const double min_c = *std::min_element(g_cValuesApproxNNTest.begin(), g_cValuesApproxNNTest.end());
+    const double sim_floor = min_c * target_sim_low; // Only storing entries above this
 
     struct GroundTruthEntry {
         uint32_t position; // Position in the reference database
         double similarity;
     };
 
-    std::vector<std::vector<GroundTruthEntry>> groundTruthNearest(QuerySequenceRecord.KeyCount);
-    printf("Computing ground truth top-%u nearest sequences for %u queries across %u reference sequences...\n", TOP_K, QuerySequenceRecord.KeyCount, g_Nseq_in_Database);
+    std::vector<std::vector<GroundTruthEntry>> groundTruthAll(QuerySequenceRecords.KeyCount);
 
-    for (uint32_t q_idx = 0; q_idx < QuerySequenceRecord.KeyCount; q_idx++) {
-        const std::string &querySeq = QuerySequenceRecord.Records[q_idx].SeqASCIIMut;
-        uint32_t mut_len = QuerySequenceRecord.Records[q_idx].MutatedLength;
+    printf("Computing ground truth (c-ANN) for %u queries across %u reference sequences (sim floor = %.4f)...\n", QuerySequenceRecords.KeyCount, g_Nseq_in_Database, sim_floor);
 
-        // Step 1: Compute similarity between this query and EVERY sequence in the reference
-        std::vector<std::pair<double, uint32_t>> allSimilarities;
-        allSimilarities.reserve(g_Nseq_in_Database);
+    for (uint32_t q_idx = 0; q_idx < QuerySequenceRecords.KeyCount; q_idx++) {
+        const std::string &querySeq = QuerySequenceRecords.Records[q_idx].SeqASCIIMut;
+        uint32_t mut_len = QuerySequenceRecords.Records[q_idx].MutatedLength;
 
+        // Step A: Compute similarity between this query and EVERY sequence in the reference,
+        // keeping only those above the minimum threshold floor.
         for (uint32_t ref_pos = 0; ref_pos < g_Nseq_in_Database; ++ref_pos) {
-            const std::string &refSeq = ReferenceSequenceRecord.Records[ref_pos].SeqASCIIOrg;
-            double sim = 0.0;
-            sim = hinfo->similarityfn(querySeq, refSeq, mut_len, sequenceLength);
-            allSimilarities.push_back({sim, ref_pos});
+            const std::string &refSeq = ReferenceSequenceRecords.Records[ref_pos].SeqASCIIOrg;
+            double sim = hinfo->similarityfn(querySeq, refSeq, mut_len, sequenceLength);
+            if (sim >= sim_floor) {
+                groundTruthAll[q_idx].push_back({ref_pos, sim});
+            }
         }
 
-        // Step 2: Sort by similarity in descending order (most similar first)
-        std::sort(allSimilarities.begin(), allSimilarities.end(), [](const std::pair<double, uint32_t> &a, const std::pair<double, uint32_t> &b) {
-          return a.first > b.first;
-        });
-    
-        // Step 3: Take the top-K entries
-        std::vector<GroundTruthEntry>& topK = groundTruthNearest[q_idx];
-        topK.reserve(TOP_K);
-        for (uint32_t i = 0; i < TOP_K && i < allSimilarities.size(); ++i) {
-            topK.push_back({allSimilarities[i].second, allSimilarities[i].first});
-        }
+        // Step B: Sort by similarity  (most similar first) (useful for debugging/inspection)
+        std::sort(groundTruthAll[q_idx].begin(), groundTruthAll[q_idx].end(),
+              [](const GroundTruthEntry &a, const GroundTruthEntry &b) {
+                return a.similarity > b.similarity;
+              });
 
         if(q_idx % 100 == 0 && q_idx > 0){
-          printf("  Ground truth progress: %u / %u queries done.\n", q_idx, QuerySequenceRecord.KeyCount);
+          printf("  Ground truth progress: %u / %u queries done.\n", q_idx, QuerySequenceRecords.KeyCount);
         }
     }
 
-    printf("Ground truth computation complete for %u queries.\n", QuerySequenceRecord.KeyCount);
+    printf("Ground truth computation complete for %u queries.\n", QuerySequenceRecords.KeyCount);
   
-      // Write ground truth to output file
-      // out_file << ":15:Ground Truth Top-" << TOP_K << " Nearest Sequences\n";
-      // for(uint32_t q_idx = 0; q_idx < QuerySequenceRecord.KeyCount; q_idx++){
-      //   out_file << "Q" << q_idx << ":";
-      //   for(size_t k = 0; k < groundTruthNearest[q_idx].size(); k++){
-      //     const auto& entry = groundTruthNearest[q_idx][k];
-      //     out_file << entry.position << "," << entry.similarity;
-      //     if(k < groundTruthNearest[q_idx].size() - 1) out_file << ";";
-      //   }
-      //   out_file << "\n";
-      // }
+    // Write ground truth to output file
+    // out_file << ":15:Ground Truth Top-" << TOP_K << " Nearest Sequences\n";
+    // for(uint32_t q_idx = 0; q_idx < QuerySequenceRecord.KeyCount; q_idx++){
+    //   out_file << "Q" << q_idx << ":";
+    //   for(size_t k = 0; k < groundTruthNearest[q_idx].size(); k++){
+    //     const auto& entry = groundTruthNearest[q_idx][k];
+    //     out_file << entry.position << "," << entry.similarity;
+    //     if(k < groundTruthNearest[q_idx].size() - 1) out_file << ";";
+    //   }
+    //   out_file << "\n";
+    // }
   
-      // ============================================================================
-      // LSH Index Construction and Querying
-      // ============================================================================
-
-      HashFn hash = hinfo->hashFn();
-      if (!hash) {
-          printf("Error: hash function pointer is null!\n");
-          exit(EXIT_FAILURE);
-      }
+    // -----------------------------------------------------------------------------------------------------
+    // 6. LSH Index Construction and Querying
 
     // Define LSH parameters and number of runs
-    const uint32_t NUM_RUNS = g_ANN_runs_for_avg;
+    const uint32_t NUM_RUNS = g_avgRunsForApproxNN;
     std::vector<std::pair<uint32_t, uint32_t>> br_pairs;
 
     // Programmatically fill br_pairs from b=1 to 10 and r=1 to 10
@@ -656,13 +671,12 @@ bool LSHApproxNearestNeighbourTest(const HashInfo *hinfo, flags_t flags) {
     // File header
     out_file << ":1:LSH Approx Nearest Neighbour Summary\n";
     out_file << ":2:" << "Hashname," << "SequenceLength," << "Distance Metric," << "Mutation Model," << "Mutation Expression" << std::endl;
-    out_file << ":3:" << hinfo->name << "," << g_sequenceLength_ANN << "," << hinfo->similarity_name << "," << g_mutation_model << "," << g_mutation_expression_type << std::endl;
+    out_file << ":3:" << hinfo->name << "," << sequenceLength << "," << hinfo->similarity_name << "," << g_mutation_model << "," << g_mutation_expression_type << std::endl;
 
     // Print hash function ultra-specific parameters to the output file
     hinfo->printParameters(out_file);
 
-    out_file << ":5:b,r,Avg_Recall,Avg_Precision,Avg_FPR,Avg_F1_Score\n";
-  
+    out_file << ":5:b,r,c,Avg_Recall,Avg_Precision,Avg_FPR,Avg_F1_Score\n";
 
     for (const auto& br_pair : br_pairs) {
         uint32_t b = br_pair.first;  // Hashes per table
@@ -672,10 +686,11 @@ bool LSHApproxNearestNeighbourTest(const HashInfo *hinfo, flags_t flags) {
         printf("Running experiment for b=%u, r=%u over %u runs\n", b, r, NUM_RUNS);
         printf("==================================================================\n");
 
-        std::vector<double> all_runs_avg_recall;
-        std::vector<double> all_runs_avg_precision;
-        std::vector<double> all_runs_avg_fpr;
-        std::vector<double> all_runs_avg_f1;
+        // Per-c accumulators: for each c value, accumulate metrics across runs
+        std::map<double, std::vector<double>> all_runs_avg_recall;
+        std::map<double, std::vector<double>> all_runs_avg_precision;
+        std::map<double, std::vector<double>> all_runs_avg_fpr;
+        std::map<double, std::vector<double>> all_runs_avg_f1;
 
         for (uint32_t run = 0; run < NUM_RUNS; ++run) {
             printf("\n--- Run %u/%u for b=%u, r=%u ---\n", run + 1, NUM_RUNS, b, r);
@@ -684,109 +699,133 @@ bool LSHApproxNearestNeighbourTest(const HashInfo *hinfo, flags_t flags) {
 
             // Populate Index from the reference database
             for (uint32_t i = 0; i < g_Nseq_in_Database; ++i) {
-              lsh_index.insert(ReferenceSequenceRecord.Records[i].SeqASCIIOrg, i);
+                lsh_index.insert(ReferenceSequenceRecords.Records[i].SeqASCIIOrg, i);
             }
       
             // ============================================================================
             // Query and Evaluation Phase for this run
             // ============================================================================
-            std::vector<double> recall_per_query;
-            std::vector<double> precision_per_query;
-            std::vector<double> fpr_per_query;
+            // Per-c, per-query metric vectors
+            std::map<double, std::vector<double>> recall_per_query;
+            std::map<double, std::vector<double>> precision_per_query;
+            std::map<double, std::vector<double>> fpr_per_query;
 
-            for (uint32_t q_idx = 0; q_idx < QuerySequenceRecord.KeyCount; q_idx++) {
-                const std::string& querySeq = QuerySequenceRecord.Records[q_idx].SeqASCIIMut;
+            for (uint32_t q_idx = 0; q_idx < QuerySequenceRecords.KeyCount; q_idx++) {
+                const std::string& querySeq = QuerySequenceRecords.Records[q_idx].SeqASCIIMut;
                 std::vector<uint32_t> lsh_results = lsh_index.query(querySeq);
                 std::set<uint32_t> lsh_results_set(lsh_results.begin(), lsh_results.end());
 
-                const auto& ground_truth = groundTruthNearest[q_idx];
-                std::set<uint32_t> ground_truth_positions;
-                for (const auto& entry : ground_truth) {
-                    ground_truth_positions.insert(entry.position);
-                }
+                const auto &ground_truth_full = groundTruthAll[q_idx];
 
-                uint32_t true_positives = 0;
-                uint32_t false_positives = 0;
+                // Evaluate for each c value
+                for (double c : g_cValuesApproxNNTest) {
+                    double sim_threshold = c * target_sim_low;
 
-                for (uint32_t pos : lsh_results_set) {
-                    if (ground_truth_positions.count(pos)) {
-                        true_positives++;
-                    } else {
-                        false_positives++;
+                    // Build ground truth set: all entries with sim >= c * target_sim_low
+                    std::set<uint32_t> ground_truth_positions;
+                    for (const auto &entry : ground_truth_full) {
+                        if (entry.similarity >= sim_threshold) {
+                            ground_truth_positions.insert(entry.position);
+                        }
                     }
+
+                    uint32_t true_positives = 0;
+                    uint32_t false_positives = 0;
+
+                    for (uint32_t pos : lsh_results_set) {
+                        if (ground_truth_positions.count(pos)) {    //this way we didnt need repeat removal.
+                            true_positives++;
+                        } else {
+                            false_positives++;
+                        }
+                    }
+
+                    int false_negatives = static_cast<int>(ground_truth_positions.size()) - true_positives;
+                    assert(false_negatives >= 0);
+
+                    double recall = (true_positives + false_negatives > 0) ? static_cast<double>(true_positives)/(true_positives + false_negatives):0.0;
+                    double precision = (true_positives + false_positives > 0) ? static_cast<double>(true_positives) /(true_positives + false_positives): 0.0;
+
+                    uint32_t total_negatives = g_Nseq_in_Database - static_cast<uint32_t>(ground_truth_positions.size());
+                    double false_positive_rate = (total_negatives > 0) ? static_cast<double>(false_positives) / total_negatives : 0.0;
+
+                    recall_per_query[c].push_back(recall);
+                    precision_per_query[c].push_back(precision);
+                    fpr_per_query[c].push_back(false_positive_rate);
+                }
+            }
+
+            //-------------------------------------------------------------------------------------
+            // Calculate macro-averaged metrics for this single run, per c
+            for (double c : g_cValuesApproxNNTest) {
+                double run_avg_recall = 0.0;
+                double run_avg_precision = 0.0;
+                double run_avg_fpr = 0.0;
+
+                if (QuerySequenceRecords.KeyCount > 0) {
+                    for (double r_val : recall_per_query[c])
+                        run_avg_recall += r_val;
+                    run_avg_recall /= QuerySequenceRecords.KeyCount;
+
+                    for (double p_val : precision_per_query[c])
+                        run_avg_precision += p_val;
+                    run_avg_precision /= QuerySequenceRecords.KeyCount;
+
+                    for (double fpr_val : fpr_per_query[c])
+                        run_avg_fpr += fpr_val;
+                    run_avg_fpr /= QuerySequenceRecords.KeyCount;
                 }
 
-                int false_negatives = ground_truth_positions.size() - true_positives;
-                assert(false_negatives >= 0);
+                double run_f1_score = 0.0;
+                if ((run_avg_recall + run_avg_precision) > 0) {
+                    run_f1_score = 2.0 * (run_avg_recall * run_avg_precision) / (run_avg_recall + run_avg_precision);
+                }
 
-                double recall = (true_positives + false_negatives > 0) ? static_cast<double>(true_positives) / (true_positives + false_negatives) : 0.0;
-                double precision = (true_positives + false_positives > 0) ? static_cast<double>(true_positives) / (true_positives + false_positives) : 0.0;
+                printf("  Run %u c=%.2f: Recall=%.4f, Precision=%.4f, FPR=%.4f, F1=%.4f\n", run + 1, c, run_avg_recall, run_avg_precision, run_avg_fpr, run_f1_score);
 
-                uint32_t total_negatives = g_Nseq_in_Database - ground_truth_positions.size();
-                double false_positive_rate = (total_negatives > 0) ? static_cast<double>(false_positives) / total_negatives : 0.0;
-
-                recall_per_query.push_back(recall);
-                precision_per_query.push_back(precision);
-                fpr_per_query.push_back(false_positive_rate);
+                // Store metrics for this run
+                all_runs_avg_recall[c].push_back(run_avg_recall);
+                all_runs_avg_precision[c].push_back(run_avg_precision);
+                all_runs_avg_fpr[c].push_back(run_avg_fpr);
+                all_runs_avg_f1[c].push_back(run_f1_score);
             }
-
-            // Calculate macro-averaged metrics for this single run
-            double run_avg_recall = 0.0;
-            double run_avg_precision = 0.0;
-            double run_avg_fpr = 0.0;
-
-            if (QuerySequenceRecord.KeyCount > 0) {
-                for (double r_val : recall_per_query) run_avg_recall += r_val;
-                run_avg_recall /= QuerySequenceRecord.KeyCount;
-
-                for (double p_val : precision_per_query) run_avg_precision += p_val;
-                run_avg_precision /= QuerySequenceRecord.KeyCount;
-
-                for (double fpr_val : fpr_per_query) run_avg_fpr += fpr_val;
-                run_avg_fpr /= QuerySequenceRecord.KeyCount;
-            }
-
-            double run_f1_score = 0.0;
-            if ((run_avg_recall + run_avg_precision) > 0) {
-                run_f1_score = 2.0 * (run_avg_recall * run_avg_precision) / (run_avg_recall + run_avg_precision);
-            }
-
-            printf("  Run %u Metrics: Recall=%.4f, Precision=%.4f, FPR=%.4f, F1=%.4f\n", run + 1, run_avg_recall, run_avg_precision, run_avg_fpr, run_f1_score);
-
-            // Store metrics for this run
-            all_runs_avg_recall.push_back(run_avg_recall);
-            all_runs_avg_precision.push_back(run_avg_precision);
-            all_runs_avg_fpr.push_back(run_avg_fpr);
-            all_runs_avg_f1.push_back(run_f1_score);
         }
 
-        // Average the metrics across all runs for the current (b, r) pair
-        double final_avg_recall = 0.0;
-        double final_avg_precision = 0.0;
-        double final_avg_fpr = 0.0;
-        double final_avg_f1 = 0.0;
+        // Average the metrics across all runs for the current (b, r) pair, per c
+        for (double c : g_cValuesApproxNNTest) {
+            double final_avg_recall = 0.0;
+            double final_avg_precision = 0.0;
+            double final_avg_fpr = 0.0;
+            double final_avg_f1 = 0.0;
 
-        for(double val : all_runs_avg_recall) final_avg_recall += val;
-        final_avg_recall /= NUM_RUNS;
+            for (double val : all_runs_avg_recall[c])
+                final_avg_recall += val;
+            final_avg_recall /= NUM_RUNS;
 
-        for(double val : all_runs_avg_precision) final_avg_precision += val;
-        final_avg_precision /= NUM_RUNS;
+            for (double val : all_runs_avg_precision[c])
+                final_avg_precision += val;
+            final_avg_precision /= NUM_RUNS;
 
-        for(double val : all_runs_avg_fpr) final_avg_fpr += val;
-        final_avg_fpr /= NUM_RUNS;
+            for (double val : all_runs_avg_fpr[c])
+                final_avg_fpr += val;
+            final_avg_fpr /= NUM_RUNS;
 
-        for(double val : all_runs_avg_f1) final_avg_f1 += val;
-        final_avg_f1 /= NUM_RUNS;
+            for (double val : all_runs_avg_f1[c])
+                final_avg_f1 += val;
+            final_avg_f1 /= NUM_RUNS;
 
-        printf("\n--- Average Metrics for b=%u, r=%u (over %u runs) ---\n", b, r, NUM_RUNS);
-        printf("Average Recall:    %.4f\n", final_avg_recall);
-        printf("Average Precision: %.4f\n", final_avg_precision);
-        printf("Average FPR:       %.4f\n", final_avg_fpr);
-        printf("Average F1-Score:  %.4f\n", final_avg_f1);
-        printf("-----------------------------------------------------\n");
+            printf("\n--- Average Metrics for b=%u, r=%u, c=%.2f (over %u runs) ---\n", b, r, c, NUM_RUNS);
+            printf("Average Recall:    %.4f\n", final_avg_recall);
+            printf("Average Precision: %.4f\n", final_avg_precision);
+            printf("Average FPR:       %.4f\n", final_avg_fpr);
+            printf("Average F1-Score:  %.4f\n", final_avg_f1);
+            printf("-----------------------------------------------------\n");
 
-        // Write summary for this (b,r) pair to file
-        out_file <<":6:" << b << "," << r << "," << final_avg_recall << "," << final_avg_precision << "," << final_avg_fpr << "," << final_avg_f1 << "\n";
+          // Write summary for this (b, r, c) triple to file
+          out_file << ":6:" << b << "," << r << "," << c << ","
+                   << final_avg_recall << "," << final_avg_precision << ","
+                   << final_avg_fpr << "," << final_avg_f1 << "\n";
+        }
     }
 
     // Cleanup: Reset LSH global variables after test completion

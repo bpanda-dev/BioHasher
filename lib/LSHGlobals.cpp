@@ -34,12 +34,14 @@ bool g_isBasesDrawnFromUniformDistribution = true;
 
 std::vector<uint32_t> g_tokenLengths_array = {13}; //{4 ,7, 13, 21, 31, 33};
 
-uint32_t g_NAggCases_ANN = 500000;
-uint32_t g_sequenceLength_ANN = 45; // Sequence length for Approx Nearest Neighbour test. Adjust as needed.
+uint32_t g_NAggCasesApproxNNTest = 500000;
+uint32_t g_sequenceLengthForApproxNNTest = 45; // Sequence length for Approx Nearest Neighbour test. Adjust as needed.
 uint32_t g_Nseq_in_Database = 10000; // Number of sequences in the reference database for the Approx Nearest Neighbour test. Adjust as needed.
 uint32_t g_numQueriesForApproxNNTest = 50; // Number of query sequences to generate for the Approx Nearest Neighbour test. Adjust as needed.
 
-uint32_t g_ANN_runs_for_avg = 5;
+uint32_t g_avgRunsForApproxNN = 5;
+
+std::vector<double> g_cValuesApproxNNTest = {0.5, 0.6, 0.7, 0.8, 0.9, 0.95}; // c-ANN approximation factors to sweep. Each c < 1 defines the boundary as c * target_sim_low.
 
 uint32_t g_ANN_start_B = 1; // Starting value of b (hashes per table) for the Approx Nearest Neighbour test. Adjust as needed.
 uint32_t g_ANN_start_R = 1; // Starting value of r (number of tables) for the Approx Nearest Neighbour test. Adjust as needed.

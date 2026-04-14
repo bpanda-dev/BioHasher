@@ -264,9 +264,9 @@ SequenceDataGenerator::SequenceDataGenerator(SequenceRecordsWithMetadataStruct *
 
 			/* Debugging Statements! Please never delete!*/
 			// Print first 10 sequences for verification
-			if (rec_idx < 10) {
-				std::cout << "Record " << rec_idx << " Original Sequence: " << record.SeqASCIIOrg << std::endl;
-			}
+			// if (rec_idx < 10) {
+			// 	std::cout << "Record " << rec_idx << " Original Sequence: " << record.SeqASCIIOrg << std::endl;
+			// }
 		}
 	}
 	else{

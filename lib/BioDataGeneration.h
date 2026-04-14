@@ -144,10 +144,10 @@ public:
         return dist(rng) % range;
     }
 	
-	// Generate a uniform random double in [low, high)
-    double rand_custom_range(double low, double high) {
-        std::uniform_real_distribution<double> real_dist(low, high);
-        return real_dist(rng);
+	// Generate a uniform random int in [low, high]
+    int rand_custom_range(double low, double high) {
+        std::uniform_int_distribution<int> int_dist(low, high);
+        return int_dist(rng);
     }
 };
 
