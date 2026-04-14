@@ -2,87 +2,68 @@
 
 ## Overview
 
-BioHasher is a specialized Locality Sensitive Hash function testing framework designed for biological sequence analysis. It is built upon the hash function testing framework SMHasher3[https://gitlab.com/fwojcik/smhasher3]. BioHasher currently supports three tests Collision Curve Test, Collision Curve Test with AND-OR amplification, and Approximate Nearest Neighbour Test.
+BioHasher is a specialized Locality Sensitive Hash function testing framework designed with biological context in mind. It is built upon the hash function testing framework [SMHasher3](https://gitlab.com/fwojcik/smhasher3). BioHasher currently supports two tests Collision Curve Test with AND-OR amplification, and c-Approximate Nearest Neighbour Test.
 
 
 ## Getting Started
 
 To get started with BioHasher, follow these steps:
 
-1. Clone the repository:
-
+1. **Clone the repository**:
     ```bash
-    git clone https://github.com/bpanda-dev/BioHasher.git
+      git clone https://github.com/bpanda-dev/BioHasher.git
+      cd BioHasher
     ```
-
-2. Build BioHasher:
+2. **Set up conda environment**: (BioHasher is bundled with multiple python scripts for plotting and for aiding users to connect their hash function to the BioHasher framework.)
+   1. Prerequisites: [Miniconda](https://docs.conda.io/en/latest/miniconda.html) or [Anaconda](https://www.anaconda.com/download)
+   2. Create the conda environment from the provided `environment.yaml`:
+      ```bash
+       conda env create -f environment.yaml
+      ``` 
+      This creates a conda environment name `biohasher`. 
+   3. Activate the environment:
+      ```bash
+       conda activate biohasher
+       # to deactivate biohasher, just use ->  conda deactivate
+      ```
+3. **Build BioHasher**:
 
    ```bash
-    cd BioHasher
     mkdir build
     cd build
     cmake ..
     make -j$(nproc)
     # Perform a sample test run to perform collison analysis of an included hash function (OneBaseSamplingHash-32)
-    ./SMHasher3 --test=LSHCollision OneBaseSamplingHash-32 --ncpu=16
+    ./SMHasher3 --test=LSHCollision OneBaseSamplingHash-32 --ncpu=4
     ```
-   
-    If everything works correctly, the above run should generate a file named `collisionResults_OneBaseSamplingHash-32.csv` in the `results` directory under `BioHasher`. This file contains the output of the collision test.
-
-3. To plot the curves from the output csv file,
+    If everything works correctly, the above run should generate a output file named `collisionResults_OneBaseSamplingHash-32.csv` in the `results` directory under `BioHasher`. This file contains the output of the collision test.
+4. To **plot the curves** from the output csv file, 
 
     ```bash
-    python ../analysis/plot_collisioncurves.py ../results/collisionResults_SubseqHash-64.csv
+    python ../analysis/plot_collisioncurves.py ../results/collisionResults_OneBaseSamplingHash-32.csv
     ```
 
     <!-- This will generate various versions of collision curves plots in the analysis directory. We explain about the type of plots in section [[?]]. -->
 
-> Add the code for setting up environment.
-
-## Python Analysis Environment
-
-The analysis and plotting scripts (in `analysis/`) require a Python environment with several scientific packages. A conda environment file is provided for reproducibility.
-
-### Prerequisites
-
-- [Miniconda](https://docs.conda.io/en/latest/miniconda.html) or [Anaconda](https://www.anaconda.com/download)
-
-### Setting up the environment
-
-1. **Create the conda environment** from the provided `environment.yaml`:
-
-   ```bash
-   conda env create -f environment.yaml
-   ```
-
-2. **Activate the environment**:
-
-   ```bash
-   conda activate biohasher
-   ```
-
-3. **Verify** the installation:
-
-   ```bash
-   python -c "import matplotlib; import numpy; import pandas; import scipy; import plotly; import adjustText; print('All packages OK')"
-   ```
-
-4. **Deactivate** when done:
-
-   ```bash
-   conda deactivate
-   ```
-
+<!--
 ### Updating the environment
+
 
 If `environment.yaml` is modified (e.g., a new dependency is added), update your existing environment with:
 
+
 ```bash
+
 conda env update -f environment.yaml --prune
+
 ```
+-->
 
+## A brief idea of Tests included in BioHasher
+### Collision Curve
+### c-ANN Test
 
-## Usage Guide for Novel Hash function testing
+## Usage Guide for Adding a Novel Hash function for testing
 
 This section walks through the complete workflow of: **adding a new hash function**, **running tests**, and **generating plots** from the results.
 
@@ -413,25 +394,51 @@ BioHasher/
 ├── hashes/                             # Hash function implementations
 │   ├── minhash.cpp                     # MinHash implementation
 │   ├── simhash.cpp                     # SimHash implementation
-│   └── subseqhash/                     # SubseqHash implementation
+│   ├── onebasesamplinghash.cpp         # One-base sampling hash implementation
+│   ├── minhashWithSignature.cpp        # MinHash with signature matrix
+│   ├── donothing.cpp                   # No-op hash (baseline)
+│   ├── Hashrefs.cmake                  # CMake hash reference list
+│   ├── Hashrefs.cpp.in                 # Hash reference template
+│   ├── Hashsrc.cmake                   # CMake hash source list
+│   └── ssh1/                           # SubseqHash implementation
 │       └── ssh1.cpp
 ├── tests/                              # Test implementations
-│   ├── LSHCollisionTest.cpp            # Collision curve test
-│   ├── LSHCollisionAndOrTest.cpp       # Collision curve test with AND-OR amplification
-│   └── ApproxNearestNeighbourTest.cpp  # Approximate nearest neighbour test
+│   ├── LSHCollision.cpp                # Collision curve test
+│   ├── LSHCollision.h
+│   ├── ApproxNearestNeighbour.cpp      # Approximate nearest neighbour test
+│   └── ApproxNearestNeighbour.h
 ├── analysis/                           # Plotting scripts
-│   ├── plot_collisioncurves.py         # Collision curve plotting
+│   ├── plot_collisioncurves.py         # Collision curve plotting (matplotlib)
+│   ├── plot_collisioncurve_plotly.py   # Collision curve plotting (plotly)
 │   └── plot_ANN.py                     # ANN result plotting
-├── results/                            # Results
-├── documents/                          # Documentation
-│   ├── ANNtest.md                      # Approximate Nearest Neighbour Test
-│   ├── Collisiontest.md                    # AND-OR Amplification Test
-│   ├── createHashTemplate.md           # Adding a New Hash Function
-│   ├── MutationModels.md               # Mutation Models
-│   └── plot.md                         # Plotting Scripts
-├── util/                               # Utilities & configuration
-│   └── LSHGlobals.cpp                  # Test parameter globals
-├── include/                            # Header files
+├── lib/                                # Core library
+│   ├── BioDataGeneration.cpp           # Biological sequence generation & mutation
+│   ├── BioDataGeneration.h
+│   ├── HashInfo.cpp                    # Hash metadata & registration
+│   ├── HashInfo.h
+│   ├── Hashlib.cpp                     # Core hashing infrastructure
+│   ├── Hashlib.h
+│   ├── LSHGlobals.cpp                  # Test parameter globals
+│   ├── LSHGlobals.h
+│   ├── similarities.cpp                # Similarity functions (Jaccard, Hamming, etc.)
+│   ├── similarities.h
+│   ├── specifics.cpp                   # Hash-specific utilities
+│   ├── specifics.h
+│   ├── Blob.h                          # Binary data buffer
+│   ├── Instantiate.h                   # Hash instantiation helpers
+│   └── TestGlobals.h                   # Shared test configuration
+├── documentation/                      # Documentation
+│   ├── ApproximateNearestNeighbour.md  # Approximate nearest neighbour test
+│   ├── Collisiontest.md                # Collision curve test
+│   ├── MutationModels.md               # Mutation models
+│   └── createHashTemplate.md           # Adding a new hash function
+├── results/                            # Output results (gitignored)
+├── CMakeLists.txt                      # Top-level CMake build file
+├── main.cpp                            # Entry point
+├── createHashTemplate.py               # Script to scaffold a new hash
+├── version.cmake                       # Git-derived version extraction
+├── version.h.in                        # Version header template
+├── environment.yaml                    # Conda environment specification
 └── README.md                           # This file
 ```
 
