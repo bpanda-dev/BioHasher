@@ -20,7 +20,7 @@ To get started with BioHasher, follow these steps:
       ```bash
        conda env create -f environment.yaml
       ``` 
-      This creates a conda environment name `biohasher`. 
+      This creates a conda environment name `biohasher`.
    3. Activate the environment:
       ```bash
        conda activate biohasher
@@ -33,11 +33,14 @@ To get started with BioHasher, follow these steps:
     cd build
     cmake ..
     make -j$(nproc)
-    # Perform a sample test run to perform collison analysis of an included hash function (OneBaseSamplingHash-32)
-    ./SMHasher3 --test=LSHCollision OneBaseSamplingHash-32 --ncpu=4
-    ```
-    If everything works correctly, the above run should generate a output file named `collisionResults_OneBaseSamplingHash-32.csv` in the `results` directory under `BioHasher`. This file contains the output of the collision test.
-4. To **plot the curves** from the output csv file, 
+   ```
+4. **Run a sample test**:
+   ```bash
+       # Perform a sample test run to perform collision analysis of an included hash function (OneBaseSamplingHash-32)
+       ./SMHasher3 --test=LSHCollision OneBaseSamplingHash-32 --ncpu=4
+   ``` 
+   If everything works correctly, the above run should generate a output file named `collisionResults_OneBaseSamplingHash-32.csv` in the `results` directory under `BioHasher`. This file contains the output of the collision test.
+5. To **plot the curves** from the output csv file,
 
     ```bash
     python ../analysis/plot_collisioncurves.py ../results/collisionResults_OneBaseSamplingHash-32.csv
@@ -69,7 +72,7 @@ The Collision Curve test measures how often a hash function produces the same ou
 
 ### Teast B:  c-ANN Test
 
-The c-Approximate Nearest Neighbour test evaluates how well an LSH function performs when used as a hashing scheme for similarity search. BioHasher builds a database of reference sequences, creates mutated query sequences with known nearest neighbours, and then uses the hash function to retrieve candidates from the database. For each `(b, r)` configuration, it measures how many true neighbours were found (Recall) and how many of the returned candidates were incorrect (False Positive Rate). This tells you how the hash function will behave in a real similarity-search pipeline and helps you pick the right `(b, r)` parameters for your desired balance of accuracy and efficiency. 
+The c-Approximate Nearest Neighbour test evaluates how well an LSH function performs when used as a hashing scheme for similarity search. BioHasher builds a database of reference sequences, creates mutated query sequences with known nearest neighbours, and then uses the hash function to retrieve candidates from the database. For each `(b, r)` configuration, it measures how many true neighbours were found (Recall) and how many of the returned candidates were incorrect (False Positive Rate). This tells you how the hash function will behave in a real similarity-search pipeline and helps you pick the right `(b, r)` parameters for your desired balance of accuracy and efficiency.
 > **Why is this test needed?**:  While collision curve analysis characterizes the sensitivity of a hash family to pairwise similarity variations, it does not capture factors that matter in practice like the ability to correctly retrieve true neighbors from a database while minimizing false positive candidates. Minimizing false positives is important because real similarity-search pipelines include a re-scoring step using computationally expensive algorithms (e.g., full sequence alignment), and an inflated candidate set directly increases that cost.
 
 ## Usage Guide for Adding a Novel Hash function for testing
@@ -90,27 +93,32 @@ BioHasher ships with an interactive Python script that scaffolds a new hash `.cp
 python3 createHashTemplate.py
 ```
 
-The script walks you through **8 guided steps**:
+The script walks you through **11 guided steps**:
 
-| Step | Prompt          | What it sets                                                       |
-| ---- | --------------- | ------------------------------------------------------------------ |
-| 1    | Hash Name       | C++ function name, `REGISTER_HASH` identifier, and output filename |
-| 2    | Author Name     | Copyright header                                                   |
-| 3    | License         | License text in file header (MIT default, 8 options)               |
-| 4    | Family Name     | `REGISTER_FAMILY(...)` grouping (defaults to hash name)            |
-| 5    | Repository URL  | Source URL in family registration                                  |
-| 6    | Source Status   | `SRC_UNKNOWN`, `SRC_FROZEN`, `SRC_STABLEISH`, or `SRC_ACTIVE`      |
-| 7    | Description     | Human-readable description in `REGISTER_HASH`                      |
-| 8    | Output Bit Size | 32, 64, 128, 256, 512, or custom (multiple allowed)                |
+
+| Step | Prompt              | What it sets                                                                  |
+| ---- | ------------------- | ----------------------------------------------------------------------------- |
+| 1    | Hash Name           | C++ function name, `REGISTER_HASH` identifier, and output filename            |
+| 2    | Author Name         | Copyright header                                                              |
+| 3    | License             | License text in file header (MIT default, 8 options)                          |
+| 4    | Family Name         | `REGISTER_FAMILY(...)` grouping (defaults to hash name)                       |
+| 5    | Repository URL      | Source URL in family registration                                             |
+| 6    | Source Status        | `SRC_UNKNOWN`, `SRC_FROZEN`, `SRC_STABLEISH`, or `SRC_ACTIVE`                 |
+| 7    | Description         | Human-readable description in `REGISTER_HASH`                                 |
+| 8    | Output Bit Size     | 32, 64, 128, 256, 512, or custom (multiple allowed)                           |
+| 9    | LSH Candidacy       | Confirms the hash is an LSH candidate; exits if not (BioHasher is LSH-only)   |
+| 10   | Similarity Name     | Built-in (`Hamming`, `Jaccard`, `Cosine`, `Angular`, `Edit`) or custom name   |
+| 11   | Similarity Function | Auto-set for built-in metrics; prompts for a C++ function name if custom      |
 
 Every input is validated (naming rules, C++ keyword checks, URL format, etc.). The script **never exits on bad input** — it re-prompts until valid input is provided.
+The only early exit is at Step 9: if the hash is not an LSH candidate, the script stops with a message that BioHasher only supports LSH-related tests.
 
 **What it generates:**
-
-1. A compilable C++ template at `hashes/<hashname>.cpp` containing:
+1. A compilable C++ template file at `hashes/<hashname>.cpp` containing:
 
     - Copyright header with your chosen license
-    - A `template <bool bswap>` hash function stub for each selected bit size
+    - A hash function stub for each selected bit size
+    - The similarity function implementation (included automatically for built-in metrics like Hamming or Edit; a stub for custom metrics)
     - `REGISTER_FAMILY(...)` and `REGISTER_HASH(...)` macro blocks
     - Correct `PUT_U32` / `PUT_U64` output calls
 2. An updated `hashes/Hashsrc.cmake` with the new file registered
@@ -130,9 +138,9 @@ cp hashes/EXAMPLE.cpp hashes/myhash.cpp # Generic template
 Then manually:
 
 1. Replace all `###YOUR...` placeholders in the file
-2. Add `hashes/myhash.cpp` to the `set(HASH_SRC_FILES ...)` block in `hashes/Hashsrc.cmake`  
+2. Add `hashes/myhash.cpp` to the `set(HASH_SRC_FILES ...)` block in `hashes/Hashsrc.cmake`
 
-See [`hashes/README.addinghashes.md`](hashes/README.addinghashes.md) for the original SMHasher3 walkthrough.
+[//]: # (See [`hashes/README.addinghashes.md`]&#40;hashes/README.addinghashes.md&#41; for the original SMHasher3 walkthrough.)
 
 #### After Creating the Template
 
