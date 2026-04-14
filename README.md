@@ -78,8 +78,9 @@ The Collision Curve test measures how often a hash function produces the same ou
 The c-Approximate Nearest Neighbour test evaluates how well an LSH function performs when used as a hashing scheme for similarity search. BioHasher builds a database of reference sequences, creates mutated query sequences with known nearest neighbours, and then uses the hash function to retrieve candidates from the database. For each `(b, r)` configuration, it measures how many true neighbours were found (Recall) and how many of the returned candidates were incorrect (False Positive Rate). This tells you how the hash function will behave in a real similarity-search pipeline and helps you pick the right `(b, r)` parameters for your desired balance of accuracy and efficiency.
 > **Why is this test needed?**:  While collision curve analysis characterizes the sensitivity of a hash family to pairwise similarity variations, it does not capture factors that matter in practice like the ability to correctly retrieve true neighbors from a database while minimizing false positive candidates. Minimizing false positives is important because real similarity-search pipelines include a re-scoring step using computationally expensive algorithms (e.g., full sequence alignment), and an inflated candidate set directly increases that cost.
 
-<img src="documentation/c-ANN.png" alt="c-ANN concept" width="600"/>
+<img src="documentation/c-ANN%20concept.png" alt="c-ANN concept" width="600"/>
 todo:caption
+
 <img src="documentation/ANN_flowchart.png" alt="ANN flowchart" width="600"/>
 todo:caption
 
