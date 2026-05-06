@@ -9,8 +9,8 @@ import sys
 from datetime import datetime
 
 
-# Available source status options
-SRC_STATUS_OPTIONS = ["UNKNOWN","FROZEN", "STABLEISH", "ACTIVE"]
+# # Available source status options
+# SRC_STATUS_OPTIONS = ["UNKNOWN","FROZEN", "STABLEISH", "ACTIVE"]
 
 # Available license options
 LICENSE_OPTIONS = {
@@ -28,11 +28,13 @@ LICENSE_OPTIONS = {
 BITS_OPTIONS = [32, 64, 128, 256, 512]
 
 # Built-in similarity metrics that already have implementations in BioHasher
-BUILTIN_SIMILARITY_NAMES = ["Hamming", "Jaccard", "Cosine", "Angular", "Edit"]
+BUILTIN_SIMILARITY_NAMES_CAPITAL = ["Hamming", "Jaccard", "Cosine", "Angular", "Edit"]
+BUILTIN_SIMILARITY_NAMES = ["hamming", "jaccard", "cosine", "angular", "edit"]
+
 
 # Mapping from built-in similarity name -> (function name, C++ code to inject)
 BUILTIN_SIMILARITY_CODE = {
-    "Hamming": ("HammingSimilarity", '''
+    "hamming": ("HammingSimilarity", '''
 //------------------------------------------------------------
 // Hamming Similarity: fraction of matching positions (equal-length sequences only)
 double HammingSimilarity(const std::string& seq1, const std::string& seq2, const uint32_t in1_len, const uint32_t in2_len) {
@@ -46,8 +48,8 @@ double HammingSimilarity(const std::string& seq1, const std::string& seq2, const
     }
     return (static_cast<double>(similar) / static_cast<double>(length));
 }
-'''),
-    "Edit": ("EditSimilarity", '''
+    '''),
+    "edit": ("EditSimilarity", '''
 //------------------------------------------------------------
 // Edit Similarity: 1 - (edit_distance / max_length)
 double EditSimilarity(const std::string& seq1, const std::string& seq2, const uint32_t in1_len, const uint32_t in2_len) {
@@ -68,8 +70,8 @@ double EditSimilarity(const std::string& seq1, const std::string& seq2, const ui
     double max_len = static_cast<double>(std::max(n, m));
     return 1.0 - (static_cast<double>(edit_dist) / max_len);
 }
-'''),
-    "Jaccard": ("JaccardSimilarity", '''
+    '''),
+    "jaccard": ("JaccardSimilarity", '''
 //------------------------------------------------------------
 // Jaccard Similarity: |intersection| / |union| over character sets
 double JaccardSimilarity(const std::string& seq1, const std::string& seq2, const uint32_t in1_len, const uint32_t in2_len) {
@@ -77,16 +79,16 @@ double JaccardSimilarity(const std::string& seq1, const std::string& seq2, const
     std::set<char> set2(seq2.begin(), seq2.begin() + in2_len);
     std::set<char> intersection, union_set;
     std::set_intersection(set1.begin(), set1.end(), set2.begin(), set2.end(),
-                          std::inserter(intersection, intersection.begin()));
+                        std::inserter(intersection, intersection.begin()));
     std::set_union(set1.begin(), set1.end(), set2.begin(), set2.end(),
-                   std::inserter(union_set, union_set.begin()));
+                std::inserter(union_set, union_set.begin()));
     if (union_set.empty()) return 1.0;
     return static_cast<double>(intersection.size()) / static_cast<double>(union_set.size());
 }
-'''),
+    '''),
     "Cosine": ("CosineSimilarity", '''
 //------------------------------------------------------------
-// Cosine Similarity: dot(freq1, freq2) / (||freq1|| * ||freq2||) over character frequencies
+// cosine Similarity: dot(freq1, freq2) / (||freq1|| * ||freq2||) over character frequencies
 double CosineSimilarity(const std::string& seq1, const std::string& seq2, const uint32_t in1_len, const uint32_t in2_len) {
     std::map<char, int> freq1, freq2;
     for (uint32_t i = 0; i < in1_len; i++) freq1[seq1[i]]++;
@@ -97,8 +99,8 @@ double CosineSimilarity(const std::string& seq1, const std::string& seq2, const 
     if (norm1 == 0.0 || norm2 == 0.0) return 0.0;
     return dot / (std::sqrt(norm1) * std::sqrt(norm2));
 }
-'''),
-    "Angular": ("AngularSimilarity", '''
+    '''),
+    "angular": ("AngularSimilarity", '''
 //------------------------------------------------------------
 // Angular Similarity: 1 - (arccos(cosine_sim) / pi)
 double AngularSimilarity(const std::string& seq1, const std::string& seq2, const uint32_t in1_len, const uint32_t in2_len) {
@@ -113,7 +115,7 @@ double AngularSimilarity(const std::string& seq1, const std::string& seq2, const
     cos_sim = std::max(-1.0, std::min(1.0, cos_sim));
     return 1.0 - (std::acos(cos_sim) / M_PI);
 }
-''')
+    ''')
 }
 
 TEMPLATE_HEADER = '''/*
@@ -122,18 +124,17 @@ TEMPLATE_HEADER = '''/*
  *
  * {license_text}
  */
-#include "specifics.h"
-#include "Hashlib.h"
-#include "LSHGlobals.h"
+#include "specifics.h"  // Compiler related hints and global Macros
+#include "Hashlib.h"    // Hash registration
+#include "LSHGlobals.h" // LSH related variables.
 {extra_includes}
-//------------------------------------------------------------
-// {hash_name} implementation
 '''
 
 TEMPLATE_HASH_FUNCTION_START = '''
 //------------------------------------------------------------
 static void {hash_name}{suffix}( const void * in, const size_t len, const seed_t seed, void * out ) {{
 {hash_vars}
+{add_logic}
 	// Copy the hash state to the output.
 {put_calls}
 }}
@@ -141,11 +142,16 @@ static void {hash_name}{suffix}( const void * in, const size_t len, const seed_t
 
 TEMPLATE_FAMILY_REGISTER = '''
 //------------------------------------------------------------
-REGISTER_FAMILY({family_name},
-   $.src_url    = "{repo_url}",
-   $.src_status = HashFamilyInfo::SRC_{src_status}
- );
+REGISTER_FAMILY({family_name});
 '''
+
+# TEMPLATE_FAMILY_REGISTER = '''
+# //------------------------------------------------------------
+# REGISTER_FAMILY({family_name},
+#    $.src_url    = "{repo_url}",
+#    $.src_status = HashFamilyInfo::SRC_{src_status}
+#  );
+# '''
 
 TEMPLATE_HASH_REGISTER = '''
 REGISTER_HASH({hash_name}{suffix},
@@ -172,11 +178,10 @@ static double {similarityfn}(const std::string& seq1, const std::string& seq2, c
 }}
 '''
 
-
-def generate_hash_function_body(bits: int) -> tuple[str, str]:
+def generate_hash_function_body(bits: int) -> tuple[str, str, str]:
     """
     Generate the hash variable declarations and PUT_U* calls based on bit size.
-    Returns (hash_vars, put_calls).
+    Returns (hash_vars, put_calls, add_logic).
     """
     if bits == 32:
         hash_vars = "\t// Output: 32 bits\n\tuint32_t hash = 0;"
@@ -223,7 +228,13 @@ def generate_hash_function_body(bits: int) -> tuple[str, str]:
                 put_lines.append(f"\tPUT_U64(hash{num_u64}, (uint8_t *)out, {offset});")
         put_calls = '\n'.join(put_lines)
 
-    return hash_vars, put_calls
+    add_logic = '''  
+    //------------------------------------
+    // Add Logic of your Hashfunction Here 
+
+    //------------------------------------
+    '''
+    return hash_vars, put_calls, add_logic
 
 
 def print_header():
@@ -271,7 +282,6 @@ def validate_hash_name(name: str) -> tuple[bool, str]:
 
     return True, ""
 
-
 def validate_author_name(name: str) -> tuple[bool, str]:
     """
     Validate author name.
@@ -291,7 +301,6 @@ def validate_author_name(name: str) -> tuple[bool, str]:
         return False, "Author name can only contain letters, spaces, hyphens, apostrophes, and periods."
 
     return True, ""
-
 
 def validate_family_name(name: str) -> tuple[bool, str]:
     """
@@ -357,7 +366,7 @@ def validate_bits(bits_str: str) -> tuple[bool, str, int]:
     if bits <= 0:
         return False, "Bits must be a positive number.", 0
 
-    if bits > 1024:
+    if bits > 512:
         return False, "Bits must be 1024 or less.", 0
 
     if bits % 8 != 0:
@@ -422,7 +431,6 @@ def get_choice_input(prompt: str, options: list, default: str | None = None) -> 
                         return opt
             print(f"   Error: Invalid input. Enter a number or option name.")
 
-
 def get_license_input() -> str:
     """
     Get license choice from user.
@@ -448,7 +456,6 @@ def get_license_input() -> str:
             return text
 
         print(f"   Error: Please enter a number between 1 and {len(LICENSE_OPTIONS)}.")
-
 
 def get_bits_input() -> list[int]:
     """
@@ -524,7 +531,6 @@ def get_bits_input() -> list[int]:
             return result
         # Otherwise loop again
 
-
 def validate_similarity_name(name: str) -> tuple[bool, str]:
     """
     Validate similarity name.
@@ -544,7 +550,6 @@ def validate_similarity_name(name: str) -> tuple[bool, str]:
         return False, "Similarity name can only contain letters, numbers, and underscores."
 
     return True, ""
-
 
 def validate_similarityfn_name(name: str) -> tuple[bool, str]:
     """
@@ -568,7 +573,6 @@ def validate_similarityfn_name(name: str) -> tuple[bool, str]:
 
     return True, ""
 
-
 def confirm_creation(config: dict) -> bool:
     """
     Show summary and ask for confirmation.
@@ -583,8 +587,8 @@ def confirm_creation(config: dict) -> bool:
     print(f"  Family Name:   {config['family_name']}")
     print(f"  Author:        {config['author_name']}")
     print(f"  License:       {config['license_text'][:50]}...")
-    print(f"  Repository:    {config['repo_url']}")
-    print(f"  Source Status: {config['src_status']}")
+    # print(f"  Repository:    {config['repo_url']}")
+    # print(f"  Source Status: {config['src_status']}")
     print(f"  Description:   {config['description']}")
     print(f"  Bit Sizes:     {bits_display} ({len(bits_list)} variant{'s' if len(bits_list) > 1 else ''})")
     print(f"  LSH Candidate: Yes")
@@ -601,7 +605,6 @@ def confirm_creation(config: dict) -> bool:
             return False
         print("  Please enter 'y' for yes or 'n' for no.")
 
-
 def check_file_exists(filepath: str) -> bool:
     """
     Check if file exists and ask user what to do.
@@ -616,7 +619,6 @@ def check_file_exists(filepath: str) -> bool:
                 return True
             print("  Please enter 'y' for yes or 'n' for no.")
     return True
-
 
 def update_hashsrc_cmake(filename: str, script_dir: str) -> bool:
     """
@@ -671,7 +673,6 @@ def update_hashsrc_cmake(filename: str, script_dir: str) -> bool:
         print(f"    Warning: Could not update Hashsrc.cmake: {e}")
         return False
 
-
 def create_hash_file(config: dict) -> str:
     """
     Create the hash C++ file from the template.
@@ -684,7 +685,7 @@ def create_hash_file(config: dict) -> str:
 
     # Determine extra includes needed for certain similarity functions
     extra_includes = ""
-    if is_builtin and sim_name in ("Edit", "Jaccard", "Cosine", "Angular"):
+    if is_builtin and sim_name in ("edit", "jaccard", "cosine", "angular"):
         extra_includes = '\n#include <vector>\n#include <cmath>\n#include <set>\n#include <map>\n#include "assertMsg.h"'
     elif is_builtin and sim_name == "Hamming":
         extra_includes = '\n#include "assertMsg.h"'
@@ -705,11 +706,12 @@ def create_hash_file(config: dict) -> str:
         else:
             suffix = ""
 
-        hash_vars, put_calls = generate_hash_function_body(bits)
+        hash_vars, put_calls, add_logic = generate_hash_function_body(bits)
         content += TEMPLATE_HASH_FUNCTION_START.format(
             hash_name=config['hash_name'],
             suffix=suffix,
             hash_vars=hash_vars,
+            add_logic = add_logic,
             put_calls=put_calls
         )
 
@@ -722,12 +724,19 @@ def create_hash_file(config: dict) -> str:
             similarityfn=config['similarityfn']
         )
 
+
     # Add REGISTER_FAMILY
     content += TEMPLATE_FAMILY_REGISTER.format(
-        family_name=config['family_name'],
-        repo_url=config['repo_url'],
-        src_status=config['src_status']
+        family_name=config['family_name']
     )
+
+
+    # # Add REGISTER_FAMILY
+    # content += TEMPLATE_FAMILY_REGISTER.format(
+    #     family_name=config['family_name'],
+    #     repo_url=config['repo_url'],
+    #     src_status=config['src_status']
+    # )
 
     # Generate REGISTER_HASH for each bit size
     for bits in bits_list:
@@ -752,7 +761,6 @@ def create_hash_file(config: dict) -> str:
         f.write(content)
 
     return config['filepath']
-
 
 def main():
     print_header()
@@ -803,30 +811,30 @@ def main():
     else:
         config['family_name'] = config['hash_name']
 
-    # Step 5: Repository URL
-    print_step(5, total_steps, "Repository URL")
-    print("Enter the URL of your source code repository.")
-    config['repo_url'] = get_input_with_validation(
-        "Repository URL",
-        validate_url,
-        default="https://github.com/username/repo_name"
-    )
+    # # Step 5: Repository URL
+    # print_step(5, total_steps, "Repository URL")
+    # print("Enter the URL of your source code repository.")
+    # config['repo_url'] = get_input_with_validation(
+    #     "Repository URL",
+    #     validate_url,
+    #     default="https://github.com/username/repo_name"
+    # )
 
-    # Step 6: Source Status
-    print_step(6, total_steps, "Source Status")
-    print("Select the source code status.")
-    print("  UNKNOWN	- No Information available")
-    print("  FROZEN    	- Code is finalized, no changes expected")
-    print("  STABLEISH 	- Code is stable but minor updates possible")
-    print("  ACTIVE    	- Code is actively being developed")
-    config['src_status'] = get_choice_input(
-        "Select source status:",
-        SRC_STATUS_OPTIONS,
-        default="STABLEISH"
-    )
+    # # Step 6: Source Status
+    # print_step(6, total_steps, "Source Status")
+    # print("Select the source code status.")
+    # print("  UNKNOWN	- No Information available")
+    # print("  FROZEN    	- Code is finalized, no changes expected")
+    # print("  STABLEISH 	- Code is stable but minor updates possible")
+    # print("  ACTIVE    	- Code is actively being developed")
+    # config['src_status'] = get_choice_input(
+    #     "Select source status:",
+    #     SRC_STATUS_OPTIONS,
+    #     default="STABLEISH"
+    # )
 
     # Step 7: Description
-    print_step(7, total_steps, "Hash Description")
+    print_step(5, total_steps, "Hash Description")
     print("Enter a brief description of your hash function.")
     config['description'] = get_input_with_validation(
         "Description",
@@ -834,12 +842,12 @@ def main():
     )
 
     # Step 8: Bits
-    print_step(8, total_steps, "Hash Output Size")
+    print_step(6, total_steps, "Hash Output Size")
     print("Select the hash output size in bits.")
     config['bits'] = get_bits_input()
 
     # Step 9: LSH Candidacy
-    print_step(9, total_steps, "LSH Candidacy")
+    print_step(7, total_steps, "LSH Candidacy")
     print("BioHasher is a framework for evaluating Locality-Sensitive Hashing (LSH) functions.")
     print("All test suites in BioHasher are designed to test LSH properties.")
     print()
@@ -864,9 +872,9 @@ def main():
             print("  Please enter 'y' for yes or 'n' for no.")
 
     # Step 10: Similarity Name
-    print_step(10, total_steps, "Similarity Name")
+    print_step(8, total_steps, "Similarity Name")
     print("Enter the name of the similarity measure that this hash function preserves.")
-    print(f"Built-in options: {', '.join(BUILTIN_SIMILARITY_NAMES)}")
+    print(f"Built-in options: {', '.join(BUILTIN_SIMILARITY_NAMES_CAPITAL)}")
     print("You may also enter a custom similarity name if yours is not listed above.")
     print("Ensure that the name ends with a small case for readability.")
     print()
@@ -879,24 +887,26 @@ def main():
     )
 
     # Step 11: Similarity Function
-    sim_name = config['similarity_name']
+    sim_name = config['similarity_name'].lower().strip()
+
+
     if sim_name in BUILTIN_SIMILARITY_NAMES:
         # Built-in: auto-set the function name and include the implementation
         builtin_fn, _ = BUILTIN_SIMILARITY_CODE[sim_name]
         config['similarityfn'] = builtin_fn
-        print_step(11, total_steps, "Similarity Function")
+        print_step(9, total_steps, "Similarity Function")
         print(f"'{sim_name}' is a built-in similarity metric in BioHasher.")
         print(f"The implementation of '{builtin_fn}' will be included in your hash file.")
         print(f"  → Similarity function set to: {builtin_fn}")
     else:
         # Custom: ask the user to name their function
-        print_step(11, total_steps, "Similarity Function")
+        print_step(9, total_steps, "Similarity Function")
         print(f"'{sim_name}' is a custom similarity metric.")
         print("Enter the name of your C++ similarity function.")
         print("This function computes the ground-truth similarity between two input sequences.")
         print("It must follow the SimilarityFn signature:")
-        print("  double FnName(const std::string& seq1, const std::string& seq2,")
-        print("                const uint32_t in1_len, const uint32_t in2_len);")
+        print("double FnName(const std::string& seq1, const std::string& seq2,")
+        print("                 const uint32_t in1_len, const uint32_t in2_len);")
         print()
         print(f"  Example: You might name it '{sim_name}Similarity'.")
         config['similarityfn'] = get_input_with_validation(
@@ -929,7 +939,7 @@ def main():
 
         print(f"\n Next steps:")
         print(f"	1. To test if your {config['hash_name']}Hash function has been added to BioHasher:")
-        print(f"	2. Build BioHasher using $mkdir build > $cd build > $make")
+        print(f"	2. Build BioHasher using $mkdir build > $cd build > $cmake .. > $make")
         print(f" 	3. run BioHasher using, ./BioHasher --list | grep {config['hash_name']}. It should list your hash.")
         print(f"   	4. Implement the logic of your Hash in the {config['hash_name']}Hash function.")
 

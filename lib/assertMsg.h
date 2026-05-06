@@ -24,7 +24,7 @@
     } while (0)
 
 // Variant: prints the actual value of a flag/enum when assertion fails
-#define BIOHASHER_ASSERT_FLAG(cond, msg, flagval)                                          \
+#define BIOHASHER_ASSERT_FLAG(cond, msg, flagval)                                    \
     do {                                                                             \
         if (!(cond)) {                                                               \
             fprintf(stderr, "\n");                                                   \
@@ -37,3 +37,4 @@
             std::abort();                                                            \
         }                                                                            \
     } while (0)
+    
