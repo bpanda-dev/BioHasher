@@ -1197,7 +1197,7 @@ def main():
     # )
     
     # Output processed dataframe
-    processed_csv = os.path.join(output_dir, f"{similarity_name}_processed.csv")
+    processed_csv = os.path.join(output_dir, f"{similarity_name}_processed_coll.csv")
     df.to_csv(processed_csv, index=False)
     print(f"Saved processed dataframe to: {processed_csv}")
 

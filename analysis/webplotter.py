@@ -29,6 +29,7 @@ def read_processed_dataframe(csv_path):
     for col in list_cols:
         if col in df.columns:
             df[col] = df[col].apply(safe_literal_eval)
+    # print(df)
     return df
 
 
@@ -91,7 +92,8 @@ def plot_scatter(df, sim_metric=""):
 def plot_binned_average(df, sim_metric=""):
     fig = go.Figure()
 
-    bin_edges   = np.linspace(0, 1, 101)
+    bin_edges = np.arange(0, 1.04, 0.04)
+    num_bins = len(bin_edges) - 1
     bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
 
     for idx, row in df.iterrows():
@@ -319,7 +321,7 @@ def plot_ann_query_time_vs_recall(df):
 def main():
     parser = argparse.ArgumentParser(
         description="Generate interactive Plotly visualizations for BioHasher processed metrics.")
-    parser.add_argument("csv_files", nargs='+', help="Paths to *_processed.csv files")
+    parser.add_argument("csv_files", nargs='+', help="Paths to *_processed-*.csv files")
     parser.add_argument("--show", action="store_true", help="Launch browser with plots immediately")
     args = parser.parse_args()
 
@@ -335,14 +337,15 @@ def main():
         df = read_processed_dataframe(f)
         if df.empty: continue
         test_name = df['test_name'].iloc[0] if 'test_name' in df.columns else ""
+
         if "Collision" in test_name:
             collision_df = df
-            basename = os.path.basename(f).replace("_processed.csv", "")
+            basename = os.path.basename(f).replace("_processed_coll.csv", "")
             out_dir = os.path.dirname(os.path.abspath(f))
-        elif "Approx Nearest Neighbour" in test_name:
+        elif "Neighbour" in test_name:
             ann_df = df
             if out_dir == "":
-                basename = os.path.basename(f).replace("_processed-ann.csv", "").replace("_processed.csv", "")
+                basename = os.path.basename(f).replace("_processed_ann.csv", "").replace("_processed.csv", "")
                 out_dir = os.path.dirname(os.path.abspath(f))
 
     replacements = {
@@ -361,7 +364,7 @@ def main():
         sim_metric = collision_df['DistanceMetric'].iloc[0] if 'DistanceMetric' in collision_df.columns else ""
         replacements["show_collision"] = "display: block;"
         replacements["scatter_div"] = plot_scatter(collision_df, sim_metric).to_html(full_html=False, include_plotlyjs=False)
-        replacements["binned_div"] = plot_binned_average(collision_df, sim_metric).to_html(full_html=False, include_plotlyjs=False)
+        replacements["binned_div"] = plot_binned_average(collision_df, sim_metric).to_html(full_html=False, include_plotlyjs='cdn')
         replacements["box_div"] = plot_box_plot(collision_df, sim_metric=sim_metric).to_html(full_html=False, include_plotlyjs=False)
         
     if ann_df is not None:
