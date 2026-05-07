@@ -155,15 +155,14 @@ REGISTER_FAMILY({family_name});
 
 TEMPLATE_HASH_REGISTER = '''
 REGISTER_HASH({hash_name}{suffix},
-   $.desc            = "{description}{bits_desc}",
-   $.hash_flags      =
-		 FLAG_HASH_LOCALITY_SENSITIVE,
-   $.impl_flags      =
-		 0,
-   $.bits            = {bits},
-   $.hashfn          = {hash_name}{suffix},
-   $.similarity_name = "{similarity_name}",
-   $.similarityfn    = {similarityfn}
+   $.desc               = "{description}{bits_desc}",
+   $.hash_flags         = FLAG_HASH_LOCALITY_SENSITIVE,
+   $.impl_flags         = 0,
+   $.bits               = {bits},
+   $.hashfn             = {hash_name}{suffix},
+   $.similarity_name    = "{similarity_name}",
+   $.similarityfn       = {similarityfn},
+   $.check_equality_fn  = check_equality{suffix}
  );
 '''
 

@@ -243,7 +243,7 @@ def finalize(ax, fig, output_path, texts=None):
     plt.tight_layout()
     plt.savefig(output_path, dpi=300, bbox_inches='tight')
     print(f"Saved : {output_path}")
-    plt.show()
+    # plt.show()
     plt.close(fig)
     
 def iter_experiments(df):
@@ -536,10 +536,10 @@ def run_all_plots(filepath, out_dir=None):
         return
     
     # --- Directory creation ---
-    # Use hashname or experiment name for subdirectory
-    hashname = df.iloc[0].get('Hashname', 'results')
+    # Use similarity name for subdirectory
+    similarity_name = df.iloc[0].get('DistanceMetric', 'results')
     csv_dir = os.path.dirname(os.path.abspath(filepath))
-    output_dir = os.path.join(csv_dir, hashname)
+    output_dir = os.path.join(csv_dir, similarity_name)
     os.makedirs(output_dir, exist_ok=True)
     print(f"Plots and CSV will be saved in: {output_dir}")
 
@@ -554,7 +554,7 @@ def run_all_plots(filepath, out_dir=None):
  
     # --- Plot saving ---
     def out(suffix):
-        return os.path.join(output_dir, f"{hashname}_{suffix}.png")
+        return os.path.join(output_dir, f"{similarity_name}_{suffix}.png")
     
     plot_query_time_vs_recall(  df, out('query_time_vs_recall'))
     plot_index_size_vs_recall(  df, out('index_size_vs_recall'))
@@ -571,7 +571,7 @@ def run_all_plots(filepath, out_dir=None):
     plot_best_fpr_per_recall_bin(df, out('best_fpr_per_bin_log'), use_log=True)
     
     # --- Save processed DataFrame ---
-    processed_csv = os.path.join(output_dir, f"{hashname}_processed.csv")
+    processed_csv = os.path.join(output_dir, f"{similarity_name}_processed-ann.csv")
     df.to_csv(processed_csv, index=False)
     print(f"Saved processed dataframe to: {processed_csv}")
     

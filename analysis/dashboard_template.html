@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>BioHasher Result Analysis</title>
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f4f6f9;
+      color: #333;
+    }
+
+    .header-banner {
+      /* background: linear-gradient(135deg, #2c3e50, #3498db); */
+      background: #3498db;
+      color: white;
+      padding: 25px 20px;
+      text-align: center;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .header-banner h1 {
+      margin: 0 0 10px 0;
+      font-size: 28px;
+      letter-spacing: 1px;
+    }
+
+    .header-banner p {
+      margin: 0;
+      font-size: 16px;
+      opacity: 0.9;
+    }
+
+    .plot-section {
+      max-width: 1400px;
+      margin: 40px auto;
+      padding: 0 20px;
+    }
+
+    .plot-section h2 {
+      color: #2c3e50;
+      border-bottom: 2px solid #3498db;
+      padding-bottom: 10px;
+      margin-bottom: 15px;
+    }
+
+    .plot-description {
+      font-size: 16px;
+      color: #555;
+      margin-bottom: 20px;
+      line-height: 1.6;
+    }
+
+    .plot-container {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      padding: 20px;
+      overflow: hidden;
+    }
+
+    hr.section-divider {
+      border: 0;
+      height: 1px;
+      background: #dee2e6;
+      margin: 40px auto;
+      max-width: 1400px;
+    }
+
+    .section-header {
+      background-color: #2c3e50;
+      color: white;
+      padding: 15px 20px;
+      margin: 40px auto 20px auto;
+      max-width: 1400px;
+      border-radius: 8px;
+      text-align: center;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .section-header h2 {
+      margin: 0;
+      font-size: 24px;
+      letter-spacing: 1px;
+      border-bottom: none;
+    }
+
+    details.info-panel {
+      max-width: 1400px;
+      margin: 0 auto 20px auto;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      overflow: hidden;
+    }
+
+    details.info-panel summary {
+      padding: 15px 20px;
+      font-weight: bold;
+      color: #2c3e50;
+      cursor: pointer;
+      list-style: none;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid transparent;
+      transition: border-bottom 0.3s;
+    }
+
+    details.info-panel[open] summary {
+      border-bottom: 1px solid #dee2e6;
+    }
+
+    details.info-panel summary::-webkit-details-marker {
+      display: none;
+    }
+
+    details.info-panel summary::after {
+      content: "▼";
+      font-size: 12px;
+      transition: transform 0.3s;
+    }
+
+    details.info-panel[open] summary::after {
+      transform: rotate(180deg);
+    }
+
+    .info-panel-content {
+      padding: 20px;
+      color: #555;
+      line-height: 1.6;
+    }
+
+    .footer {
+      background-color: #2c3e50;
+      color: #ecf0f1;
+      text-align: center;
+      padding: 20px;
+      margin-top: 40px;
+      font-size: 14px;
+      border-top: 4px solid #3498db;
+    }
+
+    .footer p {
+      margin: 0;
+      opacity: 0.9;
+    }
+
+    .footer a {
+      color: #3498db;
+      text-decoration: none;
+    }
+
+    .footer a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="header-banner">
+    <h1>BioHasher Analysis Dashboard</h1>
+  </div>
+
+  <div style="${show_collision}">
+    <div class="section-header">
+      <h2>Collision Curve Analysis</h2>
+    </div>
+
+    <div style="max-width: 1400px; margin: 0 auto; padding: 0 20px;">
+      <details class="info-panel">
+        <summary>Collision Curve Analysis Details</summary>
+        <div class="info-panel-content">
+          <p>Collision curve analysis characterizes the relationship between pairwise sequence similarity and the
+            empirical probability of hash collision. A well-behaved LSH family should exhibit monotonically increasing
+            collision probability as similarity increases wherein highly similar sequences should frequently collide,
+            while dissimilar sequences should rarely collide. This section reports empirical collision rates stratified
+            across similarity bins, together with their variance across independent trials, for each hash family under
+            evaluation. These curves serve as the primary first test for whether a given LSH scheme preserves the
+            locality property under the mutation models and similarity metrics used while running the benchmark.</p>
+        </div>
+      </details>
+    </div>
+
+    <div class="plot-section">
+      <h2>Binned Average Plot</h2>
+      <p class="plot-description">
+        <strong>Description :</strong> The binned average plot aggregates the sequence pairs into discrete similarity
+        bins, showing the average collision rate for each bin. This provides a cleaner and clearer view of the
+        underlying relationship between hash collision rate and similarity in comparision to the scatter plot.
+      </p>
+      <div class="plot-container">${binned_div}</div>
+      <p style="font-size: 14px; font-style: italic; color: gray; margin-top: 10px;">Tip: You can click on a legend item
+        to hide/show its curve, or double-click to isolate it and hide all others.</p>
+    </div>
+
+    <hr class="section-divider">
+
+    <div class="plot-section">
+      <h2>Scatter Plot</h2>
+      <p class="plot-description">
+        <strong>Description :</strong> The scatter plot displays the empirical collision rate of a Hash family for each
+        individual sequence pair as a function of their pairwise similarity. It is good for observing the overall
+        distribution, variance, and potential outliers in the dataset which are obscured in the binned average plot.
+        <!-- A good LSH family should produce a point cloud that rises steeply near the similarity threshold, with low spread at the extremes and higher variance near the threshold where the hash function is most sensitive to perturbation -->
+      </p>
+      <div class="plot-container">${scatter_div}</div>
+      <p style="font-size: 14px; font-style: italic; color: gray; margin-top: 10px;">Tip: You can click on a legend item
+        to hide/show its curve, or double-click to isolate it and hide all others.</p>
+    </div>
+
+    <hr class="section-divider">
+
+    <div class="plot-section">
+      <h2>Box Plot</h2>
+      <p class="plot-description">
+        <strong>Description :</strong> The box plot shows the distribution of empirical collision rates within each
+        similarity bin, with median and interquartile range. This view quantifies the spread and skew of collision rates
+        at each similarity level, allowing direct comparison of within-bin variance across the full similarity range,
+        unlike the binned average which collapses each bin to a single value.
+      </p>
+      <div class="plot-container">${box_div}</div>
+      <p style="font-size: 14px; font-style: italic; color: gray; margin-top: 10px;">Tip: You can click on a legend item
+        to hide/show its curve, or double-click to isolate it and hide all others.</p>
+    </div>
+  </div>
+
+  <div style="${show_ann}">
+    <div class="section-header">
+      <h2>Threshold Based Similarity Search</h2>
+    </div>
+
+    <div style="max-width: 1400px; margin: 0 auto; padding: 0 20px;">
+      <details class="info-panel">
+        <summary>Threshold Configuration & Analysis Details</summary>
+        <div class="info-panel-content">
+          <p><strong>Current Threshold: 0.95</strong></p>
+          <p>Threshold-based similarity search evaluates the hash family's retrieval performance under a fixed
+            similarity cutoff s_<sub>min</sub>. Given a query sequence, this test evaluates the hash family's ability to
+            report all database sequences whose similarity to the query meets or exceeds s_<sub>min</sub>. Performance
+            is quantified across recall, precision, and false positive rate, measured over a range of LSH configurations
+            defined by the AND-OR amplification parameters (b,r) where b is the AND parameter and r is the OR parameter.
+            This analysis exposes the fundamental trade-off between sensitivity and specificity inherent to
+            probabilistic hashing, and identifies configurations that satisfy application-specific accuracy and runtime
+            requirements for the dataset and distance metric under test.</p>
+        </div>
+      </details>
+    </div>
+
+    <div class="plot-section">
+      <h2>Avg Recall vs Avg FPR</h2>
+      <p class="plot-description">
+        <strong>Description :</strong> This plot shows the trade-off between the Recall and False Positive Rate (FPR)
+        across different (b,r)-configurations.The ideal operating point lies in the upper-left corner of the plot which
+        correspond to high recall with low FPR. Configurations toward the lower-left sacrifice recall for specificity;
+        those toward the upper-right achieve high sensitivity at the cost of acquiring more false candidates.
+      </p>
+      <div class="plot-container">${ann_fpr_recall_div}</div>
+      <p style="font-size: 14px; font-style: italic; color: gray; margin-top: 10px;">Tip: You can click on a legend item
+        to hide/show its curve, or double-click to isolate it and hide all others.</p>
+    </div>
+
+    <hr class="section-divider">
+
+    <div class="plot-section">
+      <h2>Avg Precision vs Avg Recall</h2>
+      <p class="plot-description">
+        <strong>Description :</strong> This plot illustrates the relationship between precision and recall. The ideal
+        operating point lies in the upper-right corner of the plot which corresponds to high precision with high recall.
+        Configurations toward the upper-left recover few neighbors but with high accuracy; those toward the lower-right
+        achieve broad retrieval at the cost of returning more false candidates.
+      </p>
+      <div class="plot-container">${ann_precision_recall_div}</div>
+      <p style="font-size: 14px; font-style: italic; color: gray; margin-top: 10px;">Tip: You can click on a legend item
+        to hide/show its curve, or double-click to isolate it and hide all others.</p>
+    </div>
+
+    <hr class="section-divider">
+
+    <div class="plot-section">
+      <h2>Min FPR per Recall Bin</h2>
+      <p class="plot-description">
+        <strong>Description :</strong> The binned minimum FPR plot partitions the recall range into discrete intervals
+        and displays the lowest false positive rate achieved within each bin, for all (b,r) configurations. Rather than
+        showing every operating point, this view isolates the optimal FPR attainable at each level of recall range,
+        tracing the empirical lower bound of the retrieval trade-off curve. Bins where the minimum FPR remains low
+        across high recall values indicate configurations where the hash family successfully maintains specificity
+        without sacrificing sensitivity which is the target behavior for a well-tuned LSH scheme.
+      </p>
+      <div class="plot-container">${ann_min_fpr_div}</div>
+      <p style="font-size: 14px; font-style: italic; color: gray; margin-top: 10px;">Tip: You can click on a legend item
+        to hide/show its curve, or double-click to isolate it and hide all others.</p>
+    </div>
+
+    <hr class="section-divider">
+
+    <div class="plot-section">
+      <h2>Avg Query Time vs Avg Recall</h2>
+      <p class="plot-description">
+        <strong>Description :</strong> The recall vs. query time plot characterizes the computational cost of retrieval
+        across LSH configurations, with mean query retrieval time (ms) on the y-axis and Recall on the x-axis. Ideally,
+        we would want to have low mean query retrieval time and high Recall value.
+      </p>
+      <div class="plot-container">${ann_query_time_div}</div>
+      <p style="font-size: 14px; font-style: italic; color: gray; margin-top: 10px;">Tip: You can click on a legend item
+        to hide/show its curve, or double-click to isolate it and hide all others.</p>
+    </div>
+  </div>
+
+  <div class="footer">
+    <p>If you use this dashboard or the BioHasher suite in your research, please cite: <br><em>[Citation:
+        Bikram Panda, Debnath Pal, Paul Medvedev, "BioHasher: Benchmarking LSH functions in Genome Sequence Analysis,"
+        Journal/Conference, 2026.]</em></p>
+  </div>
+
+</body>
+
+</html>
