@@ -2,7 +2,7 @@
 
 ## Overview
 
-BioHasher is a specialized Locality Sensitive Hash function testing framework designed with biological context in mind. It is built upon the hash function testing framework [SMHasher3](https://gitlab.com/fwojcik/smhasher3). BioHasher currently supports two tests Collision Curve Test with AND-OR amplification, and c-Approximate Nearest Neighbour Test.
+BioHasher is a specialized Locality Sensitive Hash function testing framework designed with biological context in mind. It is built upon the hash function testing framework [SMHasher3](https://gitlab.com/fwojcik/smhasher3). BioHasher currently supports two tests Collision Curve Test and Threshold-based Similarity Search Test, both of which support and-or amplification.
 
 ## Getting Started
 
