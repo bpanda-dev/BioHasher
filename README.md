@@ -11,8 +11,8 @@ To get started with BioHasher, follow these steps:
 
 1. **Clone the repository**:
     ```bash
-      git clone https://github.com/bpanda-dev/BioHasher.git
-      cd BioHasher
+    git clone https://github.com/bpanda-dev/BioHasher.git
+    cd BioHasher
     ```
 2. **Set up conda environment**: (BioHasher is bundled with multiple python scripts for plotting and for aiding users to connect their hash function to the BioHasher framework.)
    1. Prerequisites: [Miniconda](https://docs.conda.io/en/latest/miniconda.html) or [Anaconda](https://www.anaconda.com/download)
@@ -37,8 +37,9 @@ To get started with BioHasher, follow these steps:
 4. **Run an example test**:
 
    ```bash
-       # A sample test run of the two analyses: collision and similarity search on the included example hash function (exampleHash),which preserves Hamming distance.
-       time ./BioHasher --test=LSHCollision,LSHApproxNearestNeighbour exampleHash --ncpu=4
+    # A sample test run of the two analyses: collision and similarity search on the included
+    # example hash function (exampleHash),which preserves Hamming distance.
+    ./BioHasher --test=LSHCollision,LSHApproxNearestNeighbour exampleHash --ncpu=4
    ``` 
     The run should complete in under a minute. If everything works correctly, two output files are written to the `results/` directory under `BioHasher`:
     - `collisionResults_Hamming.csv`
@@ -51,9 +52,9 @@ To get started with BioHasher, follow these steps:
 5. Process the output files to generate standard CSVs, plots, and an interactive visualisation:
 
     ```bash
-        python ../analysis/generate_report.py \
-            --coll=../results/collisionResults_Hamming.csv \
-            --ann=../results/approxNearestNeighbourResults_Hamming.csv
+    python ../analysis/generate_report.py \
+        --coll=../results/collisionResults_Hamming.csv \
+        --ann=../results/approxNearestNeighbourResults_Hamming.csv
     ```
 
     This writes all plots and processed CSVs to the `results/` directory under `Hamming` name. An HTML file is also generated, which aggregates all plots into a single interactive visualisation.
