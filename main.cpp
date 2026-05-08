@@ -102,7 +102,7 @@ static void parse_tests( const char * str, bool enable_tests ) {
 }
 
 void usage() {
-    printf("Usage: BioHasher [--[no]test=<testname>[,...]] [--verbose] [--ncpu=N]\n"
+    printf("Usage: BioHasher [--test=<testname>[,...]] [--verbose] [--ncpu=N]\n"
            "                 [<hashname>]\n"
            "\n"
            "       BioHasher [--list]|[--listnames]|[--tests]|[--version]\n"
@@ -134,7 +134,7 @@ static bool test( const HashInfo * hInfo, const flags_t flags ) {
         outfile = stderr;
     }
 
-    fprintf(outfile, "--- Testing %s \"%s\"", hInfo->name, hInfo->desc);
+    fprintf(outfile, "--- Testing %s :\"%s\" ---", hInfo->name, hInfo->desc);
         
     fprintf(outfile, "\n\n");
 
@@ -169,7 +169,7 @@ static bool testHash( const char * name, const flags_t flags ) {
         return false;
     }
 
-    printf("Testing hash %s\n", name);
+    // printf("Testing hash %s\n", name);
     // printf("%u\n",hInfo->bits);
 
     // If you extend these statements by adding a new bitcount/type, you

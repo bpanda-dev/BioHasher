@@ -315,7 +315,7 @@ SequenceDataGenerator::SequenceDataGenerator(SequenceRecordsWithMetadataStruct *
 	}
     
 
-	std::cout << "DataGeneration: SequenceLength = " << sequenceRecordsWithMetadata->OriginalSequenceLength << ", KeyCount = " << sequenceRecordsWithMetadata->KeyCount << std::endl;
+	// std::cout << "DataGeneration: SequenceLength = " << sequenceRecordsWithMetadata->OriginalSequenceLength << ", KeyCount = " << sequenceRecordsWithMetadata->KeyCount << std::endl;
 }
 
 void SequenceDataGenerator::decodeSequencesToASCII(const std::vector<uint8_t>& seqTwoBit, std::string& seqASCII, const uint32_t sequenceLength) {
@@ -388,18 +388,18 @@ SequenceDataMutatorSubstitutionOnly::SequenceDataMutatorSubstitutionOnly(Sequenc
 	}
 
 	// Debugging output
-    for(uint32_t rec_idx = 0; rec_idx < std::min(sequenceRecordsWithMetadata->KeyCount, 10u); rec_idx++) {
-        auto& record = sequenceRecordsWithMetadata->Records[rec_idx];
-        if (rec_idx < 10) {
-            std::cout << "\n=== Record " << rec_idx << " ===" << std::endl;
-            std::cout << "Original Length: " << record.OriginalLength << std::endl;
-            std::cout << "Mutated Length:  " << record.MutatedLength << std::endl;
-            std::cout << "Original: " << record.SeqASCIIOrg << std::endl;
-            std::cout << "Mutated:  " << record.SeqASCIIMut << std::endl;
-			std::cout << "Foundational Rate: " << record.foundationalParameter << std::endl;
-			std::cout << "Similarity: " << record.similarity << std::endl;
-        }
-    }	
+    // for(uint32_t rec_idx = 0; rec_idx < std::min(sequenceRecordsWithMetadata->KeyCount, 10u); rec_idx++) {
+    //     auto& record = sequenceRecordsWithMetadata->Records[rec_idx];
+    //     if (rec_idx < 10) {
+    //         std::cout << "\n=== Record " << rec_idx << " ===" << std::endl;
+    //         std::cout << "Original Length: " << record.OriginalLength << std::endl;
+    //         std::cout << "Mutated Length:  " << record.MutatedLength << std::endl;
+    //         std::cout << "Original: " << record.SeqASCIIOrg << std::endl;
+    //         std::cout << "Mutated:  " << record.SeqASCIIMut << std::endl;
+	// 		std::cout << "Foundational Rate: " << record.foundationalParameter << std::endl;
+	// 		std::cout << "Similarity: " << record.similarity << std::endl;
+    //     }
+    // }	
 }
 
 // For test
@@ -444,21 +444,21 @@ SequenceDataMutatorSubstitutionOnly::SequenceDataMutatorSubstitutionOnly(Sequenc
 		auto& record = sequenceRecordsWithMetadata->Records[rec_idx];
 		record.similarity = similarity_fn(record.SeqASCIIOrg, record.SeqASCIIMut, record.OriginalLength, record.MutatedLength);
 	}
-	std::cout << "DataMutation: Applied SNP mutations only." << std::endl;
+	// std::cout << "DataMutation: Applied SNP mutations only." << std::endl;
 
 	// Debugging output
-    for(uint32_t rec_idx = 0; rec_idx < std::min(sequenceRecordsWithMetadata->KeyCount, 10u); rec_idx++) {
-        auto& record = sequenceRecordsWithMetadata->Records[rec_idx];
-        if (rec_idx < 10) {
-            std::cout << "\n=== Record " << rec_idx << " ===" << std::endl;
-            std::cout << "Original Length: " << record.OriginalLength << std::endl;
-            std::cout << "Mutated Length:  " << record.MutatedLength << std::endl;
-            std::cout << "Original: " << record.SeqASCIIOrg << std::endl;
-            std::cout << "Mutated:  " << record.SeqASCIIMut << std::endl;
-			std::cout << "Foundational Parameter: " << record.foundationalParameter << std::endl;
-			std::cout << "Similarity: " << record.similarity << std::endl;
-        }
-    }	
+    // for(uint32_t rec_idx = 0; rec_idx < std::min(sequenceRecordsWithMetadata->KeyCount, 10u); rec_idx++) {
+    //     auto& record = sequenceRecordsWithMetadata->Records[rec_idx];
+    //     if (rec_idx < 10) {
+    //         std::cout << "\n=== Record " << rec_idx << " ===" << std::endl;
+    //         std::cout << "Original Length: " << record.OriginalLength << std::endl;
+    //         std::cout << "Mutated Length:  " << record.MutatedLength << std::endl;
+    //         std::cout << "Original: " << record.SeqASCIIOrg << std::endl;
+    //         std::cout << "Mutated:  " << record.SeqASCIIMut << std::endl;
+	// 		std::cout << "Foundational Parameter: " << record.foundationalParameter << std::endl;
+	// 		std::cout << "Similarity: " << record.similarity << std::endl;
+    //     }
+    // }	
 }
 
 
@@ -625,18 +625,18 @@ SequenceDataMutatorGeometric::SequenceDataMutatorGeometric(SequenceRecordsWithMe
 	std::cout << "DataMutation: Applied Geometric mutations only." << std::endl;
 
 	// Debugging output
-    for(uint32_t rec_idx = 0; rec_idx < std::min(sequenceRecordsWithMetadata->KeyCount, 10u); rec_idx++) {
-        auto& record = sequenceRecordsWithMetadata->Records[rec_idx];
-        if (rec_idx < 10) {
-            std::cout << "\n=== Record " << rec_idx << " ===" << std::endl;
-            std::cout << "Original Length: " << record.OriginalLength << std::endl;
-            std::cout << "Mutated Length:  " << record.MutatedLength << std::endl;
-            std::cout << "Original: " << record.SeqASCIIOrg << std::endl;
-            std::cout << "Mutated:  " << record.SeqASCIIMut << std::endl;
-			std::cout << "Foundational Parameter: " << record.foundationalParameter << std::endl;
-			std::cout << "Similarity: " << record.similarity << std::endl;
-        }
-    }	
+    // for(uint32_t rec_idx = 0; rec_idx < std::min(sequenceRecordsWithMetadata->KeyCount, 10u); rec_idx++) {
+    //     auto& record = sequenceRecordsWithMetadata->Records[rec_idx];
+    //     if (rec_idx < 10) {
+    //         std::cout << "\n=== Record " << rec_idx << " ===" << std::endl;
+    //         std::cout << "Original Length: " << record.OriginalLength << std::endl;
+    //         std::cout << "Mutated Length:  " << record.MutatedLength << std::endl;
+    //         std::cout << "Original: " << record.SeqASCIIOrg << std::endl;
+    //         std::cout << "Mutated:  " << record.SeqASCIIMut << std::endl;
+	// 		std::cout << "Foundational Parameter: " << record.foundationalParameter << std::endl;
+	// 		std::cout << "Similarity: " << record.similarity << std::endl;
+    //     }
+    // }	
 }
 
 
@@ -791,18 +791,18 @@ SequenceDataMutatorGeometric::SequenceDataMutatorGeometric(SequenceRecordsWithMe
 	std::cout << "DataMutation: Applied Geometric mutations only." << std::endl;
 
 	// Debugging output
-    for(uint32_t rec_idx = 0; rec_idx < std::min(sequenceRecordsWithMetadata->KeyCount, 10u); rec_idx++) {
-        auto& record = sequenceRecordsWithMetadata->Records[rec_idx];
-        if (rec_idx < 10) {
-            std::cout << "\n=== Record " << rec_idx << " ===" << std::endl;
-            std::cout << "Original Length: " << record.OriginalLength << std::endl;
-            std::cout << "Mutated Length:  " << record.MutatedLength << std::endl;
-            std::cout << "Original: " << record.SeqASCIIOrg << std::endl;
-            std::cout << "Mutated:  " << record.SeqASCIIMut << std::endl;
-			std::cout << "Foundational Parameter: " << record.foundationalParameter << std::endl;
-			std::cout << "Similarity: " << record.similarity << std::endl;
-        }
-    }	
+    // for(uint32_t rec_idx = 0; rec_idx < std::min(sequenceRecordsWithMetadata->KeyCount, 10u); rec_idx++) {
+    //     auto& record = sequenceRecordsWithMetadata->Records[rec_idx];
+    //     if (rec_idx < 10) {
+    //         std::cout << "\n=== Record " << rec_idx << " ===" << std::endl;
+    //         std::cout << "Original Length: " << record.OriginalLength << std::endl;
+    //         std::cout << "Mutated Length:  " << record.MutatedLength << std::endl;
+    //         std::cout << "Original: " << record.SeqASCIIOrg << std::endl;
+    //         std::cout << "Mutated:  " << record.SeqASCIIMut << std::endl;
+	// 		std::cout << "Foundational Parameter: " << record.foundationalParameter << std::endl;
+	// 		std::cout << "Similarity: " << record.similarity << std::endl;
+    //     }
+    // }	
 }
 
 

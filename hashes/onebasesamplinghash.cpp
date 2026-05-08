@@ -84,7 +84,7 @@ REGISTER_FAMILY(HammingLSH,
 
 // Standard 32-bit one-base sampling hashing
 REGISTER_HASH(OneBaseSamplingHash_32,
-   $.desc           = "One-Base Sampling 32-bit - Random base sampling for Hamming distance preservation",
+   $.desc           = "Random base sampling for Hamming distance preservation",
    $.hash_flags     = FLAG_HASH_LOCALITY_SENSITIVE,
    $.impl_flags     = 0,
    $.bits           = 32,

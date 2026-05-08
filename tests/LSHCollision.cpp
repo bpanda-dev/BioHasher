@@ -145,7 +145,7 @@ static void LSHCollisionTestInnerInnerWorker(const HashInfo * hinfo, uint32_t N_
 template <typename hashtype>
 static bool LSHCollisionTestInnerInnerParallel(const HashInfo * hinfo, uint32_t N_seq, uint32_t N_hash, HashFn hash, seed_t HashSeed, common_params_struct &common_params, sim_bins_struct &sim_bins, SeedGenerator &seedGen, std::ofstream &out_file){
 	
-	printf("Inside LSHCollisionTestInnerInner\n");
+	// printf("Inside LSHCollisionTestInnerInner\n");
 
 	SequenceRecordsWithMetadataStruct sequenceRecordsforTest;
 	sequenceRecordsforTest.OriginalSequenceLength = common_params.seqLen;
@@ -527,7 +527,10 @@ static bool LSHCollisionTestInner( const HashInfo * hinfo, const uint32_t seqLen
 	printf("Distance Metric: %s\n", hinfo->similarity_name);
 	printf("Mutation Model: %s\n", getMutationModelName(g_mutation_model));
 	//TODO: Print mutation expression only when valid.
-	printf("Mutation Expression Type: %s\n", getMutationExpressionTypeName(g_mutation_expression_type));
+	if(g_mutation_model == MUTATION_MODEL_GEOMETRIC_MUTATOR){
+		printf("Mutation Expression Type: %s\n", getMutationExpressionTypeName(g_mutation_expression_type));
+	}
+	printf("----------------------------------------------\n");
 
 	// File header
 	out_file << ":1:LSH Collision Test Results\n";
@@ -576,11 +579,11 @@ static bool LSHCollisionTestInner( const HashInfo * hinfo, const uint32_t seqLen
 	sim_bins_struct sim_bins = LSHCollisionTestInnerAgg(hinfo, N_agg, common_params, seedGen, out_file);
 
 	//print bin means and stddevs using
-	if (!REPORT(VERBOSE, flags)) {
-		for (size_t bin_idx = 0; bin_idx < sim_bins.bin_error_parameters_mean.size(); bin_idx++) {
-			printf("Bin %zu: Count %d, Mean = %0.2f, Stddev = %0.2f\n", bin_idx, sim_bins.bin_fill_count[bin_idx], sim_bins.bin_error_parameters_mean[bin_idx], sim_bins.bin_error_parameters_stddev[bin_idx]);
-		}
-	}
+	// if (!REPORT(VERBOSE, flags)) {
+	// 	for (size_t bin_idx = 0; bin_idx < sim_bins.bin_error_parameters_mean.size(); bin_idx++) {
+	// 		printf("Bin %zu: Count %d, Mean = %0.2f, Stddev = %0.2f\n", bin_idx, sim_bins.bin_fill_count[bin_idx], sim_bins.bin_error_parameters_mean[bin_idx], sim_bins.bin_error_parameters_stddev[bin_idx]);
+	// 	}
+	// }
 
 	LSHCollisionTestInnerInnerParallel<hashtype>(hinfo, N_seq, N_hash, hash, HashSeed, common_params, sim_bins, seedGen, out_file);
 
@@ -605,7 +608,8 @@ bool LSHCollisionTest( const HashInfo * hinfo, flags_t flags) {
 		std::filesystem::create_directories(results_dir);
 	}
 
-	std::string filename = results_dir_str + "/collisionResults_" + std::string(hinfo->name) + ".csv";
+	// std::string filename = results_dir_str + "/collisionResults_" + std::string(hinfo->name) + ".csv";
+	std::string filename = results_dir_str + "/collisionResults_" + hinfo->similarity_name + ".csv";
 
 	std::ios_base::openmode mode = std::ios::trunc;  // Default: replace
 	if (std::filesystem::exists(filename)) {
@@ -630,7 +634,7 @@ bool LSHCollisionTest( const HashInfo * hinfo, flags_t flags) {
 
 	SetIsTestActive(true);
 
-	printf("\nTesting hash: %s with keybits: %u (sequence length: %u)\n", hinfo->name, (sequenceLength * 8), sequenceLength);
+	// printf("\nTesting Hash: %s with keybits: %u (sequence length: %u)\n", hinfo->name, (sequenceLength * 8), sequenceLength);
 	result &= LSHCollisionTestInner<hashtype>(hinfo, sequenceLength, flags, out_file, seedGen);
 
     SetIsTestActive(false); // Cleanup: Reset LSH global variables after test completion
@@ -677,7 +681,7 @@ static void run_progress_bar(std::atomic<uint32_t>& counter, uint32_t total) {
             break;
         }
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
         // ticks++;
     }
 }

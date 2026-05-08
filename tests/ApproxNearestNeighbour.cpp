@@ -208,7 +208,7 @@ bool LSHApproxNearestNeighbourTest(const HashInfo *hinfo, flags_t flags) {
 		std::filesystem::create_directories(results_dir);
 	}
 
-	std::string filename = results_dir_str + "/ApproxNearestNeighbourResults_" + std::string(hinfo->name) + ".csv";
+	std::string filename = results_dir_str + "/approxNearestNeighbourResults_" + hinfo->similarity_name + ".csv";
 
 	std::ios_base::openmode mode = std::ios::trunc;  // Default: replace
 	if (std::filesystem::exists(filename)) {
@@ -295,11 +295,11 @@ bool LSHApproxNearestNeighbourTest(const HashInfo *hinfo, flags_t flags) {
     AggSequenceRecord.Records.shrink_to_fit();
 
     // print bin means and stddevs using
-    if(REPORT(VERBOSE, flags)) {
-        for (size_t bin_idx = 0; bin_idx < sim_bins.bin_error_parameters_mean.size(); bin_idx++) {
-          printf("Bin %zu: Count %d, Mean = %0.2f, Stddev = %0.2f\n", bin_idx, sim_bins.bin_fill_count[bin_idx], sim_bins.bin_error_parameters_mean[bin_idx], sim_bins.bin_error_parameters_stddev[bin_idx]);
-        }
-    }
+    // if(REPORT(VERBOSE, flags)) {
+    //     for (size_t bin_idx = 0; bin_idx < sim_bins.bin_error_parameters_mean.size(); bin_idx++) {
+    //       printf("Bin %zu: Count %d, Mean = %0.2f, Stddev = %0.2f\n", bin_idx, sim_bins.bin_fill_count[bin_idx], sim_bins.bin_error_parameters_mean[bin_idx], sim_bins.bin_error_parameters_stddev[bin_idx]);
+    //     }
+    // }
 
     // Reset mutation-related fields in each record
     for (uint32_t i = 0; i < QuerySequenceRecords.KeyCount; i++) {
@@ -364,11 +364,11 @@ bool LSHApproxNearestNeighbourTest(const HashInfo *hinfo, flags_t flags) {
     if (g_mutation_model == MUTATION_MODEL_SIMPLE_SNP_ONLY) {
         // Side-effect: populates SeqASCIIMut and similarity fields in sequenceRecordsForTest
         [[maybe_unused]] SequenceDataMutatorSubstitutionOnly dataMutTest(&QuerySequenceRecords, hinfo->similarityfn);
-        printf("Completed mutation using simple SNP only model.\n");
+        // printf("Completed mutation using simple SNP only model.\n");
     } else if (g_mutation_model == MUTATION_MODEL_GEOMETRIC_MUTATOR) {
         // Side-effect: populates SeqASCIIMut and similarity fields in sequenceRecordsForTest
         [[maybe_unused]] SequenceDataMutatorGeometric dataMutTest(&QuerySequenceRecords, hinfo->similarityfn);
-        printf("Completed mutation using geometric mutator model.\n");
+        // printf("Completed mutation using geometric mutator model.\n");
     }
 
     printf("Re-sampled mutated %u sequences targeting similarity in [%.2f, %.2f].\n", QuerySequenceRecords.KeyCount, target_sim_low, target_sim_high);
@@ -447,7 +447,7 @@ bool LSHApproxNearestNeighbourTest(const HashInfo *hinfo, flags_t flags) {
         for (uint32_t q_idx = start; q_idx < end; q_idx++) {
             const std::string &querySeq = QuerySequenceRecords.Records[q_idx].SeqASCIIMut;
             const uint32_t mut_len = QuerySequenceRecords.Records[q_idx].MutatedLength;
-            groundTruthAll[q_idx].reserve(std::max(16u, g_Nseq_in_Database / 1000)); // tune based on expected hit rate
+            groundTruthAll[q_idx].reserve(std::max(96u, g_Nseq_in_Database / 1000)); // tune based on expected hit rate
 
             for (uint32_t ref_pos = 0; ref_pos < g_Nseq_in_Database; ++ref_pos) {
                 const std::string &refSeq = ReferenceSequenceRecords.Records[ref_pos].SeqASCIIOrg;
@@ -829,17 +829,17 @@ static sim_bins_struct LSHInnerAgg(const HashInfo * hinfo,SequenceRecordsWithMet
     std::vector<double> rand_error_param(sequenceRecordsForAgg.KeyCount, 0.0);
     std::vector<double> similarity_values(sequenceRecordsForAgg.KeyCount, 0.0);
 
-    printf("\n-----------------Start AGG----------------\n");
+    // printf("\n-----------------Start AGG----------------\n");
         if (g_mutation_model == MUTATION_MODEL_SIMPLE_SNP_ONLY) {
             // Side-effect: populates rand_error_param and similarity fields in sequenceRecordsForAgg
-            printf("Using simple SNP only model for data mutation in aggregation phase.\n");
+            // printf("Using simple SNP only model for data mutation in aggregation phase.\n");
             [[maybe_unused]] SequenceDataMutatorSubstitutionOnly dataMutAgg(&sequenceRecordsForAgg, &rand_error_param, hinfo->similarityfn);
     } else if (g_mutation_model == MUTATION_MODEL_GEOMETRIC_MUTATOR) {
             // Side-effect: populates rand_error_param and similarity fields in sequenceRecordsForAgg
             printf("Using geometric mutator model for data mutation in aggregation phase.\n");
             [[maybe_unused]] SequenceDataMutatorGeometric dataMutAgg(&sequenceRecordsForAgg, &rand_error_param, hinfo->similarityfn);
     }
-    printf("\n-----------------End AGG----------------");
+    // printf("\n-----------------End AGG----------------");
 
     // Print Similarity values
     // out_file << ":13:";
@@ -882,7 +882,7 @@ static sim_bins_struct LSHInnerAgg(const HashInfo * hinfo,SequenceRecordsWithMet
           for (uint32_t param_idx = 0; param_idx < sim_bins_agg.bin_fill_count[bin_idx]; param_idx++) {
             sum += params[param_idx];
           }
-          printf("Bin %zu: Sum = %f, Count = %u\n", bin_idx, sum, sim_bins_agg.bin_fill_count[bin_idx]);
+        //   printf("Bin %zu: Sum = %f, Count = %u\n", bin_idx, sum, sim_bins_agg.bin_fill_count[bin_idx]);
           double mean = sum / sim_bins_agg.bin_fill_count[bin_idx];
           sim_bins_agg.bin_error_parameters_mean[bin_idx] = mean;
 

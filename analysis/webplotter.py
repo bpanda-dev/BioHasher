@@ -32,7 +32,6 @@ def read_processed_dataframe(csv_path):
     # print(df)
     return df
 
-
 def generate_row_label(row):
     mutation_model_used = ""
     if row['MutationModel'] == 0:
@@ -43,15 +42,21 @@ def generate_row_label(row):
     param_labels = ""
     # Safe handling of parameter columns depending on whether it's list or missing
     if 'parameter_columns' in row and isinstance(row['parameter_columns'], list):
-        param_labels = ", ".join([f"{name}={row.get(name, '?')}" for name in row['parameter_columns']])
+        param_labels = ", ".join([f"{name}={row[name]}" for name in row['parameter_columns'] if name in row])
+        # param_labels = ", ".join([f"{name}={row.get(name, '?')}" for name in row['parameter_columns']])
+
+    param_part = f", {param_labels}" if param_labels else ""
 
     and_p = str(row.get('AND_param', '1'))
     or_p = str(row.get('OR_param', '1'))
 
-    if and_p == '1' and or_p == '1':
-        return f"{row['hashname']} (L={row['sequencelength']}, {param_labels})[{mutation_model_used}]"
-    else:
-        return f"{row['hashname']} (L={row['sequencelength']}, AND={and_p}, OR={or_p}, {param_labels})[{mutation_model_used}]"
+    and_or_part = f", AND={and_p}, OR={or_p}" if (and_p != '1' or or_p != '1') else ""
+
+    return f"{row['hashname']} (L={row['sequencelength']}{param_part}{and_or_part})[{mutation_model_used}]"
+    # if and_p == '1' and or_p == '1':
+    #     return f"{row['hashname']} (L={row['sequencelength']}, {param_part})[{mutation_model_used}]"
+    # else:
+    #     return f"{row['hashname']} (L={row['sequencelength']}, AND={and_p}, OR={or_p}, {param_part})[{mutation_model_used}]"
 
 
 def plot_scatter(df, sim_metric=""):
@@ -98,6 +103,7 @@ def plot_binned_average(df, sim_metric=""):
 
     for idx, row in df.iterrows():
         label = generate_row_label(row)
+        print(">>>>",label)
         x_vals = np.array(row['similarity_values'])
         y_vals = np.array(row['collision_rates'])
 
@@ -195,7 +201,7 @@ def get_ann_groups(df):
     for keys, group in df.groupby(group_cols, dropna=False):
         row = group.iloc[0]
         hash_name = row.get('Hashname', f'Exp{keys}')
-        param_cols = [c for c in group.columns if c.startswith('param_') and c != 'param_names']
+        param_cols = [c for c in group.columns if c.startswith('param_') and c != 'param_names' and row[c] != 0]
         param_str = ','.join(f"{c[len('param_'):]}={int(row[c]) if isinstance(row[c], float) and row[c].is_integer() else row[c]}" for c in param_cols)
         
         if 'experiment_id' in df.columns:
@@ -214,7 +220,7 @@ def plot_ann_fpr_vs_recall(df):
     for label, group in get_ann_groups(df):
         text = [f"({b},{r})" for b, r in zip(group['b'], group['r'])] if 'b' in group.columns and 'r' in group.columns else []
         
-        clipped_fpr = [max(v, 1e-5) for v in group['Avg_FPR']]
+        clipped_fpr = [max(v, 1e-6) for v in group['Avg_FPR']]
         
         fig.add_trace(go.Scatter(
             x=clipped_fpr, y=group['Avg_Recall'],
@@ -226,8 +232,6 @@ def plot_ann_fpr_vs_recall(df):
             all_x.extend(clipped_fpr)
             all_y.extend(group['Avg_Recall'].tolist())
             all_labels.extend(text)
-            
-
 
     fig.update_layout(
         title="Avg Recall vs Avg FPR", xaxis_title="Average FPR (log)", yaxis_title="Average Recall",
@@ -254,7 +258,7 @@ def plot_ann_precision_vs_recall(df):
     )
     return fig
 
-def plot_ann_min_fpr_per_bin(df, num_bins=15):
+def plot_ann_min_fpr_per_bin(df, num_bins=50):
     fig = go.Figure()
     bin_edges = np.linspace(df['Avg_Recall'].min() - 1e-9, df['Avg_Recall'].max() + 1e-9, num_bins + 1)
     

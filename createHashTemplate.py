@@ -37,7 +37,7 @@ BUILTIN_SIMILARITY_CODE = {
     "hamming": ("HammingSimilarity", '''
 //------------------------------------------------------------
 // Hamming Similarity: fraction of matching positions (equal-length sequences only)
-double HammingSimilarity(const std::string& seq1, const std::string& seq2, const uint32_t in1_len, const uint32_t in2_len) {
+static double HammingSimilarity(const std::string& seq1, const std::string& seq2, const uint32_t in1_len, const uint32_t in2_len) {
     BIOHASHER_ASSERT(in1_len == in2_len, "Hamming similarity requires equal-length sequences.");
     uint32_t length = in1_len;
     uint32_t similar = 0;
@@ -52,7 +52,7 @@ double HammingSimilarity(const std::string& seq1, const std::string& seq2, const
     "edit": ("EditSimilarity", '''
 //------------------------------------------------------------
 // Edit Similarity: 1 - (edit_distance / max_length)
-double EditSimilarity(const std::string& seq1, const std::string& seq2, const uint32_t in1_len, const uint32_t in2_len) {
+static double EditSimilarity(const std::string& seq1, const std::string& seq2, const uint32_t in1_len, const uint32_t in2_len) {
     const int n = in1_len;
     const int m = in2_len;
     std::vector<std::vector<int>> D(n + 1, std::vector<int>(m + 1, 0));
@@ -74,7 +74,7 @@ double EditSimilarity(const std::string& seq1, const std::string& seq2, const ui
     "jaccard": ("JaccardSimilarity", '''
 //------------------------------------------------------------
 // Jaccard Similarity: |intersection| / |union| over character sets
-double JaccardSimilarity(const std::string& seq1, const std::string& seq2, const uint32_t in1_len, const uint32_t in2_len) {
+static double JaccardSimilarity(const std::string& seq1, const std::string& seq2, const uint32_t in1_len, const uint32_t in2_len) {
     std::set<char> set1(seq1.begin(), seq1.begin() + in1_len);
     std::set<char> set2(seq2.begin(), seq2.begin() + in2_len);
     std::set<char> intersection, union_set;
@@ -89,7 +89,7 @@ double JaccardSimilarity(const std::string& seq1, const std::string& seq2, const
     "Cosine": ("CosineSimilarity", '''
 //------------------------------------------------------------
 // cosine Similarity: dot(freq1, freq2) / (||freq1|| * ||freq2||) over character frequencies
-double CosineSimilarity(const std::string& seq1, const std::string& seq2, const uint32_t in1_len, const uint32_t in2_len) {
+static double CosineSimilarity(const std::string& seq1, const std::string& seq2, const uint32_t in1_len, const uint32_t in2_len) {
     std::map<char, int> freq1, freq2;
     for (uint32_t i = 0; i < in1_len; i++) freq1[seq1[i]]++;
     for (uint32_t i = 0; i < in2_len; i++) freq2[seq2[i]]++;
@@ -103,7 +103,7 @@ double CosineSimilarity(const std::string& seq1, const std::string& seq2, const 
     "angular": ("AngularSimilarity", '''
 //------------------------------------------------------------
 // Angular Similarity: 1 - (arccos(cosine_sim) / pi)
-double AngularSimilarity(const std::string& seq1, const std::string& seq2, const uint32_t in1_len, const uint32_t in2_len) {
+static double AngularSimilarity(const std::string& seq1, const std::string& seq2, const uint32_t in1_len, const uint32_t in2_len) {
     std::map<char, int> freq1, freq2;
     for (uint32_t i = 0; i < in1_len; i++) freq1[seq1[i]]++;
     for (uint32_t i = 0; i < in2_len; i++) freq2[seq2[i]]++;

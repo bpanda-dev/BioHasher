@@ -8,5 +8,5 @@ set(HASH_SRC_FILES
         hashes/minhash-edit.cpp
 #  hashes/xxhash.cpp
 #  hashes/fnv.cpp
-  hashes/temp1.cpp
+  # hashes/temp1.cpp
 )
