@@ -52,11 +52,11 @@ To get started with BioHasher, follow these steps:
     - `collisionResults_Hamming.csv`
     - `ApproxNearestNeighbourResults_Hamming.csv`
 
-    > Note:
-    1. The filename includes the similarity metric the hashfunction works on instead of the hashfunction name.
-    2. These files use a custom CSV format and require post-processing before they can be used as standard CSVs.
+    > **Note:**
+    > 1. The filename reflects the similarity metric the hash function operates on, rather than the hash function name.
+    > 2. These files use a custom CSV format and require post-processing before they can be used as standard CSVs.
 
-5. Process the output files to generate standard CSVs, plots, and an interactive visualisation:
+6. Process the output files to generate standard CSVs, plots, and an interactive visualisation:
 
     ```bash
     python ../analysis/generate_report.py \
@@ -92,11 +92,9 @@ todo:caption -->
 
 This section walks through the complete workflow of: **adding a new hash function**, **running tests**, and **generating plots** from the results.
 
----
-
 ### Part 1 : Adding a New Hash Function
 
-There are two approaches to add a new hash function to BioHasher: using the **interactive template generator script**, or **manually** from the example files.
+There are two approaches to add a new hash function to BioHasher: using the **interactive template generator script**, or **manually** using the [EXAMPLE_TEMPLATE.cpp](hashes/EXAMPLE_TEMPLATE.cpp) file.
 
 #### Option A: Using `createHashTemplate.py` (Recommended)
 
@@ -115,32 +113,30 @@ The script walks you through **11 guided steps**:
 | 2    | Author Name         | Copyright header                                                              |
 | 3    | License             | License text in file header (MIT default, 8 options)                          |
 | 4    | Family Name         | `REGISTER_FAMILY(...)` grouping (defaults to hash name)                       |
-| 5    | Repository URL      | Source URL in family registration                                             |
-| 6    | Source Status        | `SRC_UNKNOWN`, `SRC_FROZEN`, `SRC_STABLEISH`, or `SRC_ACTIVE`                 |
-| 7    | Description         | Human-readable description in `REGISTER_HASH`                                 |
-| 8    | Output Bit Size     | 32, 64, 128, 256, 512, or custom (multiple allowed)                           |
-| 9    | LSH Candidacy       | Confirms the hash is an LSH candidate; exits if not (BioHasher is LSH-only)   |
-| 10   | Similarity Name     | Built-in (`Hamming`, `Jaccard`, `Cosine`, `Angular`, `Edit`) or custom name   |
-| 11   | Similarity Function | Auto-set for built-in metrics; prompts for a C++ function name if custom      |
+| 5    | Description         | Human-readable description in `REGISTER_HASH`                                 |
+| 6    | Output Bits Size    | 32, 64, 128, 256, 512, 1024 or custom (multiple allowed)                      |
+| 7    | LSH Candidacy       | Confirms the hash is an LSH candidate; exits if not (BioHasher is LSH-only)   |
+| 8    | Similarity Name     | Built-in (`Hamming`, `Jaccard`, `Cosine`, `Angular`, `Edit`) or custom name   |
+| 9    | Similarity Function | Auto-set for built-in metrics; prompts for a C++ function name if custom      |
 
 Every input is validated (naming rules, C++ keyword checks, URL format, etc.). The script **never exits on bad input** : it re-prompts until valid input is provided.
 The only early exit is at Step 9: if the hash is not an LSH candidate, the script stops with a message that BioHasher only supports LSH-related tests.
 
-**What it generates:**
+**It generates:**
 1. A compilable C++ template file at `hashes/<hashname>.cpp` containing:
-
     - Copyright header with your chosen license
     - A hash function stub for each selected bit size
     - The similarity function implementation (included automatically for built-in metrics like Hamming or Edit; a stub for custom metrics)
     - `REGISTER_FAMILY(...)` and `REGISTER_HASH(...)` macro blocks
     - Correct `PUT_U32` / `PUT_U64` output calls
-2. An updated `hashes/Hashsrc.cmake` with the new file registered
+    - A default equality checker for hash outputs, defining the condition under which two outputs produced by the hash function are considered identical.
+2. An updated `hashes/Hashsrc.cmake` with the new hash registered
 
 > **Full documentation:** See [`createHashTemplate.md`](documentation/createHashTemplate.md) for the complete reference including validation rules, example sessions, and troubleshooting.
 
 #### Option B: Manual Creation
 
-TODO
+[TODO]
 
 #### After Creating the Template
 
