@@ -317,16 +317,19 @@ cd build && make -j$(nproc)
 
 ---
 
-### Part 3 : Generating Plots
+### Part 3 : Generating Reports and Visualisations
 
 #### 3a. Collision Curve Plots (`analysis/plot_collisioncurves.py`)
+To process your test results, generate plots, and create an interactive HTML dashboard, use the `generate_report.py` script:
 
 ```bash
-  # ensure that you have activate biohasher conda environment and are in the root directory of BioHasher.  
-  python analysis/plot_collisioncurves.py results/collisionResults_<hashname>.csv
+# Ensure that you have activated the biohasher conda environment and are in the root directory of BioHasher. At least one of --coll or --ann args must be provided to generate the plots and visualisations.
+python analysis/generate_report.py \
+    --coll=results/collisionResults_<similarityname>.csv \
+    --ann=results/ApproxNearestNeighbourResults_<similarityname>.csv
 ```
 
-All plots are saved in the current working directory.
+<!-- All plots are saved in the current working directory.
 
 | Filename Pattern              | Description                                 |
 | ----------------------------- | ------------------------------------------- |
@@ -351,7 +354,7 @@ Produces **6 plots** (3 linear + 3 log-scale):
 | -------------------------------------- | -------------------------------------------------------- |
 | `*_fpr_vs_recall.png` / `*_log.png`   | FPR vs Recall per `b` value, annotated with `r`          |
 | `*_best_fpr_per_recall_bin.png` / `*_log.png` | Pareto-optimal (min FPR) per recall bin           |
-| `*_all_points.png` / `*_log.png`      | All `(b,r)` configs as an annotated scatter              |
+| `*_all_points.png` / `*_log.png`      | All `(b,r)` configs as an annotated scatter              | -->
 
 ---
 
