@@ -4,28 +4,33 @@
 
 BioHasher is a specialized Locality Sensitive Hash function testing framework designed with biological context in mind. It is built upon the hash function testing framework [SMHasher3](https://gitlab.com/fwojcik/smhasher3). BioHasher currently supports two tests Collision Curve Test with AND-OR amplification, and c-Approximate Nearest Neighbour Test.
 
-
 ## Getting Started
 
 To get started with BioHasher, follow these steps:
 
 1. **Clone the repository**:
+
     ```bash
     git clone https://github.com/bpanda-dev/BioHasher.git
     cd BioHasher
     ```
+
 2. **Set up conda environment**: (BioHasher is bundled with multiple python scripts for plotting and for aiding users to connect their hash function to the BioHasher framework.)
    1. Prerequisites: [Miniconda](https://docs.conda.io/en/latest/miniconda.html) or [Anaconda](https://www.anaconda.com/download)
    2. Create the conda environment from the provided `environment.yaml`:
+
       ```bash
        conda env create -f environment.yaml
-      ``` 
+      ```
+
       This creates a conda environment name `biohasher`.
    3. Activate the environment:
+
       ```bash
        conda activate biohasher
        # to deactivate biohasher, use "conda deactivate"
       ```
+
 3. **Build BioHasher**:
 
    ```bash
@@ -34,19 +39,21 @@ To get started with BioHasher, follow these steps:
     cmake ..
     make -j$(nproc)
    ```
+
 4. **Run an example test**:
 
    ```bash
     # A sample test run of the two analyses: collision and similarity search on the included
     # example hash function (exampleHash),which preserves Hamming distance.
     ./BioHasher --test=LSHCollision,LSHApproxNearestNeighbour exampleHash --ncpu=4
-   ``` 
+   ```
+
     The run should complete in under a minute. If everything works correctly, two output files are written to the `results/` directory under `BioHasher`:
     - `collisionResults_Hamming.csv`
     - `ApproxNearestNeighbourResults_Hamming.csv`
-    
-    > Note: 
-    1.  The filename includes the similarity metric the hashfunction works on instead of the hashfunction name.
+
+    > Note:
+    1. The filename includes the similarity metric the hashfunction works on instead of the hashfunction name.
     2. These files use a custom CSV format and require post-processing before they can be used as standard CSVs.
 
 5. Process the output files to generate standard CSVs, plots, and an interactive visualisation:
@@ -59,24 +66,9 @@ To get started with BioHasher, follow these steps:
 
     This writes all plots and processed CSVs to the `results/` directory under `Hamming` name. An HTML file is also generated, which aggregates all plots into a single interactive visualisation.
 
-
-<!--
-### Updating the environment
-
-
-If `environment.yaml` is modified (e.g., a new dependency is added), update your existing environment with:
-
-
-```bash
-
-conda env update -f environment.yaml --prune
-
-```
--->
-
 ---
 
-## A brief description of tests included in BioHasher
+<!-- ## A brief description of tests included in BioHasher
 
 ### Test A:  Collision Curve
 
@@ -94,7 +86,7 @@ The c-Approximate Nearest Neighbour test evaluates how well an LSH function perf
 todo:caption
 
 <img src="documentation/ANN_flowchart.png" alt="ANN flowchart" width="600"/>
-todo:caption
+todo:caption -->
 
 ## Usage Guide for Adding a Novel Hash function for testing
 
@@ -227,7 +219,7 @@ make
 | `--tests`               | Print all valid test suite names                              | Active                  |
 | `--test=<name>[,...]`   | Enable **only** these tests (disables all others first)       | Active                  |
 | `--notest=<name>[,...]` | Disable specific tests                                        | In Progress             |
-| `--ncpu=N`              | Number of threads for parallel tests                          | Active in CollisionTest |
+| `--ncpu=N`              | Number of threads for parallel tests                          | Active |
 | `--verbose`             | Verbose output with more stats and diagrams                   | Not Active              |
 | `--version`             | Print version string                                          | Active                  |
 
@@ -358,63 +350,6 @@ Produces **6 plots** (3 linear + 3 log-scale):
 | `*_fpr_vs_recall.png` / `*_log.png`   | FPR vs Recall per `b` value, annotated with `r`          |
 | `*_best_fpr_per_recall_bin.png` / `*_log.png` | Pareto-optimal (min FPR) per recall bin           |
 | `*_all_points.png` / `*_log.png`      | All `(b,r)` configs as an annotated scatter              |
-
----
-
-### Project Structure
-
-```bash
-BioHasher/
-├── hashes/                             # Hash function implementations
-│   ├── minhash.cpp                     # MinHash implementation
-│   ├── simhash.cpp                     # SimHash implementation
-│   ├── onebasesamplinghash.cpp         # One-base sampling hash implementation
-│   ├── minhashWithSignature.cpp        # MinHash with signature matrix
-│   ├── donothing.cpp                   # No-op hash (baseline)
-│   ├── Hashrefs.cmake                  # CMake hash reference list
-│   ├── Hashrefs.cpp.in                 # Hash reference template
-│   ├── Hashsrc.cmake                   # CMake hash source list
-│   └── ssh1/                           # SubseqHash implementation
-│       └── ssh1.cpp
-├── tests/                              # Test implementations
-│   ├── LSHCollision.cpp                # Collision curve test
-│   ├── LSHCollision.h
-│   ├── ApproxNearestNeighbour.cpp      # Approximate nearest neighbour test
-│   └── ApproxNearestNeighbour.h
-├── analysis/                           # Plotting scripts
-│   ├── plot_collisioncurves.py         # Collision curve plotting (matplotlib)
-│   ├── plot_collisioncurve_plotly.py   # Collision curve plotting (plotly)
-│   └── plot_ANN.py                     # ANN result plotting
-├── lib/                                # Core library
-│   ├── BioDataGeneration.cpp           # Biological sequence generation & mutation
-│   ├── BioDataGeneration.h
-│   ├── HashInfo.cpp                    # Hash metadata & registration
-│   ├── HashInfo.h
-│   ├── Hashlib.cpp                     # Core hashing infrastructure
-│   ├── Hashlib.h
-│   ├── LSHGlobals.cpp                  # Test parameter globals
-│   ├── LSHGlobals.h
-│   ├── similarities.cpp                # Similarity functions (Jaccard, Hamming, etc.)
-│   ├── similarities.h
-│   ├── specifics.cpp                   # Hash-specific utilities
-│   ├── specifics.h
-│   ├── Blob.h                          # Binary data buffer
-│   ├── Instantiate.h                   # Hash instantiation helpers
-│   └── TestGlobals.h                   # Shared test configuration
-├── documentation/                      # Documentation
-│   ├── ApproximateNearestNeighbour.md  # Approximate nearest neighbour test
-│   ├── Collisiontest.md                # Collision curve test
-│   ├── MutationModels.md               # Mutation models
-│   └── createHashTemplate.md           # Adding a new hash function
-├── results/                            # Output results (gitignored)
-├── CMakeLists.txt                      # Top-level CMake build file
-├── main.cpp                            # Entry point
-├── createHashTemplate.py               # Script to scaffold a new hash
-├── version.cmake                       # Git-derived version extraction
-├── version.h.in                        # Version header template
-├── environment.yaml                    # Conda environment specification
-└── README.md                           # This file
-```
 
 ---
 
