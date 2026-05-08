@@ -25,7 +25,7 @@ LICENSE_OPTIONS = {
 }
 
 # Common hash bit sizes
-BITS_OPTIONS = [32, 64, 128, 256, 512]
+BITS_OPTIONS = [32, 64, 128, 256, 512, 1024]
 
 # Built-in similarity metrics that already have implementations in BioHasher
 BUILTIN_SIMILARITY_NAMES_CAPITAL = ["Hamming", "Jaccard", "Cosine", "Angular", "Edit"]
@@ -132,6 +132,11 @@ TEMPLATE_HEADER = '''/*
 
 TEMPLATE_HASH_FUNCTION_START = '''
 //------------------------------------------------------------
+static bool check_equality{suffix}(void* inp1, void* inp2){{
+    if (inp1 == nullptr || inp2 == nullptr) return false;
+    return std::memcmp(inp1, inp2, {len_bytes}) == 0;
+}}
+//------------------------------------------------------------
 static void {hash_name}{suffix}( const void * in, const size_t len, const seed_t seed, void * out ) {{
 {hash_vars}
 {add_logic}
@@ -169,7 +174,7 @@ REGISTER_HASH({hash_name}{suffix},
 # Template for a custom (user-defined) similarity function stub
 TEMPLATE_CUSTOM_SIMILARITY = '''
 //------------------------------------------------------------
-// {similarityfn}: Custom similarity function — implement your logic here.
+// {similarityfn}: Custom similarity function - implement your logic here.
 // Must return a value in [0.0, 1.0] where 1.0 means identical.
 static double {similarityfn}(const std::string& seq1, const std::string& seq2, const uint32_t in1_len, const uint32_t in2_len) {{
     // TODO: Implement your similarity computation.
@@ -365,7 +370,7 @@ def validate_bits(bits_str: str) -> tuple[bool, str, int]:
     if bits <= 0:
         return False, "Bits must be a positive number.", 0
 
-    if bits > 512:
+    if bits > 1024:
         return False, "Bits must be 1024 or less.", 0
 
     if bits % 8 != 0:
@@ -681,6 +686,7 @@ def create_hash_file(config: dict) -> str:
 
     sim_name = config['similarity_name']
     is_builtin = sim_name in BUILTIN_SIMILARITY_NAMES
+    print(">>>>>>>>>>>>>>>>>>>>>>>>>.", is_builtin)
 
     # Determine extra includes needed for certain similarity functions
     extra_includes = ""
@@ -711,7 +717,8 @@ def create_hash_file(config: dict) -> str:
             suffix=suffix,
             hash_vars=hash_vars,
             add_logic = add_logic,
-            put_calls=put_calls
+            put_calls=put_calls,
+            len_bytes=bits // 8
         )
 
     # Insert the similarity function code
@@ -884,9 +891,10 @@ def main():
         "Similarity name",
         validate_similarity_name
     )
+    config['similarity_name'] = config['similarity_name'].lower().strip()
 
     # Step 11: Similarity Function
-    sim_name = config['similarity_name'].lower().strip()
+    sim_name = config['similarity_name']
 
 
     if sim_name in BUILTIN_SIMILARITY_NAMES:
@@ -896,7 +904,7 @@ def main():
         print_step(9, total_steps, "Similarity Function")
         print(f"'{sim_name}' is a built-in similarity metric in BioHasher.")
         print(f"The implementation of '{builtin_fn}' will be included in your hash file.")
-        print(f"  → Similarity function set to: {builtin_fn}")
+        print(f"  -> Similarity function set to: {builtin_fn}")
     else:
         # Custom: ask the user to name their function
         print_step(9, total_steps, "Similarity Function")
@@ -940,7 +948,7 @@ def main():
         print(f"	1. To test if your {config['hash_name']}Hash function has been added to BioHasher:")
         print(f"	2. Build BioHasher using $mkdir build > $cd build > $cmake .. > $make")
         print(f" 	3. run BioHasher using, ./BioHasher --list | grep {config['hash_name']}. It should list your hash.")
-        print(f"   	4. Implement the logic of your Hash in the {config['hash_name']}Hash function.")
+        print(f"   	4. Implement the logic of your Hash in the {config['hash_name']} Hash function definition(s).")
 
     except Exception as e:
         print(f"\n Error creating file: {e}", file=sys.stderr)
