@@ -319,7 +319,6 @@ cd build && make -j$(nproc)
 
 ### Part 3 : Generating Reports and Visualisations
 
-#### 3a. Collision Curve Plots (`analysis/plot_collisioncurves.py`)
 To process your test results, generate plots, and create an interactive HTML dashboard, use the `generate_report.py` script:
 
 ```bash
