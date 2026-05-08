@@ -24,7 +24,7 @@ To get started with BioHasher, follow these steps:
    3. Activate the environment:
       ```bash
        conda activate biohasher
-       # to deactivate biohasher, just use ->  conda deactivate
+       # to deactivate biohasher, use "conda deactivate"
       ```
 3. **Build BioHasher**:
 
@@ -34,19 +34,30 @@ To get started with BioHasher, follow these steps:
     cmake ..
     make -j$(nproc)
    ```
-4. **Run a sample test**:
+4. **Run an example test**:
+
    ```bash
-       # Perform a sample test run to perform collision analysis of an included hash function (OneBaseSamplingHash-32)
-       ./BioHasher --test=LSHCollision OneBaseSamplingHash-32 --ncpu=4
+       # A sample test run of the two analyses: collision and similarity search on the included example hash function (exampleHash),which preserves Hamming distance.
+       time ./BioHasher --test=LSHCollision,LSHApproxNearestNeighbour exampleHash --ncpu=4
    ``` 
-   If everything works correctly, the above run should generate a output file named `collisionResults_OneBaseSamplingHash-32.csv` in the `results` directory under `BioHasher`. This file contains the output of the collision test.
-5. To **plot the curves** from the output csv file,
+    The run should complete in under a minute. If everything works correctly, two output files are written to the `results/` directory under `BioHasher`:
+    - `collisionResults_Hamming.csv`
+    - `ApproxNearestNeighbourResults_Hamming.csv`
+    
+    > Note: 
+    1.  The filename includes the similarity metric the hashfunction works on instead of the hashfunction name.
+    2. These files use a custom CSV format and require post-processing before they can be used as standard CSVs.
+
+5. Process the output files to generate standard CSVs, plots, and an interactive visualisation:
 
     ```bash
-    python ../analysis/plot_collisioncurves.py ../results/collisionResults_OneBaseSamplingHash-32.csv
+        python ../analysis/generate_report.py \
+            --coll=../results/collisionResults_Hamming.csv \
+            --ann=../results/approxNearestNeighbourResults_Hamming.csv
     ```
 
-    <!-- This will generate various versions of collision curves plots in the analysis directory. We explain about the type of plots in section [[?]]. -->
+    This writes all plots and processed CSVs to the `results/` directory under `Hamming` name. An HTML file is also generated, which aggregates all plots into a single interactive visualisation.
+
 
 <!--
 ### Updating the environment

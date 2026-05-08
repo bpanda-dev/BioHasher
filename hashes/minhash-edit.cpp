@@ -82,7 +82,7 @@ static double EditSimilarity(const std::string& seq1, const std::string& seq2, c
 
 // NOTE: Only valid for 32 and 64 bit hash output.  
 template<typename hashT>
-bool check_equality(void* inp1, void* inp2){
+static bool check_equality(void* inp1, void* inp2){
       if(inp1 == nullptr || inp2 == nullptr){
             return false;
       }

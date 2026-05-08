@@ -28,14 +28,14 @@ static bool check_equality_32(void* inp1, void* inp2){
 }
 
 // Test this out.
-inline uint64_t hash_seed_to_random(seed_t seed) {
+static inline uint64_t hash_seed_to_random(seed_t seed) {
     uint64_t z = (seed + 0x9e3779b97f4a7c15ULL);
     z = (z ^ (z >> 30)) * 0xbf58476d1ce4e5b9ULL;
     z = (z ^ (z >> 27)) * 0x94d049bb133111ebULL;
     return z ^ (z >> 31);
 }
 
-static void oneBaseSamplingHash_32(const void* in, const size_t len, const seed_t seed, void* out) {
+static void exampleHash_32(const void* in, const size_t len, const seed_t seed, void* out) {
     // Input validation
     if (in == nullptr || len == 0) {
         PUT_U32(0, (uint8_t*)out, 0);
@@ -78,18 +78,18 @@ static double HammingSimilarity(const std::string& seq1, const std::string& seq2
 }
 
 //------------------------------------------------------------
-REGISTER_FAMILY(HammingLSH,
-   $.src_url    = "https://github.com/bpanda-dev/BioHasher/hashes/onebasesamplinghash.cpp",
+REGISTER_FAMILY(exampleLSH,
+   $.src_url    = "",
    $.src_status = HashFamilyInfo::SRC_UNKNOWN
 );
 
 // Standard 32-bit one-base sampling hashing
-REGISTER_HASH(OneBaseSamplingHash_32,
-   $.desc           = "Random base sampling for Hamming distance preservation",
+REGISTER_HASH(exampleHash,
+   $.desc           = "exampleHash with Hamming distance preservation",
    $.hash_flags     = FLAG_HASH_LOCALITY_SENSITIVE,
    $.impl_flags     = 0,
    $.bits           = 32,
-   $.hashfn         = oneBaseSamplingHash_32,
+   $.hashfn         = exampleHash_32,
    $.similarity_name = "Hamming",
    $.similarityfn   = HammingSimilarity,
    $.check_equality_fn = check_equality_32

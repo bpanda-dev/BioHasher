@@ -1,5 +1,6 @@
 #pragma once
 
+#include "HashInfo.h"
 #include <vector>
 #include <cstdint>
 
@@ -34,11 +35,12 @@ extern uint32_t g_NHashes;
 extern uint32_t g_ShortSequenceLength;
 extern uint32_t g_LongSequenceLength;
 
-
 extern uint32_t g_start_B;
 extern uint32_t g_start_R;
 extern uint32_t g_MAX_B;
 extern uint32_t g_MAX_R;
+
+extern double g_simThresholdForCollTest;
 
 extern std::vector<uint32_t> g_tokenLengths_array;
 
@@ -56,8 +58,6 @@ extern uint32_t g_ANN_MAX_R;
 extern double g_simThresholdForApproxNNTest;
 
 extern std::vector<double> g_cValuesApproxNNTest;
-
-
 
 
 // #define MUTATION_EXPRESSION_DEL_EQUAL_SUB 0

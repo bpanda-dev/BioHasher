@@ -48,7 +48,7 @@ struct DPCell{
 };
 
 
-bool check_equality_64(void* inp1, void* inp2){
+static bool check_equality_64(void* inp1, void* inp2){
 	uint64_t* data1 = static_cast<uint64_t*>(inp1);
 	uint64_t* data2 = static_cast<uint64_t*>(inp2);
 

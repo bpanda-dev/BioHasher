@@ -46,7 +46,7 @@ static void ExtractTokensMinhash(const uint8_t *src, size_t startBase, size_t ba
 #define _hash_range_32 uint64_t(1 << 32)  // 2^32     : Total Number of buckets. 
 
 
-std::set<std::string> get_kmers(const std::string& sequence, int k) {
+static std::set<std::string> get_kmers(const std::string& sequence, int k) {
     std::set<std::string> kmers;
     
     // Ensure the sequence is long enough for at least one k-mer
@@ -62,7 +62,7 @@ std::set<std::string> get_kmers(const std::string& sequence, int k) {
     return kmers;
 }
 
-double JaccardSimilarity(const std::string& seq1, const std::string& seq2, const uint32_t in1_len, const uint32_t in2_len) {
+static double JaccardSimilarity(const std::string& seq1, const std::string& seq2, const uint32_t in1_len, const uint32_t in2_len) {
 
       uint32_t k = (uint32_t)TOKEN_LENGTH; // k-mer length
 
@@ -89,7 +89,7 @@ double JaccardSimilarity(const std::string& seq1, const std::string& seq2, const
 
 // NOTE: Only valid for 32 and 64 bit hash output.  
 template<typename hashT>
-bool check_equality(void* inp1, void* inp2){
+static bool check_equality(void* inp1, void* inp2){
       if(inp1 == nullptr || inp2 == nullptr){
             return false;
       }

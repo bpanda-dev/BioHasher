@@ -1,6 +1,7 @@
 set(HASH_SRC_FILES
         hashes/donothing.cpp
         hashes/onebasesamplinghash.cpp
+        hashes/examplehash.cpp
         hashes/ssh1/ssh1.cpp
         hashes/fnv.cpp
         hashes/minhash.cpp

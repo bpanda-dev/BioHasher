@@ -14,7 +14,7 @@ uint32_t g_verySlowNHashes = 1000;
 
 uint32_t g_SlowNAggCases = 100000;
 uint32_t g_SlowNSeq = 5000;
-uint32_t g_SlowNHashes = 1000;
+uint32_t g_SlowNHashes = 2000;
 
 uint32_t g_NAggCases = 100000;
 uint32_t g_NSeq = 5000;
@@ -38,10 +38,10 @@ bool g_isBasesDrawnFromUniformDistribution = true;
 std::vector<uint32_t> g_tokenLengths_array = {13}; //{4 ,7, 13, 21, 31, 33};
 
 //---------------------------------------------------------------------------------------
-uint32_t g_NAggCasesApproxNNTest = 500000;
+uint32_t g_NAggCasesApproxNNTest = 100000;
 uint32_t g_sequenceLengthForApproxNNTest = 50; // Sequence length for Approx Nearest Neighbour test. Adjust as needed.
 uint32_t g_Nseq_in_Database = 50000; // Number of sequences in the reference database for the Approx Nearest Neighbour test. Adjust as needed.
-uint32_t g_numQueriesForApproxNNTest = 3000; // Number of query sequences to generate for the Approx Nearest Neighbour test. Adjust as needed.
+uint32_t g_numQueriesForApproxNNTest = 2000; // Number of query sequences to generate for the Approx Nearest Neighbour test. Adjust as needed.
 
 uint32_t g_avgRunsForApproxNN = 3;
 
@@ -50,7 +50,7 @@ std::vector<double> g_cValuesApproxNNTest = {1}; //{0.5, 0.6, 0.7, 0.8, 0.9, 0.9
 uint32_t g_ANN_start_B = 1; // Starting value of b (hashes per table) for the Approx Nearest Neighbour test. Adjust as needed.
 uint32_t g_ANN_start_R = 1; // Starting value of r (number of tables) for the Approx Nearest Neighbour test. Adjust as needed.
 uint32_t g_ANN_MAX_B = 2; // Maximum value of b (hashes per table) to test in the Approx Nearest Neighbour test. Adjust as needed.
-uint32_t g_ANN_MAX_R = 3; // Maximum value of r (number of tables) to test in the Approx Nearest Neighbour test. Adjust as needed.
+uint32_t g_ANN_MAX_R = 2; // Maximum value of r (number of tables) to test in the Approx Nearest Neighbour test. Adjust as needed.
 
 double g_simThresholdForApproxNNTest = 0.95; // Similarity threshold for Approx Nearest Neighbour test. Adjust as needed.
 

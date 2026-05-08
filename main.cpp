@@ -109,12 +109,69 @@ void usage() {
            "\n"
            "  Hashnames can be supplied using any case letters.\n");
 }
+//-----------------------------------------------------------------------------
+
+
+static void examplehash_initialisation() {
+    static bool initialized = false;
+    if (!initialized) {   
+        //---- Variables used across tests which can be defined by user ---//
+        g_verySlowNAggCases = 50000;
+        g_verySlowNSeq = 1000;
+        g_verySlowNHashes = 500;
+
+        g_SlowNAggCases = 50000;
+        g_SlowNSeq = 1000;
+        g_SlowNHashes = 500;
+
+        g_NAggCases = 50000;
+        g_NSeq = 1000;
+        g_NHashes = 200;
+
+        g_ShortSequenceLength = 50;
+        g_LongSequenceLength = 50;
+
+        g_start_B = 1;
+        g_start_R = 1;
+        g_MAX_B = 2;
+        g_MAX_R = 3;
+
+        //---------------------------------------------------------------------------------------
+        uint32_t g_NAggCasesApproxNNTest = 50000;
+        uint32_t g_sequenceLengthForApproxNNTest = 50; // Sequence length for Approx Nearest Neighbour test. Adjust as needed.
+        uint32_t g_Nseq_in_Database = 50000; // Number of sequences in the reference database for the Approx Nearest Neighbour test. Adjust as needed.
+        uint32_t g_numQueriesForApproxNNTest = 1000; // Number of query sequences to generate for the Approx Nearest Neighbour test. Adjust as needed.
+
+        uint32_t g_avgRunsForApproxNN = 2;
+
+        std::vector<double> g_cValuesApproxNNTest = {1}; //{0.5, 0.6, 0.7, 0.8, 0.9, 0.95}; // c-ANN approximation factors to sweep. Each c < 1 defines the boundary as c * target_sim_low.
+
+        uint32_t g_ANN_start_B = 1; // Starting value of b (hashes per table) for the Approx Nearest Neighbour test. Adjust as needed.
+        uint32_t g_ANN_start_R = 1; // Starting value of r (number of tables) for the Approx Nearest Neighbour test. Adjust as needed.
+        uint32_t g_ANN_MAX_B = 2; // Maximum value of b (hashes per table) to test in the Approx Nearest Neighbour test. Adjust as needed.
+        uint32_t g_ANN_MAX_R = 3; // Maximum value of r (number of tables) to test in the Approx Nearest Neighbour test. Adjust as needed.
+
+        double g_simThresholdForApproxNNTest = 0.95; // Similarity threshold for Approx Nearest Neighbour test. Adjust as needed.
+
+        //---------------------------------------------------------------------------------------
+
+        // Global variables for runtime communication
+        const uint32_t g_bincount_full = 1000;
+
+        initialized = true;
+    }
+}
 
 //-----------------------------------------------------------------------------
 
 template <typename hashtype>
 static bool test( const HashInfo * hInfo, const flags_t flags ) {
     bool result  = true;
+
+    if(hInfo->name == std::string("exampleHash")) {
+        printf("Running example hash. The parameters are set for faster computation");
+        examplehash_initialisation();
+    }
 
     if (g_testAll) {
         printf("-------------------------------------------------------------------------------\n");
