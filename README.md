@@ -220,8 +220,8 @@ make
 | `--version`             | Print version string                                          | Active                  |
 
 #### Test 1 : LSH Collision Test (`--test=LSHCollision`)
-
-The `(AND, OR)` grid is configured in [`lib/LSHGlobals.cpp`](lib/LSHGlobals.cpp) via `g_ANN_start_B`, `g_ANN_MAX_B`, `g_ANN_start_R`, `g_ANN_MAX_R` variables.
+The Collision Curve test measures how often a hash function produces the same output for pairs of sequences at varying levels of similarity. 
+<!--- The `(AND, OR)` grid is configured in [`lib/LSHGlobals.cpp`](lib/LSHGlobals.cpp) via `g_ANN_start_B`, `g_ANN_MAX_B`, `g_ANN_start_R`, `g_ANN_MAX_R` variables. --->
 
 > **Full documentation:** See [`Collisiontest.md`](documentation/CollisionTest.md) for the complete reference including AND-OR basics, internal pipeline, pseudocode, all configurable parameters, and caveats.
 
@@ -245,7 +245,7 @@ The `(AND, OR)` grid is configured in [`lib/LSHGlobals.cpp`](lib/LSHGlobals.cpp)
 
 #### Test 2 : Approximate Nearest Neighbour Test (`--test=LSHApproxNearestNeighbour`)
 
-**What it does:** This test evaluates the hash function as an indexing scheme for Similarity search applications, which is an important use case in many genomic LSH pipelines.
+This test evaluates the hash function as an indexing scheme for Similarity search applications, which is an important use case in many genomic LSH pipelines.
 
 <!--
 It:
