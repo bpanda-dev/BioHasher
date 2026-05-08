@@ -227,13 +227,12 @@ The `(AND, OR)` grid is configured in [`lib/LSHGlobals.cpp`](lib/LSHGlobals.cpp)
 
 ```bash
 # Run LSH collision test (multi-threaded recommended)
-./BioHasher --test=LSHCollision SubSeqHash-64 --ncpu=16
+./BioHasher --test=LSHCollision exampleHash --ncpu=4
 ```
 
-**Output:** `results/collisionResults_<hashname>.csv`
+**Output:** `results/collisionResults_<similarityname>.csv`  (`similarityname` is the similarity metric the `<hashname>` is tested against.)
 
-> For a particular Hash function, each run **appends** to the CSV if it already exists, so you can accumulate results across multiple token lengths or configurations.
-
+<!--
 **Test parameters** (automatically adjusted based on hash flags):
 
 | Parameter                 | Normal Hash | `FLAG_IMPL_VERY_SLOW`                            |
@@ -241,12 +240,15 @@ The `(AND, OR)` grid is configured in [`lib/LSHGlobals.cpp`](lib/LSHGlobals.cpp)
 | Sequence pairs per bin    | 50,000      | 5,000                                            |
 | Hash repetitions per pair | 2,000       | 2,000                                            |
 | Sequence length           | 512 bases   | 512 (or 40 if `FLAG_IMPL_SMALL_SEQUENCE_LENGTH`) |
-
+-->
 ---
 
 #### Test 2 : Approximate Nearest Neighbour Test (`--test=LSHApproxNearestNeighbour`)
 
-**What it does:** This test evaluates the hash function as an *LSH index* for nearest-neighbour search which is the end-to-end use case most genomic LSH pipelines care about. It:
+**What it does:** This test evaluates the hash function as an indexing scheme for Similarity search applications, which is an important use case in many genomic LSH pipelines.
+
+<!--
+It:
 
 1. Generates a reference database of random sequences.
 2. Samples query sequences from the reference, then mutates them to target 90–100% similarity.
@@ -255,17 +257,17 @@ The `(AND, OR)` grid is configured in [`lib/LSHGlobals.cpp`](lib/LSHGlobals.cpp)
 5. Reports **Recall**, **Precision**, **FPR**, and **F1** averaged over multiple independent runs.
 
 This helps you select the optimal `(b, r)` parameters for your application by directly measuring retrieval quality.
+-->
 
 > **Full documentation:** See [ApproximateNearestNeighbour.md](documentation/ApproximateNearestNeighbour.md) for the complete reference including the 5-phase pipeline internals, all configurable parameters, evaluation metrics, and caveats.
 
 ```bash
-./BioHasher --test=LSHApproxNearestNeighbour SubSeqHash-64 --ncpu=16
+./BioHasher --test=LSHApproxNearestNeighbour exampleHash --ncpu=4
 ```
 
-**Output:** `results/ApproxNearestNeighbourResults_<hashname>.csv`
+**Output:** `results/ApproxNearestNeighbourResults_<similarityname>.csv` (`<similarityname>` is the similarity metric the `<hashname>` is tested against.)
 
-> For a particular Hash function, each run **appends** to the CSV if it already exists, so you can accumulate results across multiple configurations.
-
+<!--
 **Output format:**
 
 ```
@@ -287,6 +289,10 @@ This helps you select the optimal `(b, r)` parameters for your application by di
 | `g_sequenceLengthForApproxNNTest`| Length of reference/query sequences | 45      |
 | `g_Nseq_in_Database`           | Number of reference sequences      | 10000   |
 | `g_numQueriesForApproxNNTest`  | Number of query sequences          | 100     |
+
+--->
+
+> **Note**: Each run **appends** to the CSV if it already exists, so you can accumulate results across multiple token lengths or configurations.
 
 ---
 
