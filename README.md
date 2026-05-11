@@ -56,7 +56,7 @@ To get started with BioHasher, follow these steps:
     > 1. The filename reflects the similarity metric the hash function operates on, rather than the hash function name.
     > 2. These files use a custom CSV format and require post-processing before they can be used as standard CSVs.
 
-6. Process the output files to generate standard CSVs, plots, and an interactive visualisation:
+5. **Process the output files** to generate standard CSVs, plots, and an interactive visualisation:
 
     ```bash
     python ../analysis/generate_report.py \
@@ -66,6 +66,11 @@ To get started with BioHasher, follow these steps:
 
     This writes all plots and processed CSVs to the `results/` directory under `Hamming` name. An HTML file is also generated, which aggregates all plots into a single interactive visualisation.
 
+BioHasher creates an html dashboard that can be used to visualize the results. For example, if you use Firefox, you can visualize it using
+    ```bash
+    firefox ../results/Hamming/Hamming_dashboard.html
+    ```
+   
 ---
 
 <!-- ## A brief description of tests included in BioHasher
