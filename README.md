@@ -64,12 +64,8 @@ To get started with BioHasher, follow these steps:
         --ann=../results/approxNearestNeighbourResults_Hamming.csv
     ```
 
-    This writes all plots and processed CSVs to the `results/` directory under `Hamming` name. An HTML file is also generated, which aggregates all plots into a single interactive visualisation.
-
-BioHasher creates an html dashboard that can be used to visualize the results. For example, if you use Firefox, you can visualize it using
-    ```bash
-    firefox ../results/Hamming/Hamming_dashboard.html
-    ```
+    This writes all plots and processed CSVs to the `results/` directory under `Hamming` name. An HTML file is also generated, which aggregates all plots into a single interactive visualisation. If you use firefox, you can visualize it using ```firefox ../results/Hamming/Hamming_dashboard.html```
+    
    
 ---
 
