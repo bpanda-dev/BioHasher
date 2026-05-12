@@ -121,8 +121,7 @@ The script walks you through **10 guided steps**:
 | 9    | Similarity Function | Auto-set for built-in metrics; prompts for a C++ function name if custom      |
 | 10   | Hash Parameters     | (Optional) Add configurable parameters (e.g., k-mer size, window size)         |
 
-Every input is validated (naming rules, C++ keyword checks, URL format, etc.). The script **never exits on bad input** : it re-prompts until valid input is provided.
-The only early exit is at Step 7: if the hash is not an LSH candidate, the script stops with a message that BioHasher only supports LSH-related tests.
+Every input is validated for naming rules and C++ keyword checks. The script will re-prompt if bad input is provided. If the hash is not an LSH candidate,the script stops with a message that BioHasher only supports LSH-related tests.
 
 **Parameters (Step 10):**
 - Optional step to add hash function parameters that will be registered in the `REGISTER_HASH` macro
@@ -133,13 +132,11 @@ The only early exit is at Step 7: if the hash is not an LSH candidate, the scrip
 **It generates:**
 1. A compilable C++ template file at `hashes/<hashname>.cpp` containing:
     - Copyright header with your chosen license
-    - Hash function parameters as `#define` macros (if any were added in Step 10)
-    - A hash function stub for each selected bit size
+    - A hash function stub for each selected output bit size
     - The similarity function implementation (included automatically for built-in metrics like Hamming or Edit; a stub for custom metrics)
-    - `REGISTER_FAMILY(...)` and `REGISTER_HASH(...)` macro blocks (with parameter metadata if applicable)
-    - Correct `PUT_U32` / `PUT_U64` output calls
     - A default equality checker for hash outputs, defining the condition under which two outputs produced by the hash function are considered identical.
-2. An updated `hashes/Hashsrc.cmake` with the new hash registered
+    - Macros defined for parameters of the hash function.
+2. An updated `hashes/Hashsrc.cmake` with the new hash registered.
 
 > **Full documentation:** See [`createHashTemplate.md`](documentation/createHashTemplate.md) for the complete reference including validation rules, example sessions, and troubleshooting.
 
