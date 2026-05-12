@@ -128,7 +128,8 @@ TEMPLATE_HEADER = '''/*
 #include "Hashlib.h"    // Hash registration
 #include "LSHGlobals.h" // LSH related variables.
 {extra_includes}
-'''
+
+{parameter_defines}'''
 
 TEMPLATE_HASH_FUNCTION_START = '''
 //------------------------------------------------------------
@@ -167,7 +168,7 @@ REGISTER_HASH({hash_name}{suffix},
    $.hashfn             = {hash_name}{suffix},
    $.similarity_name    = "{similarity_name}",
    $.similarityfn       = {similarityfn},
-   $.check_equality_fn  = check_equality{suffix}
+   $.check_equality_fn  = check_equality{suffix}{parameters}
  );
 '''
 
@@ -583,6 +584,7 @@ def confirm_creation(config: dict) -> bool:
     """
     bits_list = config['bits']
     bits_display = ', '.join(str(b) for b in bits_list)
+    params_count = len(config.get('parameterNames', []))
 
     print("\n" + "=" * 60)
     print("  Summary - Please Review")
@@ -598,6 +600,8 @@ def confirm_creation(config: dict) -> bool:
     print(f"  LSH Candidate: Yes")
     print(f"  Similarity:    {config['similarity_name']}")
     print(f"  Similarity Fn: {config['similarityfn']}")
+    if params_count > 0:
+        print(f"  Parameters:    {params_count} parameter{'s' if params_count > 1 else ''}")
     print(f"  Output File:   {config['filepath']}")
     print("=" * 60)
 
@@ -623,6 +627,70 @@ def check_file_exists(filepath: str) -> bool:
                 return True
             print("  Please enter 'y' for yes or 'n' for no.")
     return True
+
+def get_parameters_input() -> tuple[list, list, list]:
+    """
+    Get hash function parameters from user.
+    Returns (parameterNames, parameterDescriptions, parameterValues).
+    """
+    parameterNames = []
+    parameterDescriptions = []
+    parameterValues = []
+    
+    print("\nOptional: Add hash function parameters (e.g., k-mer size, window size, etc.)")
+    print("These will be registered in the REGISTER_HASH macro and included in output files.")
+    print()
+    
+    while True:
+        add_param = input("Add a parameter? [y/N]: ").strip().lower()
+        if add_param not in ('y', 'yes'):
+            break
+        
+        # Get parameter name
+        while True:
+            param_name = input("  Parameter name (e.g., k, window_size): ").strip()
+            if not param_name:
+                print("    Parameter name cannot be empty.")
+                continue
+            if not re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', param_name):
+                print("    Parameter name must be a valid C++ identifier.")
+                continue
+            if param_name in parameterNames:
+                print(f"    Error: Parameter '{param_name}' already exists. Parameter names must be unique.")
+                continue
+            break
+        
+        # Get parameter description
+        while True:
+            param_desc = input("  Parameter description (e.g., k-mer size): ").strip()
+            if not param_desc:
+                print("    Description cannot be empty.")
+                continue
+            if '"' in param_desc:
+                print("    Description cannot contain quotes.")
+                continue
+            break
+        
+        # Get parameter value (const name or numeric value)
+        while True:
+            param_value = input("  Parameter value or constant name (e.g., 10 or K_MER_SIZE): ").strip()
+            if not param_value:
+                print("    Value cannot be empty.")
+                continue
+            # Accept numeric values or C++ identifiers
+            if not (param_value.isdigit() or re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', param_value)):
+                print("    Value must be a number or valid C++ identifier.")
+                continue
+            break
+        
+        parameterNames.append(param_name)
+        parameterDescriptions.append(param_desc)
+        parameterValues.append(param_value)
+        
+        print(f"   Parameter added: {param_name} = {param_value}")
+        print()
+    
+    return parameterNames, parameterDescriptions, parameterValues
 
 def update_hashsrc_cmake(filename: str, script_dir: str) -> bool:
     """
@@ -695,13 +763,23 @@ def create_hash_file(config: dict) -> str:
     elif is_builtin and sim_name == "Hamming":
         extra_includes = '\n#include "assertMsg.h"'
 
+    # Generate parameter #define statements
+    parameter_defines = ""
+    if config.get('parameterNames'):
+        parameter_defines = "\n//------------------------------------------------------------\n"
+        parameter_defines += "// Hash function parameters\n"
+        for name, value in zip(config['parameterNames'], config['parameterValues']):
+            parameter_defines += f"#define {name} {value}\n"
+        parameter_defines += "//------------------------------------------------------------\n"
+
     # Generate header
     content = TEMPLATE_HEADER.format(
         hash_name=config['hash_name'],
         year=datetime.now().year,
         author_name=config['author_name'],
         license_text=config['license_text'],
-        extra_includes=extra_includes
+        extra_includes=extra_includes,
+        parameter_defines=parameter_defines
     )
 
     # Generate a function for each bit size
@@ -753,6 +831,14 @@ def create_hash_file(config: dict) -> str:
             suffix = ""
             bits_desc = ""
 
+        # Format parameters if present
+        parameters_str = ""
+        if config.get('parameterNames'):
+            param_names = ", ".join(f'"{name}"' for name in config['parameterNames'])
+            param_descs = ", ".join(f'"{desc}"' for desc in config['parameterDescriptions'])
+            param_values = ", ".join(config['parameterNames'])
+            parameters_str = f",\n   $.parameterNames  = {{{param_names}}},\n   $.parameterDescriptions  = {{{param_descs}}},\n   $.parameterValues = {{{param_values}}}"
+
         content += TEMPLATE_HASH_REGISTER.format(
             hash_name=config['hash_name'],
             suffix=suffix,
@@ -760,7 +846,8 @@ def create_hash_file(config: dict) -> str:
             bits_desc=bits_desc,
             bits=bits,
             similarity_name=config['similarity_name'],
-            similarityfn=config['similarityfn']
+            similarityfn=config['similarityfn'],
+            parameters=parameters_str
         )
 
     with open(config['filepath'], 'w') as f:
@@ -771,7 +858,7 @@ def create_hash_file(config: dict) -> str:
 def main():
     print_header()
 
-    total_steps = 11
+    total_steps = 10
     config = {}
 
     # Determine output directory
@@ -921,6 +1008,10 @@ def main():
             validate_similarityfn_name
         )
 
+    # Step 10: Parameters
+    print_step(10, total_steps, "Hash Function Parameters")
+    config['parameterNames'], config['parameterDescriptions'], config['parameterValues'] = get_parameters_input()
+
     # Determine file path
     filename = config['hash_name'].lower() + ".cpp"	# the file name should be in lowercase
     config['filepath'] = os.path.join(output_dir, filename)
@@ -949,7 +1040,11 @@ def main():
         print(f"	2. Build BioHasher using $mkdir build > $cd build > $cmake .. > $make")
         print(f" 	3. run BioHasher using, ./BioHasher --list | grep {config['hash_name']}. It should list your hash.")
         print(f"   	4. Implement the logic of your Hash in the {config['hash_name']} Hash function definition(s).")
-
+        if config.get('parameterNames'):
+            print(f"\t5. Parameters have been included in the REGISTER_HASH macro:")
+            for i, (name, desc, val) in enumerate(zip(config['parameterNames'], config['parameterDescriptions'], config['parameterValues']), 1):
+                print(f"\t   - Parameter {i}: {name} = {val} ({desc})")
+            print(f"\t   Edit the #define statements at the top of the file to customize parameter values.")
     except Exception as e:
         print(f"\n Error creating file: {e}", file=sys.stderr)
         sys.exit(1)

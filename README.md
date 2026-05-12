@@ -105,7 +105,7 @@ BioHasher ships with an interactive Python script that scaffolds a new hash `.cp
 python3 createHashTemplate.py
 ```
 
-The script walks you through **11 guided steps**:
+The script walks you through **10 guided steps**:
 
 
 | Step | Prompt              | What it sets                                                                  |
@@ -119,16 +119,24 @@ The script walks you through **11 guided steps**:
 | 7    | LSH Candidacy       | Confirms the hash is an LSH candidate; exits if not (BioHasher is LSH-only)   |
 | 8    | Similarity Name     | Built-in (`Hamming`, `Jaccard`, `Cosine`, `Angular`, `Edit`) or custom name   |
 | 9    | Similarity Function | Auto-set for built-in metrics; prompts for a C++ function name if custom      |
+| 10   | Hash Parameters     | (Optional) Add configurable parameters (e.g., k-mer size, window size)         |
 
 Every input is validated (naming rules, C++ keyword checks, URL format, etc.). The script **never exits on bad input** : it re-prompts until valid input is provided.
-The only early exit is at Step 9: if the hash is not an LSH candidate, the script stops with a message that BioHasher only supports LSH-related tests.
+The only early exit is at Step 7: if the hash is not an LSH candidate, the script stops with a message that BioHasher only supports LSH-related tests.
+
+**Parameters (Step 10):**
+- Optional step to add hash function parameters that will be registered in the `REGISTER_HASH` macro
+- Each parameter should have unique name.
+- Parameters are automatically generated as `#define` macros at the top of the file (e.g., `#define k 10`)
+- The `$.parameterValues` in `REGISTER_HASH` references the macro names, allowing easy customization by editing the `#define` values at the top of the file.
 
 **It generates:**
 1. A compilable C++ template file at `hashes/<hashname>.cpp` containing:
     - Copyright header with your chosen license
+    - Hash function parameters as `#define` macros (if any were added in Step 10)
     - A hash function stub for each selected bit size
     - The similarity function implementation (included automatically for built-in metrics like Hamming or Edit; a stub for custom metrics)
-    - `REGISTER_FAMILY(...)` and `REGISTER_HASH(...)` macro blocks
+    - `REGISTER_FAMILY(...)` and `REGISTER_HASH(...)` macro blocks (with parameter metadata if applicable)
     - Correct `PUT_U32` / `PUT_U64` output calls
     - A default equality checker for hash outputs, defining the condition under which two outputs produced by the hash function are considered identical.
 2. An updated `hashes/Hashsrc.cmake` with the new hash registered
