@@ -19,8 +19,8 @@
  * <https://www.gnu.org/licenses/>.
  */
 
-#ifndef BIOHASHER_SPECIFICS_H
-#define BIOHASHER_SPECIFICS_H
+#ifndef BIOLSHASHER_SPECIFICS_H
+#define BIOLSHASHER_SPECIFICS_H
 
 #include <cstdint>
 #include <cstring>
@@ -224,4 +224,4 @@ static FORCE_INLINE void PUT_U64(uint64_t n, uint8_t * b, const uint32_t i) {
     memcpy(&b[i], &n, 8);
 }
 
-#endif //BIOHASHER_SPECIFICS_H
+#endif //BIOLSHASHER_SPECIFICS_H

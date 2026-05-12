@@ -62,7 +62,7 @@ static void oneBaseSamplingHash_32(const void* in, const size_t len, const seed_
 
 static double HammingSimilarity(const std::string& seq1, const std::string& seq2, const uint32_t in1_len, const uint32_t in2_len) {
     // Hamming distance only defined for equal-length sequences
-    BIOHASHER_ASSERT(in1_len == in2_len, "For hamming, we need both the sequences to be of same length. "
+    BIOLSHASHER_ASSERT(in1_len == in2_len, "For hamming, we need both the sequences to be of same length. "
                                  "\n Either use substitution-Only mutation model or"
                                  "\n Change the similarity function of the hash Family to one which supports unequal length input pair!");
 
@@ -79,7 +79,7 @@ static double HammingSimilarity(const std::string& seq1, const std::string& seq2
 
 //------------------------------------------------------------
 REGISTER_FAMILY(HammingLSH,
-   $.src_url    = "https://github.com/bpanda-dev/BioHasher/hashes/onebasesamplinghash.cpp",
+   $.src_url    = "https://github.com/bpanda-dev/BioLSHasher/hashes/onebasesamplinghash.cpp",
    $.src_status = HashFamilyInfo::SRC_UNKNOWN
 );
 

@@ -3,7 +3,7 @@
 This test evaluates a hash function as an LSH index for nearest-neighbour search — the actual end-to-end use case we care about. Instead of just checking collision probabilities, it builds a full LSH index, queries it with mutated sequences, and measures Recall vs FPR against brute-force ground truth using the **c-ANN** formulation.
 
 ```bash
-./BioHasher --test=LSHApproxNearestNeighbour SubSeqHash-64
+./BioLSHasher --test=LSHApproxNearestNeighbour SubSeqHash-64
 ```
 
 Output goes to `results/ApproxNearestNeighbourResults_<hashname>.csv`.

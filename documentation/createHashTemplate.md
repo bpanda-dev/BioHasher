@@ -1,16 +1,16 @@
-# Hash Template Generator for BioHasher
+# Hash Template Generator for BioLSHasher
 >Needs rework. Not to be used for now.
 
 Filename : `createHashTemplate.py`
 
-We provide an interactive command-line script that scaffolds a new C++ hash function file and registers it within the BioHasher build system. It walks you through **11 guided steps**, validates every input, generates a ready-to-compile `.cpp` file in the `hashes/` directory, and automatically updates `hashes/Hashsrc.cmake` so the new hash is included in the next build.
+We provide an interactive command-line script that scaffolds a new C++ hash function file and registers it within the BioLSHasher build system. It walks you through **11 guided steps**, validates every input, generates a ready-to-compile `.cpp` file in the `hashes/` directory, and automatically updates `hashes/Hashsrc.cmake` so the new hash is included in the next build.
 
 ---
 
 ## Quick Start
 
 ```bash
-# From the BioHasher root directory
+# From the BioLSHasher root directory
 python3 createHashTemplate.py
 ```
 
@@ -25,7 +25,7 @@ Then build and verify:
 mkdir -p build && cd build
 cmake ..
 make
-./BioHasher --list | grep <YourHashName>
+./BioLSHasher --list | grep <YourHashName>
 ```
 
 ---
@@ -190,14 +190,14 @@ When multiple sizes are selected, the script generates:
 
 **Prompt:** `Is this hash an LSH candidate to be tested for LSH properties? [Y/n]:`
 
-BioHasher is a framework specifically designed for testing Locality-Sensitive Hashing (LSH) functions. All test suites in BioHasher evaluate LSH properties.
+BioLSHasher is a framework specifically designed for testing Locality-Sensitive Hashing (LSH) functions. All test suites in BioLSHasher evaluate LSH properties.
 
 - **If you answer `Y` (default):** The hash is marked as an LSH candidate and `FLAG_HASH_LOCALITY_SENSITIVE` will be set in the generated `REGISTER_HASH` block.
 - **If you answer `N`:** The script exits immediately with the following message:
 
 ```
 ============================================================
-  BioHasher only contains tests related to Locality-Sensitive
+  BioLSHasher only contains tests related to Locality-Sensitive
   Hashing (LSH). Non-LSH hash functions are not supported by
   the current test infrastructure.
 
@@ -214,7 +214,7 @@ BioHasher is a framework specifically designed for testing Locality-Sensitive Ha
 
 **Prompt:** `Similarity name:`
 
-Enter the name of the similarity measure that your hash function preserves. BioHasher has built-in implementations for the following similarity metrics:
+Enter the name of the similarity measure that your hash function preserves. BioLSHasher has built-in implementations for the following similarity metrics:
 
 | Built-in Name | Description                                |
 |---------------|--------------------------------------------|
@@ -247,7 +247,7 @@ This step behaves differently depending on whether the similarity name from Step
 The script automatically sets the function name and informs you that the implementation will be included in the generated file:
 
 ```
-'Edit' is a built-in similarity metric in BioHasher.
+'Edit' is a built-in similarity metric in BioLSHasher.
 The implementation of 'EditSimilarity' will be included in your hash file.
   → Similarity function set to: EditSimilarity
 ```
@@ -455,7 +455,7 @@ make
 ### 4. Verify Registration
 
 ```bash
-./BioHasher --list | grep MyHash
+./BioLSHasher --list | grep MyHash
 ```
 
 You should see your hash listed in the output.
@@ -466,7 +466,7 @@ You should see your hash listed in the output.
 
 ```bash
 ============================================================
-  BioHasher - New Hash File Template Generator
+  BioLSHasher - New Hash File Template Generator
 ============================================================
 
 [Step 1/11] Hash Name
@@ -544,8 +544,8 @@ Enter choice(s) [1-6] or press Enter for 32 bits: 1,2
 
 [Step 9/11] LSH Candidacy
 ----------------------------------------
-BioHasher is a framework for evaluating Locality-Sensitive Hashing (LSH) functions.
-All test suites in BioHasher are designed to test LSH properties.
+BioLSHasher is a framework for evaluating Locality-Sensitive Hashing (LSH) functions.
+All test suites in BioLSHasher are designed to test LSH properties.
 
 Is this hash an LSH candidate to be tested for LSH properties? [Y/n]: Y
   Marked as LSH candidate. FLAG_HASH_LOCALITY_SENSITIVE will be set.
@@ -563,7 +563,7 @@ Similarity name: Jaccard
 
 [Step 11/11] Similarity Function
 ----------------------------------------
-'Jaccard' is a built-in similarity metric in BioHasher.
+'Jaccard' is a built-in similarity metric in BioLSHasher.
 The implementation of 'JaccardSimilarity' will be included in your hash file.
   → Similarity function set to: JaccardSimilarity
 
@@ -581,20 +581,20 @@ The implementation of 'JaccardSimilarity' will be included in your hash file.
   LSH Candidate: Yes
   Similarity:    Jaccard
   Similarity Fn: JaccardSimilarity
-  Output File:   /path/to/BioHasher/hashes/biominhash.cpp
+  Output File:   /path/to/BioLSHasher/hashes/biominhash.cpp
 ============================================================
 
 Create this file? [Y/n]: y
 
- Successfully created: /path/to/BioHasher/hashes/biominhash.cpp
+ Successfully created: /path/to/BioLSHasher/hashes/biominhash.cpp
 
  Updating Hashsrc.cmake...
    Added 'hashes/biominhash.cpp' to Hashsrc.cmake
 
  Next steps:
-    1. To test if your BioMinHashHash function has been added to BioHasher:
-    2. Build BioHasher using $mkdir build > $cd build > $make
-    3. run BioHasher using, ./BioHasher --list | grep BioMinHash. It should list your hash.
+    1. To test if your BioMinHashHash function has been added to BioLSHasher:
+    2. Build BioLSHasher using $mkdir build > $cd build > $make
+    3. run BioLSHasher using, ./BioLSHasher --list | grep BioMinHash. It should list your hash.
     4. Implement the logic of your Hash in the BioMinHashHash function.
 ```
 
@@ -604,17 +604,17 @@ Create this file? [Y/n]: y
 
 | Problem                                     | Cause                   | Solution                                                                                |
 |---------------------------------------------|-------------------------|-----------------------------------------------------------------------------------------|
-| `Warning: Could not find .../Hashsrc.cmake` | Script not at repo root | Run from the BioHasher root directory                                                   |
+| `Warning: Could not find .../Hashsrc.cmake` | Script not at repo root | Run from the BioLSHasher root directory                                                   |
 | File already exists prompt                  | Hash name already taken | Choose a different name or confirm overwrite                                            |
 | Hash not showing in `--list`                | CMake cache stale       | Delete build and rebuild: `rm -rf build && mkdir build && cd build && cmake .. && make` |
-| Script exits at Step 9                      | Hash is not LSH         | BioHasher only tests LSH functions; rerun and answer `Y` if applicable                  |
+| Script exits at Step 9                      | Hash is not LSH         | BioLSHasher only tests LSH functions; rerun and answer `Y` if applicable                  |
 
 ---
 
 ## Relevant File Layout
 
 ```bash
-BioHasher/
+BioLSHasher/
 ├── createHashTemplate.py          ← This script
 ├── hashes/
 │   ├── Hashsrc.cmake              ← Build file list (auto-updated)
@@ -633,4 +633,4 @@ BioHasher/
 - The script can be cancelled at any point with `Ctrl+C` — no files will be written until final confirmation.
 - If you select a **single bit size**, the function and registration use the bare hash name (e.g., `MyHash`). If you select **multiple bit sizes**, each variant gets a suffix (e.g., `MyHash_32`, `MyHash_64`).
 - If you choose a **built-in similarity metric**, the full C++ implementation is injected into the generated file along with the necessary `#include` headers. If you choose a **custom metric**, a stub function is generated that you must implement.
-- The only early exit point is **Step 9 (LSH Candidacy)** — if you indicate the hash is not an LSH candidate, the script terminates because BioHasher's test suites only evaluate LSH properties.
+- The only early exit point is **Step 9 (LSH Candidacy)** — if you indicate the hash is not an LSH candidate, the script terminates because BioLSHasher's test suites only evaluate LSH properties.

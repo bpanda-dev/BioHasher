@@ -187,16 +187,16 @@ template <typename hashtype>
 bool LSHApproxNearestNeighbourTest(const HashInfo *hinfo, flags_t flags) {
     printf("[[[ Approximate Nearest Neighbour Test ]]]\n\n");
 
-    // BIOHASHER_ASSERT(hinfo->hashfn == nullptr , "Error: hash function pointer is null!");
+    // BIOLSHASHER_ASSERT(hinfo->hashfn == nullptr , "Error: hash function pointer is null!");
     HashFn hash = hinfo->hashFn();
     if (!hash) {
         printf("Error: hash function pointer is null!\n");
         exit(EXIT_FAILURE);
     }
 
-	BIOHASHER_ASSERT(hinfo->isLocalSensitive(),"Flag FLAG_HASH_LOCALITY_SENSITIVE not found. Please ensure that your LSH hash function is defined with FLAG_HASH_LOCALITY_SENSITIVE tag. \n\t\t It may be possible that the provided hash is not an LSH function.");
-    BIOHASHER_ASSERT(hinfo->similarityfn != nullptr, "LSH function should be defined with a similarity metric.");
-    BIOHASHER_ASSERT((std::strlen(hinfo->similarity_name) > 0), "The similarity metric should be named.");
+	BIOLSHASHER_ASSERT(hinfo->isLocalSensitive(),"Flag FLAG_HASH_LOCALITY_SENSITIVE not found. Please ensure that your LSH hash function is defined with FLAG_HASH_LOCALITY_SENSITIVE tag. \n\t\t It may be possible that the provided hash is not an LSH function.");
+    BIOLSHASHER_ASSERT(hinfo->similarityfn != nullptr, "LSH function should be defined with a similarity metric.");
+    BIOLSHASHER_ASSERT((std::strlen(hinfo->similarity_name) > 0), "The similarity metric should be named.");
 
 
     bool result = true; //TODO 
@@ -250,7 +250,7 @@ bool LSHApproxNearestNeighbourTest(const HashInfo *hinfo, flags_t flags) {
     // 2. Generate query sequences by randomly sampling from the reference sequences.
 
     const uint32_t numQueries = g_numQueriesForApproxNNTest;
-    BIOHASHER_ASSERT(numQueries < g_Nseq_in_Database, "Number of queries exceeds number of available reference sequences"); // Ensure we don't sample more queries than available sequences
+    BIOLSHASHER_ASSERT(numQueries < g_Nseq_in_Database, "Number of queries exceeds number of available reference sequences"); // Ensure we don't sample more queries than available sequences
 
     std::mt19937 rngQuery(seedGen.nextSeed());
     std::uniform_int_distribution<uint32_t> distribution(0, g_Nseq_in_Database - 1);    // [a,b], both boundaries are inclusive, thus subtracted 1.
@@ -517,7 +517,7 @@ bool LSHApproxNearestNeighbourTest(const HashInfo *hinfo, flags_t flags) {
     const uint32_t NUM_RUNS = g_avgRunsForApproxNN;
     std::vector<std::pair<uint32_t, uint32_t>> br_pairs;
     // Programmatically fill br_pairs from b=1 to 10 and r=1 to 10
-    BIOHASHER_ASSERT(g_ANN_start_B > 0 && g_ANN_start_R > 0 && g_ANN_MAX_B >= g_ANN_start_B && g_ANN_MAX_R >= g_ANN_start_R, "Invalid LSH parameters.");
+    BIOLSHASHER_ASSERT(g_ANN_start_B > 0 && g_ANN_start_R > 0 && g_ANN_MAX_B >= g_ANN_start_B && g_ANN_MAX_R >= g_ANN_start_R, "Invalid LSH parameters.");
 
     for (uint32_t b_val = g_ANN_start_B; b_val <= g_ANN_MAX_B; ++b_val) {
         for (uint32_t r_val = g_ANN_start_R; r_val <= g_ANN_MAX_R; ++r_val) {
@@ -626,7 +626,7 @@ bool LSHApproxNearestNeighbourTest(const HashInfo *hinfo, flags_t flags) {
             //                 }
 
             //                 int false_negatives = static_cast<int>(ground_truth_positions.size()) - true_positives;
-            //                 BIOHASHER_ASSERT(false_negatives >= 0, "Internal issue: False negatives cannot be negative");
+            //                 BIOLSHASHER_ASSERT(false_negatives >= 0, "Internal issue: False negatives cannot be negative");
 
             //                 double recall    = (true_positives + false_negatives > 0) ? static_cast<double>(true_positives) / (true_positives + false_negatives) : 0.0;
             //                 double precision = (true_positives + false_positives > 0) ? static_cast<double>(true_positives) / (true_positives + false_positives) : 0.0;
@@ -682,7 +682,7 @@ bool LSHApproxNearestNeighbourTest(const HashInfo *hinfo, flags_t flags) {
                             }
 
                             int false_negatives = static_cast<int>(gt_size) - true_positives;
-                            BIOHASHER_ASSERT(false_negatives >= 0, "Internal issue: False negatives cannot be negative");
+                            BIOLSHASHER_ASSERT(false_negatives >= 0, "Internal issue: False negatives cannot be negative");
 
                             double recall    = (gt_size > 0)
                                             ? static_cast<double>(true_positives) / gt_size

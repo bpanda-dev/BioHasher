@@ -102,10 +102,10 @@ static void parse_tests( const char * str, bool enable_tests ) {
 }
 
 void usage() {
-    printf("Usage: BioHasher [--test=<testname>[,...]] [--verbose] [--ncpu=N]\n"
+    printf("Usage: BioLSHasher [--test=<testname>[,...]] [--verbose] [--ncpu=N]\n"
            "                 [<hashname>]\n"
            "\n"
-           "       BioHasher [--list]|[--listnames]|[--tests]|[--version]\n"
+           "       BioLSHasher [--list]|[--listnames]|[--tests]|[--version]\n"
            "\n"
            "  Hashnames can be supplied using any case letters.\n");
 }
@@ -294,7 +294,7 @@ int main( int argc, const char ** argv ){
                 exit(0);
             }
             if (strcmp(arg, "--version") == 0) {
-                printf("BioHasher %s\n", VERSION);
+                printf("BioLSHasher %s\n", VERSION);
                 exit(0);
             }
             if (strcmp(arg, "--verbose") == 0) {

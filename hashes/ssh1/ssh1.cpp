@@ -1,4 +1,4 @@
-// This file implements ssh1 and integrates it into the biohasher3 framework.
+// This file implements ssh1 and integrates it into the biolshasher3 framework.
 
 
 // This code is from subseqhash2 src. but is corrected. Contains TB logic too,
@@ -177,9 +177,9 @@ static void SubseqHash64(const void* in, const size_t len, const seed_t rand_see
 	// printf("dim1: %d\n", dim1);
 	// printf("dim2: %d\n", (WINDOW_SIZE+1) * (k+1) * d);
 	
-	BIOHASHER_ASSERT(n >= k, "Sequence length must be >= subsequence length");
-	BIOHASHER_ASSERT(d < MAXD, "D_PARAM must be less than MAXD");
-	BIOHASHER_ASSERT(k < MAXK, "SUBSEQUENCE_LENGTH must be less than MAXK");
+	BIOLSHASHER_ASSERT(n >= k, "Sequence length must be >= subsequence length");
+	BIOLSHASHER_ASSERT(d < MAXD, "D_PARAM must be less than MAXD");
+	BIOLSHASHER_ASSERT(k < MAXK, "SUBSEQUENCE_LENGTH must be less than MAXK");
 
 
 	//-------------------------------------------------------------------------------------//

@@ -255,7 +255,7 @@ static bool LSHCollisionTestInnerInnerParallel(const HashInfo * hinfo, uint32_t 
 	std::vector<std::pair<uint32_t, uint32_t>> AND_OR_params;
 
 	// Programmatically fill ANDOR_params reusing the ANN B/R range globals
-	BIOHASHER_ASSERT(g_start_B > 0 && g_start_R > 0 && g_MAX_B >= g_start_B && g_MAX_R >= g_start_R, 
+	BIOLSHASHER_ASSERT(g_start_B > 0 && g_start_R > 0 && g_MAX_B >= g_start_B && g_MAX_R >= g_start_R, 
 			"Invalid AND/OR parameter ranges. Please ensure g_start_B, g_start_R, g_MAX_B, and g_MAX_R are set correctly.");
 	
 
@@ -595,9 +595,9 @@ template <typename hashtype>
 bool LSHCollisionTest( const HashInfo * hinfo, flags_t flags) {
 	printf("[[[ LSH Collision Tests ]]]\n\n");
 
-	BIOHASHER_ASSERT(hinfo->isLocalSensitive(),"Flag FLAG_HASH_LOCALITY_SENSITIVE not found. Please ensure that your LSH hash function is defined with FLAG_HASH_LOCALITY_SENSITIVE tag. \n\t\t It may be possible that the provided hash is not an LSH function.");
-	BIOHASHER_ASSERT(hinfo->similarityfn != nullptr, "LSH function should be defined with a similarity metric.");
-	BIOHASHER_ASSERT((std::strlen(hinfo->similarity_name) > 0) , "The similarity metric should be named.");
+	BIOLSHASHER_ASSERT(hinfo->isLocalSensitive(),"Flag FLAG_HASH_LOCALITY_SENSITIVE not found. Please ensure that your LSH hash function is defined with FLAG_HASH_LOCALITY_SENSITIVE tag. \n\t\t It may be possible that the provided hash is not an LSH function.");
+	BIOLSHASHER_ASSERT(hinfo->similarityfn != nullptr, "LSH function should be defined with a similarity metric.");
+	BIOLSHASHER_ASSERT((std::strlen(hinfo->similarity_name) > 0) , "The similarity metric should be named.");
 
 	bool result = true;
 

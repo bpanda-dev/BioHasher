@@ -16,7 +16,7 @@ A single LSH hash function has a base collision probability `p(s)` that depends 
 The test sweeps over a grid of `(AND, OR)` pairs and records the amplified collision curve for each, so you can visually compare how different configurations sharpen or flatten the S-curve.
 
 ```bash
-./BioHasher --test=LSHCollisionAndOrTest SubSeqHash-64 --ncpu=16
+./BioLSHasher --test=LSHCollisionAndOrTest SubSeqHash-64 --ncpu=16
 ```
 
 **Output:** `results/collisionResults_<hashname>ANDOR.csv`

@@ -1,4 +1,4 @@
-name: biohasher
+name: biolshasher
 
 channels:
   - conda-forge

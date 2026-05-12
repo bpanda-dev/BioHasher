@@ -1036,7 +1036,7 @@ def compute_rho(df, s1, s2, bin_width=0.05, eps=1e-6):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="BioHasher collision data plotter — reads a CSV result file and generates plots."
+        description="BioLSHasher collision data plotter — reads a CSV result file and generates plots."
     )
     parser.add_argument(
         "csvfile",

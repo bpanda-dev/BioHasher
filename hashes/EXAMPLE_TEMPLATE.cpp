@@ -59,7 +59,7 @@ static void ###YOURHASHNAMEHash( const void * in, const size_t len, const seed_t
 // ####YOUR HASH'S SIMILARITY
 // Hamming Similarity: fraction of matching positions (equal-length sequences only)
 static double HammingSimilarity(const std::string& seq1, const std::string& seq2, const uint32_t in1_len, const uint32_t in2_len) {
-    BIOHASHER_ASSERT(in1_len == in2_len, "Hamming similarity requires equal-length sequences.");
+    BIOLSHASHER_ASSERT(in1_len == in2_len, "Hamming similarity requires equal-length sequences.");
     uint32_t similar = 0;
     for (uint32_t i = 0; i < in1_len; i++) {
         if (seq1[i] == seq2[i]) similar++;

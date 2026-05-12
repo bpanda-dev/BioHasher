@@ -2,9 +2,9 @@
 // Created by Bikram Kumar Panda on 07/04/26.
 //
 
-#ifndef BIOHASHER_HASHINFO_H
+#ifndef BIOLSHASHER_HASHINFO_H
 
-#define BIOHASHER_HASHINFO_H
+#define BIOLSHASHER_HASHINFO_H
 
 #include <set>
 #include <cstdlib>
@@ -283,4 +283,4 @@ private:
 }; // class HashFamilyInfo
 
 
-#endif //BIOHASHER_HASHINFO_H
+#endif //BIOLSHASHER_HASHINFO_H

@@ -4,8 +4,8 @@
 
 //Note to myself: Do not touch this file.
 
-#ifndef BIOHASHER_HASHLIB_H
-#define BIOHASHER_HASHLIB_H
+#ifndef BIOLSHASHER_HASHLIB_H
+#define BIOLSHASHER_HASHLIB_H
 
 #include "HashInfo.h"
 
@@ -65,4 +65,4 @@ void listHashes( bool nameonly );
     extern unsigned CONCAT(N,_ref); \
     CONCAT(N,_ref) = 1
 
-#endif //BIOHASHER_HASHLIB_H
+#endif //BIOLSHASHER_HASHLIB_H

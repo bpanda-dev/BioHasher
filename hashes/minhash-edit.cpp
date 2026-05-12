@@ -93,7 +93,7 @@ static bool check_equality(void* inp1, void* inp2){
 static void minHash32(const void* in , const size_t len, const seed_t seed, void* out) {
       
       //We will use the inbuilt FNV1a hash function
-      const HashInfo * Fnv1aInfo = findHash("FNV-1a-32");  //Accessing the 32-bit FNV1a hash function that is available in biohasher.
+      const HashInfo * Fnv1aInfo = findHash("FNV-1a-32");  //Accessing the 32-bit FNV1a hash function that is available in biolshasher.
       if (!Fnv1aInfo) {
             // Fallback to another hash or throw error. For now we will throw an error.
             fprintf(stderr, "FNV1a hash function not found!\n");
@@ -112,7 +112,7 @@ static void minHash32(const void* in , const size_t len, const seed_t seed, void
       uint32_t BasesInToken = TOKEN_LENGTH;
       uint32_t BytesInToken = BasesInToken; 
       
-      BIOHASHER_ASSERT(len >= BasesInToken ,"Input length is less than token length"); // Since each base is represented by 1 byte in this context, the number of bytes in the token is equal to the number of bases in the token.
+      BIOLSHASHER_ASSERT(len >= BasesInToken ,"Input length is less than token length"); // Since each base is represented by 1 byte in this context, the number of bytes in the token is equal to the number of bases in the token.
 
       std::vector<uint8_t> token(BytesInToken, 0); // Token storage.
 
@@ -161,7 +161,7 @@ static void minHash32(const void* in , const size_t len, const seed_t seed, void
 //------------------------------------------------------------
 
 REGISTER_FAMILY(MinHashEdit,
-   $.src_url    = "https://github.com/bpanda-dev/BioHasher",
+   $.src_url    = "https://github.com/bpanda-dev/BioLSHasher",
    $.src_status = HashFamilyInfo::SRC_ACTIVE
 );
 

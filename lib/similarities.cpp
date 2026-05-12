@@ -8,7 +8,7 @@
 
 double HammingSimilarity(const std::string& seq1, const std::string& seq2, const uint32_t in1_len, const uint32_t in2_len) {
     // Hamming distance only defined for equal-length sequences
-    BIOHASHER_ASSERT(in1_len == in2_len, "For hamming, we need both the sequences to be of same length.");
+    BIOLSHASHER_ASSERT(in1_len == in2_len, "For hamming, we need both the sequences to be of same length.");
 
     uint32_t length = in1_len;
     uint32_t similar = 0;

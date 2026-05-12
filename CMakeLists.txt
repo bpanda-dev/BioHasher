@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(BioHasher)
+project(BioLSHasher)
 
 # # Make SUBSEQUENCE_LENGTH configurable (TODO: REMOVE AFTER TESTING)
 # set(SUBSEQUENCE_LENGTH 16 CACHE STRING "Subsequence length k parameter")
@@ -53,7 +53,7 @@ add_custom_command(
 ########################################
 # Build all the hashes
 ########################################
-add_library(BioHasherHashlib STATIC
+add_library(BioLSHasherHashlib STATIC
         ${CMAKE_CURRENT_BINARY_DIR}/Hashrefs.cpp
         lib/Hashlib.cpp
         lib/HashInfo.cpp
@@ -62,15 +62,15 @@ add_library(BioHasherHashlib STATIC
 )
 
 # Make SUBSEQUENCE_LENGTH configurable (TODO: REMOVE AFTER TESTING)
-# target_compile_definitions(BioHasherHashlib PRIVATE 
+# target_compile_definitions(BioLSHasherHashlib PRIVATE 
 #     SUBSEQUENCE_LENGTH=${SUBSEQUENCE_LENGTH}
 # )
 # # Make D_PARAM configurable (TODO: REMOVE AFTER TESTING)
-# target_compile_definitions(BioHasherHashlib PRIVATE 
+# target_compile_definitions(BioLSHasherHashlib PRIVATE 
 #     D_PARAM=${D_PARAM}
 # )
 
-target_include_directories(BioHasherHashlib PUBLIC
+target_include_directories(BioLSHasherHashlib PUBLIC
         ${CMAKE_SOURCE_DIR}/lib
         ${CMAKE_SOURCE_DIR}/hashes
 )
@@ -98,25 +98,25 @@ endif()
 ########################################
 # Build all the tests
 ########################################
-add_library(BioHasherTests STATIC
+add_library(BioLSHasherTests STATIC
         lib/specifics.cpp
         lib/BioDataGeneration.cpp
         lib/LSHGlobals.cpp
         tests/LSHCollision.cpp
         tests/ApproxNearestNeighbour.cpp
 )
-target_include_directories(BioHasherTests PUBLIC
+target_include_directories(BioLSHasherTests PUBLIC
         ${CMAKE_SOURCE_DIR}/lib
         ${CMAKE_SOURCE_DIR}/tests
 )
-target_link_libraries(BioHasherTests PUBLIC BioHasherHashlib)
+target_link_libraries(BioLSHasherTests PUBLIC BioLSHasherHashlib)
 
 ########################################
 # Main executable
 ########################################
-add_executable(BioHasher main.cpp)
-target_link_libraries(BioHasher PRIVATE BioHasherTests)
-target_include_directories(BioHasher PRIVATE
+add_executable(BioLSHasher main.cpp)
+target_link_libraries(BioLSHasher PRIVATE BioLSHasherTests)
+target_include_directories(BioLSHasher PRIVATE
         ${CMAKE_SOURCE_DIR}
         ${CMAKE_SOURCE_DIR}/lib
         ${CMAKE_SOURCE_DIR}/hashes
@@ -126,11 +126,11 @@ target_include_directories(BioHasher PRIVATE
 ########################################
 # Version stamping
 ########################################
-add_custom_target(BioHasherVersion
+add_custom_target(BioLSHasherVersion
         COMMAND ${CMAKE_COMMAND}
         -D SRC=${CMAKE_SOURCE_DIR}/version.h.in
         -D DST=${CMAKE_SOURCE_DIR}/version.h
         -D GIT_EXECUTABLE=${GIT_EXECUTABLE}
         -P ${CMAKE_SOURCE_DIR}/version.cmake
 )
-add_dependencies(BioHasher BioHasherVersion)
+add_dependencies(BioLSHasher BioLSHasherVersion)

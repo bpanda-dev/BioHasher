@@ -17,7 +17,7 @@ def get_similarity_name(filepath):
     return "results"
 
 def main():
-    parser = argparse.ArgumentParser(description="Generate BioHasher benchmarking dashboard from raw results.")
+    parser = argparse.ArgumentParser(description="Generate BioLSHasher benchmarking dashboard from raw results.")
     parser.add_argument("--ann", type=str, help="Path to the raw ANN test output CSV file.")
     parser.add_argument("--coll", type=str, help="Path to the raw Collision Curve test output CSV file.")
     parser.add_argument("--show", action="store_true", help="Launch browser with the generated dashboard immediately.")

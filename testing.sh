@@ -12,7 +12,7 @@ BUILD_DIR="$BASE_DIR/build"
 mkdir -p "$RESULTS_DIR"
 
 echo "=========================================="
-echo "BioHasher SUBSEQUENCE_LENGTH Sweep"
+echo "BioLSHasher SUBSEQUENCE_LENGTH Sweep"
 echo "Range: $START_K to $END_K (step: $STEP)"
 echo "=========================================="
 
@@ -45,9 +45,9 @@ for k in $(seq $START_K $STEP $END_K); do
     
     # Run
     echo "[3/3] Running tests..."
-    if [ -f "./BioHasher" ]; then
+    if [ -f "./BioLSHasher" ]; then
         # Run your tests and save output
-        if ./BioHasher --test=LSHCollision SubseqHash-64 --ncpu=128 > "$RESULTS_DIR/output_k$k.txt" 2>&1; then
+        if ./BioLSHasher --test=LSHCollision SubseqHash-64 --ncpu=128 > "$RESULTS_DIR/output_k$k.txt" 2>&1; then
             echo "Tests completed for k=$k"
             # Optional: Show summary
             # head -n 20 "$RESULTS_DIR/output_k$k.txt"

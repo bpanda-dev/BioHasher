@@ -24,8 +24,8 @@ bool simulateSNP(SequenceRecordUnit &record, const uint32_t pos, std::mt19937& r
 		newBaseid += 1;
 
 	// printf("newBaseid_int = %u\n", newBaseid);
-	BIOHASHER_ASSERT(currentBaseid != newBaseid,"New base should be different from current base");
-	BIOHASHER_ASSERT(newBaseid <= 3 , "Base ID should be between 0 and 3");
+	BIOLSHASHER_ASSERT(currentBaseid != newBaseid,"New base should be different from current base");
+	BIOLSHASHER_ASSERT(newBaseid <= 3 , "Base ID should be between 0 and 3");
 
 	// Apply SNP
 	record.SeqASCIIMut[pos] = bases[newBaseid];
@@ -204,10 +204,10 @@ bool simulateSNP(SequenceRecordUnit &record, const uint32_t pos, std::mt19937& r
 /*#-----------------------------------------------------#*/
 
 SequenceDataGenerator::SequenceDataGenerator(SequenceRecordsWithMetadataStruct *sequenceRecordsWithMetadata){
-	BIOHASHER_ASSERT(sequenceRecordsWithMetadata != nullptr, "Input pointer for sequence records with metadata cannot be null");
-	BIOHASHER_ASSERT(((sequenceRecordsWithMetadata->A_percentage + sequenceRecordsWithMetadata->C_percentage  + sequenceRecordsWithMetadata->G_percentage + sequenceRecordsWithMetadata->T_percentage) == 1), "Sum of nucleotide probs. should be 1.");
-	BIOHASHER_ASSERT((sequenceRecordsWithMetadata->OriginalSequenceLength > 0), "Sequence length must be positive");
-	BIOHASHER_ASSERT(sequenceRecordsWithMetadata->KeyCount>0, "Key count must be positive");
+	BIOLSHASHER_ASSERT(sequenceRecordsWithMetadata != nullptr, "Input pointer for sequence records with metadata cannot be null");
+	BIOLSHASHER_ASSERT(((sequenceRecordsWithMetadata->A_percentage + sequenceRecordsWithMetadata->C_percentage  + sequenceRecordsWithMetadata->G_percentage + sequenceRecordsWithMetadata->T_percentage) == 1), "Sum of nucleotide probs. should be 1.");
+	BIOLSHASHER_ASSERT((sequenceRecordsWithMetadata->OriginalSequenceLength > 0), "Sequence length must be positive");
+	BIOLSHASHER_ASSERT(sequenceRecordsWithMetadata->KeyCount>0, "Key count must be positive");
 
 	// Initialise seed and reserve memory.
     std::mt19937 rng(sequenceRecordsWithMetadata->DataGenSeed);
@@ -319,7 +319,7 @@ SequenceDataGenerator::SequenceDataGenerator(SequenceRecordsWithMetadataStruct *
 }
 
 void SequenceDataGenerator::decodeSequencesToASCII(const std::vector<uint8_t>& seqTwoBit, std::string& seqASCII, const uint32_t sequenceLength) {
-    BIOHASHER_ASSERT(seqASCII.size() == sequenceLength, "ASCII sequence size does not match expected length");
+    BIOLSHASHER_ASSERT(seqASCII.size() == sequenceLength, "ASCII sequence size does not match expected length");
     for (uint32_t pos = 0; pos < sequenceLength; pos++) {
         uint32_t byte_idx = (pos * two_bit_per_base) / 8;
         uint32_t bit_offset = (pos * two_bit_per_base) % 8;
@@ -334,9 +334,9 @@ void SequenceDataGenerator::decodeSequencesToASCII(const std::vector<uint8_t>& s
 
 // For Agg
 SequenceDataMutatorSubstitutionOnly::SequenceDataMutatorSubstitutionOnly(SequenceRecordsWithMetadataStruct *sequenceRecordsWithMetadata, std::vector<double> *rand_error_param, SimilarityFn similarity_fn){
-	BIOHASHER_ASSERT(sequenceRecordsWithMetadata != nullptr, "Input pointer for sequence records with metadata cannot be null");
-	BIOHASHER_ASSERT(!sequenceRecordsWithMetadata->Records.empty(), "Sequence records with metadata cannot be empty");
-	BIOHASHER_ASSERT(similarity_fn != nullptr, "Similarity metric is required for mutation. Please Add Appropriate Similarity metric in your LSH file.");
+	BIOLSHASHER_ASSERT(sequenceRecordsWithMetadata != nullptr, "Input pointer for sequence records with metadata cannot be null");
+	BIOLSHASHER_ASSERT(!sequenceRecordsWithMetadata->Records.empty(), "Sequence records with metadata cannot be empty");
+	BIOLSHASHER_ASSERT(similarity_fn != nullptr, "Similarity metric is required for mutation. Please Add Appropriate Similarity metric in your LSH file.");
 
 	// Initialise seed .
 	std::mt19937 rng_snp_rate(sequenceRecordsWithMetadata->DataMutateSeed);
@@ -404,9 +404,9 @@ SequenceDataMutatorSubstitutionOnly::SequenceDataMutatorSubstitutionOnly(Sequenc
 
 // For test
 SequenceDataMutatorSubstitutionOnly::SequenceDataMutatorSubstitutionOnly(SequenceRecordsWithMetadataStruct *sequenceRecordsWithMetadata, SimilarityFn similarity_fn){
-	BIOHASHER_ASSERT(sequenceRecordsWithMetadata != nullptr, "Input pointer for sequence records with metadata cannot be null");
-	BIOHASHER_ASSERT(!sequenceRecordsWithMetadata->Records.empty(), "Sequence records with metadata cannot be empty");
-	BIOHASHER_ASSERT(similarity_fn != nullptr, "Similarity metric is required for mutation. Please Add Appropriate Similarity metric in your LSH file.");
+	BIOLSHASHER_ASSERT(sequenceRecordsWithMetadata != nullptr, "Input pointer for sequence records with metadata cannot be null");
+	BIOLSHASHER_ASSERT(!sequenceRecordsWithMetadata->Records.empty(), "Sequence records with metadata cannot be empty");
+	BIOLSHASHER_ASSERT(similarity_fn != nullptr, "Similarity metric is required for mutation. Please Add Appropriate Similarity metric in your LSH file.");
 
 	// Initialise seed and reserve memory.
     std::mt19937 rng_mut(sequenceRecordsWithMetadata->DataMutateSeed);
@@ -464,10 +464,10 @@ SequenceDataMutatorSubstitutionOnly::SequenceDataMutatorSubstitutionOnly(Sequenc
 
 // For Agg
 SequenceDataMutatorGeometric::SequenceDataMutatorGeometric(SequenceRecordsWithMetadataStruct *sequenceRecordsWithMetadata, std::vector<double> *rand_error_param, SimilarityFn similarity_fn){
-	BIOHASHER_ASSERT(sequenceRecordsWithMetadata != nullptr, "Input pointer for sequence records with metadata cannot be null");
-	BIOHASHER_ASSERT(rand_error_param != nullptr, "Input pointer for random error parameters cannot be null");
-	BIOHASHER_ASSERT(!sequenceRecordsWithMetadata->Records.empty(), "Sequence records with metadata cannot be empty");
-	BIOHASHER_ASSERT(similarity_fn != nullptr, "Similarity metric is required for mutation. Please Add Appropriate Similarity metric in your LSH file.");
+	BIOLSHASHER_ASSERT(sequenceRecordsWithMetadata != nullptr, "Input pointer for sequence records with metadata cannot be null");
+	BIOLSHASHER_ASSERT(rand_error_param != nullptr, "Input pointer for random error parameters cannot be null");
+	BIOLSHASHER_ASSERT(!sequenceRecordsWithMetadata->Records.empty(), "Sequence records with metadata cannot be empty");
+	BIOLSHASHER_ASSERT(similarity_fn != nullptr, "Similarity metric is required for mutation. Please Add Appropriate Similarity metric in your LSH file.");
 
 	// Initialise seed and reserve memory.
     std::mt19937 rng_gmean(sequenceRecordsWithMetadata->DataMutateSeed);	// For drawing the geometric mean.
@@ -614,7 +614,7 @@ SequenceDataMutatorGeometric::SequenceDataMutatorGeometric(SequenceRecordsWithMe
 				mpos++;
 			}
 		}
-		BIOHASHER_ASSERT(mpos == record.MutatedLength, "Mismatch between computed and actual mutated length");
+		BIOLSHASHER_ASSERT(mpos == record.MutatedLength, "Mismatch between computed and actual mutated length");
 
 	}
 
@@ -642,9 +642,9 @@ SequenceDataMutatorGeometric::SequenceDataMutatorGeometric(SequenceRecordsWithMe
 
 // For test
 SequenceDataMutatorGeometric::SequenceDataMutatorGeometric(SequenceRecordsWithMetadataStruct *sequenceRecordsWithMetadata, SimilarityFn similarity_fn){
-	BIOHASHER_ASSERT(sequenceRecordsWithMetadata != nullptr, "Input pointer for sequence records with metadata cannot be null");
-	BIOHASHER_ASSERT(!sequenceRecordsWithMetadata->Records.empty(), "Sequence records with metadata cannot be empty");
-	BIOHASHER_ASSERT(similarity_fn != nullptr, "Similarity metric is required for mutation. Please Add Appropriate Similarity metric in your LSH file.");
+	BIOLSHASHER_ASSERT(sequenceRecordsWithMetadata != nullptr, "Input pointer for sequence records with metadata cannot be null");
+	BIOLSHASHER_ASSERT(!sequenceRecordsWithMetadata->Records.empty(), "Sequence records with metadata cannot be empty");
+	BIOLSHASHER_ASSERT(similarity_fn != nullptr, "Similarity metric is required for mutation. Please Add Appropriate Similarity metric in your LSH file.");
 
 	// Initialise seed and reserve memory.
     std::mt19937 rng_sub_del(sequenceRecordsWithMetadata->DataMutateSeed + 11);
@@ -774,7 +774,7 @@ SequenceDataMutatorGeometric::SequenceDataMutatorGeometric(SequenceRecordsWithMe
 				mpos++;
 			}
 		}
-		BIOHASHER_ASSERT(mpos == record.MutatedLength, "Mismatch between computed and actual mutated length");
+		BIOLSHASHER_ASSERT(mpos == record.MutatedLength, "Mismatch between computed and actual mutated length");
 
 	}
 	
@@ -810,9 +810,9 @@ SequenceDataMutatorGeometric::SequenceDataMutatorGeometric(SequenceRecordsWithMe
 
 // For Agg
 // SequenceDataMutatorIndependentRateSID::SequenceDataMutatorIndependentRateSID(SequenceRecordsWithMetadataStruct *sequenceRecordsWithMetadata, std::vector<double> *rand_error_param, SimilarityFn similarity_fn){
-// 	BIOHASHER_ASSERT(sequenceRecordsWithMetadata != nullptr, "Input pointer for sequence records with metadata cannot be null");
-// 	BIOHASHER_ASSERT(!sequenceRecordsWithMetadata->Records.empty(), "Sequence records with metadata cannot be empty");
-// 	BIOHASHER_ASSERT(similarity_fn != nullptr, "Similarity metric is required for mutation. Please Add Appropriate Similarity metric in your LSH file.");
+// 	BIOLSHASHER_ASSERT(sequenceRecordsWithMetadata != nullptr, "Input pointer for sequence records with metadata cannot be null");
+// 	BIOLSHASHER_ASSERT(!sequenceRecordsWithMetadata->Records.empty(), "Sequence records with metadata cannot be empty");
+// 	BIOLSHASHER_ASSERT(similarity_fn != nullptr, "Similarity metric is required for mutation. Please Add Appropriate Similarity metric in your LSH file.");
 
 // 	// Initialise seed .
 // 	std::mt19937 rng_snp_rate(sequenceRecordsWithMetadata->DataMutateSeed);
@@ -880,9 +880,9 @@ SequenceDataMutatorGeometric::SequenceDataMutatorGeometric(SequenceRecordsWithMe
 
 // For test
 // SequenceDataMutatorIndependentRateSID::SequenceDataMutatorSubstitutionOnly(SequenceRecordsWithMetadataStruct *sequenceRecordsWithMetadata, SimilarityFn similarity_fn){
-// 	BIOHASHER_ASSERT(sequenceRecordsWithMetadata != nullptr, "Input pointer for sequence records with metadata cannot be null");
-// 	BIOHASHER_ASSERT(!sequenceRecordsWithMetadata->Records.empty(), "Sequence records with metadata cannot be empty");
-// 	BIOHASHER_ASSERT(similarity_fn != nullptr, "Similarity metric is required for mutation. Please Add Appropriate Similarity metric in your LSH file.");
+// 	BIOLSHASHER_ASSERT(sequenceRecordsWithMetadata != nullptr, "Input pointer for sequence records with metadata cannot be null");
+// 	BIOLSHASHER_ASSERT(!sequenceRecordsWithMetadata->Records.empty(), "Sequence records with metadata cannot be empty");
+// 	BIOLSHASHER_ASSERT(similarity_fn != nullptr, "Similarity metric is required for mutation. Please Add Appropriate Similarity metric in your LSH file.");
 
 // 	// Initialise seed and reserve memory.
 //     std::mt19937 rng_mut(sequenceRecordsWithMetadata->DataMutateSeed);

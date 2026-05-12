@@ -1,7 +1,7 @@
 
 
-#ifndef BIOHASHER_TESTGLOBALS_H
-#define BIOHASHER_TESTGLOBALS_H
+#ifndef BIOLSHASHER_TESTGLOBALS_H
+#define BIOLSHASHER_TESTGLOBALS_H
 #include <cstdint>
 
 #include "Blob.h"
@@ -20,4 +20,4 @@ typedef uint32_t flags_t;
 // What each test suite prints upon failure
 inline const char * g_failstr = "*********FAIL*********\n";
 
-#endif //BIOHASHER_TESTGLOBALS_H
+#endif //BIOLSHASHER_TESTGLOBALS_H

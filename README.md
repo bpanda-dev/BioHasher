@@ -1,21 +1,21 @@
-# BioHasher : Genomic Hash Function Testing Framework
+# BioLSHasher : Genomic Hash Function Testing Framework
 
 ## Overview
 
-BioHasher is a specialized Locality Sensitive Hash function testing framework designed with biological context in mind. It is built upon the hash function testing framework [SMHasher3](https://gitlab.com/fwojcik/smhasher3). BioHasher currently supports two tests Collision Curve Test and Threshold-based Similarity Search Test, both of which support and-or amplification.
+BioLSHasher is a specialized Locality Sensitive Hash function testing framework designed with biological context in mind. It is built upon the hash function testing framework [SMHasher3](https://gitlab.com/fwojcik/smhasher3). BioLSHasher currently supports two tests Collision Curve Test and Threshold-based Similarity Search Test, both of which support and-or amplification.
 
 ## Getting Started
 
-To get started with BioHasher, follow these steps:
+To get started with BioLSHasher, follow these steps:
 
 1. **Clone the repository**:
 
     ```bash
-    git clone https://github.com/bpanda-dev/BioHasher.git
-    cd BioHasher
+    git clone https://github.com/bpanda-dev/BioLSHasher.git
+    cd BioLSHasher
     ```
 
-2. **Set up conda environment**: (BioHasher is bundled with multiple python scripts for plotting and for aiding users to connect their hash function to the BioHasher framework.)
+2. **Set up conda environment**: (BioLSHasher is bundled with multiple python scripts for plotting and for aiding users to connect their hash function to the BioLSHasher framework.)
    1. Prerequisites: [Miniconda](https://docs.conda.io/en/latest/miniconda.html) or [Anaconda](https://www.anaconda.com/download)
    2. Create the conda environment from the provided `environment.yaml`:
 
@@ -23,15 +23,15 @@ To get started with BioHasher, follow these steps:
        conda env create -f environment.yaml
       ```
 
-      This creates a conda environment name `biohasher`.
+      This creates a conda environment name `biolshasher`.
    3. Activate the environment:
 
       ```bash
-       conda activate biohasher
-       # to deactivate biohasher, use "conda deactivate"
+       conda activate biolshasher
+       # to deactivate biolshasher, use "conda deactivate"
       ```
 
-3. **Build BioHasher**:
+3. **Build BioLSHasher**:
 
    ```bash
     mkdir build
@@ -45,10 +45,10 @@ To get started with BioHasher, follow these steps:
    ```bash
     # A sample test run of the two analyses: collision and similarity search on the included
     # example hash function (exampleHash),which preserves Hamming distance.
-    ./BioHasher --test=LSHCollision,LSHApproxNearestNeighbour exampleHash --ncpu=4
+    ./BioLSHasher --test=LSHCollision,LSHApproxNearestNeighbour exampleHash --ncpu=4
    ```
 
-    The run should complete in under a minute. If everything works correctly, two output files are written to the `results/` directory under `BioHasher`:
+    The run should complete in under a minute. If everything works correctly, two output files are written to the `results/` directory under `BioLSHasher`:
     - `collisionResults_Hamming.csv`
     - `ApproxNearestNeighbourResults_Hamming.csv`
 
@@ -69,18 +69,18 @@ To get started with BioHasher, follow these steps:
    
 ---
 
-<!-- ## A brief description of tests included in BioHasher
+<!-- ## A brief description of tests included in BioLSHasher
 
 ### Test A:  Collision Curve
 
-The Collision Curve test measures how often a hash function produces the same output for pairs of sequences at varying levels of similarity. BioHasher generates many sequence pairs, mutates one sequence in each pair at a controlled rate, and then checks whether the hash value of both sequences in the pair collide. By plotting the collision rate against the true similarity, we get a curve that shows how well the hash function distinguishes similar sequences from dissimilar ones. A good LSH should collide frequently for highly similar pairs and rarely for dissimilar pairs. The test also supports AND-OR amplification, which reshapes this curve by combining `b` hashes per band (AND-ing) and `r` independent bands (OR-ing). This lets us trace how different (b, r) configurations shift the effective similarity threshold and steepen the transition between the high-collision and low-collision regimes.
+The Collision Curve test measures how often a hash function produces the same output for pairs of sequences at varying levels of similarity. BioLSHasher generates many sequence pairs, mutates one sequence in each pair at a controlled rate, and then checks whether the hash value of both sequences in the pair collide. By plotting the collision rate against the true similarity, we get a curve that shows how well the hash function distinguishes similar sequences from dissimilar ones. A good LSH should collide frequently for highly similar pairs and rarely for dissimilar pairs. The test also supports AND-OR amplification, which reshapes this curve by combining `b` hashes per band (AND-ing) and `r` independent bands (OR-ing). This lets us trace how different (b, r) configurations shift the effective similarity threshold and steepen the transition between the high-collision and low-collision regimes.
 
 <img src="documentation/CollisionCurve.png" alt="Collision Curve" width="600"/>
 
 
 ### Test B:  c-ANN Test
 
-The c-Approximate Nearest Neighbour test evaluates how well an LSH function performs when used as a hashing scheme for similarity search. BioHasher builds a database of reference sequences, creates mutated query sequences with known nearest neighbours, and then uses the hash function to retrieve candidates from the database. For each `(b, r)` configuration, it measures how many true neighbours were found (Recall) and how many of the returned candidates were incorrect (False Positive Rate). This tells you how the hash function will behave in a real similarity-search pipeline and helps you pick the right `(b, r)` parameters for your desired balance of accuracy and efficiency.
+The c-Approximate Nearest Neighbour test evaluates how well an LSH function performs when used as a hashing scheme for similarity search. BioLSHasher builds a database of reference sequences, creates mutated query sequences with known nearest neighbours, and then uses the hash function to retrieve candidates from the database. For each `(b, r)` configuration, it measures how many true neighbours were found (Recall) and how many of the returned candidates were incorrect (False Positive Rate). This tells you how the hash function will behave in a real similarity-search pipeline and helps you pick the right `(b, r)` parameters for your desired balance of accuracy and efficiency.
 > **Why is this test needed?**:  While collision curve analysis characterizes the sensitivity of a hash family to pairwise similarity variations, it does not capture factors that matter in practice like the ability to correctly retrieve true neighbors from a database while minimizing false positive candidates. Minimizing false positives is important because real similarity-search pipelines include a re-scoring step using computationally expensive algorithms (e.g., full sequence alignment), and an inflated candidate set directly increases that cost.
 
 <img src="documentation/c-ANN%20concept.png" alt="c-ANN concept" width="600"/>
@@ -95,11 +95,11 @@ This section walks through the complete workflow of: **adding a new hash functio
 
 ### Part 1 : Adding a New Hash Function
 
-There are two approaches to add a new hash function to BioHasher: using the **interactive template generator script**, or **manually** using the [EXAMPLE_TEMPLATE.cpp](hashes/EXAMPLE_TEMPLATE.cpp) file.
+There are two approaches to add a new hash function to BioLSHasher: using the **interactive template generator script**, or **manually** using the [EXAMPLE_TEMPLATE.cpp](hashes/EXAMPLE_TEMPLATE.cpp) file.
 
 #### Option A: Using `createHashTemplate.py` (Recommended)
 
-BioHasher ships with an interactive Python script that scaffolds a new hash `.cpp` file and registers it in the build system automatically. Run it from the repository root:
+BioLSHasher ships with an interactive Python script that scaffolds a new hash `.cpp` file and registers it in the build system automatically. Run it from the repository root:
 
 ```bash
 python3 createHashTemplate.py
@@ -116,12 +116,12 @@ The script walks you through **10 guided steps**:
 | 4    | Family Name         | `REGISTER_FAMILY(...)` grouping (defaults to hash name)                       |
 | 5    | Description         | Human-readable description in `REGISTER_HASH`                                 |
 | 6    | Output Bits Size    | 32, 64, 128, 256, 512, 1024 or custom (multiple allowed)                      |
-| 7    | LSH Candidacy       | Confirms the hash is an LSH candidate; exits if not (BioHasher is LSH-only)   |
+| 7    | LSH Candidacy       | Confirms the hash is an LSH candidate; exits if not (BioLSHasher is LSH-only)   |
 | 8    | Similarity Name     | Built-in (`Hamming`, `Jaccard`, `Cosine`, `Angular`, `Edit`) or custom name   |
 | 9    | Similarity Function | Auto-set for built-in metrics; prompts for a C++ function name if custom      |
 | 10   | Hash Parameters     | (Optional) Add configurable parameters (e.g., k-mer size, window size)         |
 
-Every input is validated for naming rules and C++ keyword checks. The script will re-prompt if bad input is provided. If the hash is not an LSH candidate,the script stops with a message that BioHasher only supports LSH-related tests.
+Every input is validated for naming rules and C++ keyword checks. The script will re-prompt if bad input is provided. If the hash is not an LSH candidate,the script stops with a message that BioLSHasher only supports LSH-related tests.
 
 <!-- **Parameters (Step 10):**
 - Optional step to add hash function parameters.
@@ -200,7 +200,7 @@ cmake ..
 make 
 
 # Confirm your hash is registered. The following command should return the name of your Hash.
-./BioHasher --list | grep MyHash
+./BioLSHasher --list | grep MyHash
 ```
 
 ---
@@ -210,12 +210,12 @@ make
 #### CLI Reference
 
 ```bash
-./BioHasher [options] [<hashname>]
+./BioLSHasher [options] [<hashname>]
 ```
 
 **Key arguments:**
 
-| Arguments               | Description                                                   | Status in BioHasher     |
+| Arguments               | Description                                                   | Status in BioLSHasher     |
 |-------------------------| ------------------------------------------------------------- |-------------------------|
 | `--list`                | List all registered hashes with descriptions                  | Active                  |
 | `--listnames`           | List just hash names (useful for scripting)                   | Active                  |
@@ -234,7 +234,7 @@ The Collision Curve test measures how often a hash function produces the same ou
 
 ```bash
 # Run LSH collision test (multi-threaded recommended)
-./BioHasher --test=LSHCollision exampleHash --ncpu=4
+./BioLSHasher --test=LSHCollision exampleHash --ncpu=4
 ```
 
 **Output:** `results/collisionResults_<similarityname>.csv`  (`similarityname` is the similarity metric the `<hashname>` is tested against.)
@@ -269,7 +269,7 @@ This helps you select the optimal `(b, r)` parameters for your application by di
 > **Full documentation:** See [ApproximateNearestNeighbour.md](documentation/ApproximateNearestNeighbour.md) for the complete reference including the 5-phase pipeline internals, all configurable parameters, evaluation metrics, and caveats.
 
 ```bash
-./BioHasher --test=LSHApproxNearestNeighbour exampleHash --ncpu=4
+./BioLSHasher --test=LSHApproxNearestNeighbour exampleHash --ncpu=4
 ```
 
 **Output:** `results/ApproxNearestNeighbourResults_<similarityname>.csv` (`<similarityname>` is the similarity metric the `<hashname>` is tested against.)
@@ -329,7 +329,7 @@ cd build && make -j$(nproc)
 To process your test results, generate plots, and create an interactive HTML dashboard, use the `generate_report.py` script:
 
 ```bash
-# Ensure that you have activated the biohasher conda environment and are in the root directory of BioHasher. At least one of --coll or --ann args must be provided to generate the plots and visualisations.
+# Ensure that you have activated the biolshasher conda environment and are in the root directory of BioLSHasher. At least one of --coll or --ann args must be provided to generate the plots and visualisations.
 python analysis/generate_report.py \
     --coll=results/collisionResults_<similarityname>.csv \
     --ann=results/ApproxNearestNeighbourResults_<similarityname>.csv
@@ -350,7 +350,7 @@ python analysis/generate_report.py \
 Visualises the Recall vs FPR trade-off across `(b, r)` configurations.
 
 ```bash
-  # ensure that you have activate biohasher conda environment and are in the root directory of BioHasher.  
+  # ensure that you have activate biolshasher conda environment and are in the root directory of biolshasher.  
   python analysis/plot_ANN.py results/ApproxNearestNeighbourResults_<hashname>.csv
 ```
 
@@ -370,6 +370,6 @@ This project builds upon the SMHasher3 framework. Please refer to individual sou
 
 ## References
 
-- [SMHasher3](https://gitlab.com/fwojcik/smhasher3): Original hash testing framework BioHasher is based on.
+- [SMHasher3](https://gitlab.com/fwojcik/smhasher3): Original hash testing framework biolshasher is based on.
 - Hash functions in genomic sequence analysis - Ke Chen, Xiang Li, Qian Shi, Mingfu Shao, Paul Medvedev
 - Shrivastava, Anshumali, and Ping Li. "In defense of minhash over simhash." Artificial intelligence and statistics. PMLR, 2014.

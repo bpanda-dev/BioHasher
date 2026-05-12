@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-	Interactive script to create a new hash C++ file template for BioHasher.
+	Interactive script to create a new hash C++ file template for BioLSHasher.
 """
 
 import os
@@ -27,7 +27,7 @@ LICENSE_OPTIONS = {
 # Common hash bit sizes
 BITS_OPTIONS = [32, 64, 128, 256, 512, 1024]
 
-# Built-in similarity metrics that already have implementations in BioHasher
+# Built-in similarity metrics that already have implementations in BioLSHasher
 BUILTIN_SIMILARITY_NAMES_CAPITAL = ["Hamming", "Jaccard", "Cosine", "Angular", "Edit"]
 BUILTIN_SIMILARITY_NAMES = ["hamming", "jaccard", "cosine", "angular", "edit"]
 
@@ -38,7 +38,7 @@ BUILTIN_SIMILARITY_CODE = {
 //------------------------------------------------------------
 // Hamming Similarity: fraction of matching positions (equal-length sequences only)
 static double HammingSimilarity(const std::string& seq1, const std::string& seq2, const uint32_t in1_len, const uint32_t in2_len) {
-    BIOHASHER_ASSERT(in1_len == in2_len, "Hamming similarity requires equal-length sequences.");
+    BIOLSHASHER_ASSERT(in1_len == in2_len, "Hamming similarity requires equal-length sequences.");
     uint32_t length = in1_len;
     uint32_t similar = 0;
     for (uint32_t i = 0; i < length; i++) {
@@ -245,7 +245,7 @@ def generate_hash_function_body(bits: int) -> tuple[str, str, str]:
 def print_header():
     """Print script header."""
     print("=" * 60)
-    print("  BioHasher - New Hash File Template Generator")
+    print("  BioLSHasher - New Hash File Template Generator")
     print("=" * 60)
     print()
 
@@ -941,8 +941,8 @@ def main():
 
     # Step 9: LSH Candidacy
     print_step(7, total_steps, "LSH Candidacy")
-    print("BioHasher is a framework for evaluating Locality-Sensitive Hashing (LSH) functions.")
-    print("All test suites in BioHasher are designed to test LSH properties.")
+    print("BioLSHasher is a framework for evaluating Locality-Sensitive Hashing (LSH) functions.")
+    print("All test suites in BioLSHasher are designed to test LSH properties.")
     print()
     while True:
         lsh_input = input("Is this hash an LSH candidate to be tested for LSH properties? [Y/n]: ").strip().lower()
@@ -953,7 +953,7 @@ def main():
         elif lsh_input in ('n', 'no'):
             print()
             print("=" * 60)
-            print("  BioHasher only contains tests related to Locality-Sensitive")
+            print("  BioLSHasher only contains tests related to Locality-Sensitive")
             print("  Hashing (LSH). Non-LSH hash functions are not supported by")
             print("  the current test infrastructure.")
             print()
@@ -989,7 +989,7 @@ def main():
         builtin_fn, _ = BUILTIN_SIMILARITY_CODE[sim_name]
         config['similarityfn'] = builtin_fn
         print_step(9, total_steps, "Similarity Function")
-        print(f"'{sim_name}' is a built-in similarity metric in BioHasher.")
+        print(f"'{sim_name}' is a built-in similarity metric in BioLSHasher.")
         print(f"The implementation of '{builtin_fn}' will be included in your hash file.")
         print(f"  -> Similarity function set to: {builtin_fn}")
     else:
@@ -1036,9 +1036,9 @@ def main():
         update_hashsrc_cmake(filename, script_dir)
 
         print(f"\n Next steps:")
-        print(f"	1. To test if your {config['hash_name']}Hash function has been added to BioHasher:")
-        print(f"	2. Build BioHasher using $mkdir build > $cd build > $cmake .. > $make")
-        print(f" 	3. run BioHasher using, ./BioHasher --list | grep {config['hash_name']}. It should list your hash.")
+        print(f"	1. To test if your {config['hash_name']}Hash function has been added to BioLSHasher:")
+        print(f"	2. Build BioLSHasher using $mkdir build > $cd build > $cmake .. > $make")
+        print(f" 	3. run BioLSHasher using, ./BioLSHasher --list | grep {config['hash_name']}. It should list your hash.")
         print(f"   	4. Implement the logic of your Hash in the {config['hash_name']} Hash function definition(s).")
         if config.get('parameterNames'):
             print(f"\t5. Parameters have been included in the REGISTER_HASH macro:")

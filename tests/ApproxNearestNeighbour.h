@@ -1,5 +1,5 @@
 /*
- * BioHasher
+ * BioLSHasher
  * Copyright (C) 2025  Bikram Kumar Panda , Paul Medvedev and Debnath Pal
  *
  * This program is free software: you can redistribute it and/or

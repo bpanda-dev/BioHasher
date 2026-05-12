@@ -2,13 +2,13 @@
 
 This document explains the different mutation models supported by the tool and explains the macros defined in `LSHGlobals.h` which are useful in configuring the models.
 
-The current version of BioHasher contains, two mutation models, 
+The current version of BioLSHasher contains, two mutation models, 
 
-1. **Substitution Only mutation model** : Performs only point substitutions across the input sequence base on the mutation rate $e_{s} \in [0,1]$. BioHasher samples the $e_{s}$ uniformly from the domain $[0,1]$.
+1. **Substitution Only mutation model** : Performs only point substitutions across the input sequence base on the mutation rate $e_{s} \in [0,1]$. BioLSHasher samples the $e_{s}$ uniformly from the domain $[0,1]$.
 2. **Geometric Insertion mutation model** : Performs substitutions and deletions as point mutations(length 1) with the error rates $e_s$ and $e_d$, respectively, satisfying $e_s \ge 0,\ e_d < 1 \text{ and } e_s+e_d \le 1$. In contrast, for every position in sequence, insertion events are performed by sampling the length of the insertion from a geometric distribution with mean $\mu >= 0$. If the sampled insertion length at a position of the sequence is $0$, there is no insertion.
 
 
-> **Note:** Hamming Similarity is only defined between sequences of equal length. Geometric Insertion mutation model may change the length of the sequence, therefore if a LSH hash is defined to be preserving **Hamming Similarity**, BioHasher will automatically force apply **Substitution Only** model at runtime in the test entry points (`LSHCollisionTest.cpp`, `LSHCollisionAndOrTest.cpp`).
+> **Note:** Hamming Similarity is only defined between sequences of equal length. Geometric Insertion mutation model may change the length of the sequence, therefore if a LSH hash is defined to be preserving **Hamming Similarity**, BioLSHasher will automatically force apply **Substitution Only** model at runtime in the test entry points (`LSHCollisionTest.cpp`, `LSHCollisionAndOrTest.cpp`).
 
 The Geometric Insertion mutation model inherently contains three effective degrees of freedom. To streamline testing and avoid the complexity of exploring the entire parameter space, we reduce the degrees of freedom by coupling the mutation rates via fixed functional relationships(we call it mutation expressions).
 
