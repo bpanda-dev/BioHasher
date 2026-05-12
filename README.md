@@ -123,11 +123,12 @@ The script walks you through **10 guided steps**:
 
 Every input is validated for naming rules and C++ keyword checks. The script will re-prompt if bad input is provided. If the hash is not an LSH candidate,the script stops with a message that BioHasher only supports LSH-related tests.
 
-**Parameters (Step 10):**
-- Optional step to add hash function parameters that will be registered in the `REGISTER_HASH` macro
+<!-- **Parameters (Step 10):**
+- Optional step to add hash function parameters.
 - Each parameter should have unique name.
 - Parameters are automatically generated as `#define` macros at the top of the file (e.g., `#define k 10`)
 - The `$.parameterValues` in `REGISTER_HASH` references the macro names, allowing easy customization by editing the `#define` values at the top of the file.
+-->
 
 **It generates:**
 1. A compilable C++ template file at `hashes/<hashname>.cpp` containing:
