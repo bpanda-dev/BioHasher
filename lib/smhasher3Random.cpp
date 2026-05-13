@@ -17,11 +17,12 @@
  * <https://www.gnu.org/licenses/>.
  */
 #include "specifics.h"
+#include "stats.h"  // for distribution testing
+#include "timings.h"
 #include <cassert>
 // #include "Timing.h"
 #include "smhasher3Random.h"
 #include "TestGlobals.h"
-// #include "Stats.h"       // For distribution testing
 
 #include <algorithm>
 #include <vector>
@@ -501,7 +502,7 @@ static void fill_rand( uint8_t * out, const size_t elem_sz, const uint64_t elem_
     uint8_t      tmp[Rand::BUFLEN * sizeof(uint64_t)];
 
     size_t nbytes        = (elem_hi - elem_lo) * elem_sz;
-    size_t offset_rounds = (elem_lo * elem_sz) / (sizeof(uint64_t) * Rand::RANDS_PER_ROUND);
+    uint64_t offset_rounds = (elem_lo * elem_sz) / (sizeof(uint64_t) * Rand::RANDS_PER_ROUND);
     size_t offset_bytes  = (elem_lo * elem_sz) % (sizeof(uint64_t) * Rand::RANDS_PER_ROUND);
     size_t offset_size   = std::min(sizeof(tmp) - offset_bytes, nbytes) % bytes_per_fill;
 
@@ -1323,7 +1324,7 @@ void RandBenchmark( void ) {
             RandSeq  rs1   = r6.get_seq(SEQ_DIST_1, szelem);
             uint64_t begin = cycle_timer_start();
             for (uint64_t j = 0; j < numgen; j++) {
-                uint64_t k = GET_U64<false>(buf, j * 8);
+                uint64_t k = GET_U64(buf, j * 8);
                 rs1.write(buf, k, 1);
             }
             uint64_t end = cycle_timer_start();
@@ -1367,7 +1368,7 @@ void RandBenchmark( void ) {
             RandSeq  rs2   = r7.get_seq(SEQ_DIST_2, szelem);
             uint64_t begin = cycle_timer_start();
             for (uint64_t j = 0; j < numgen; j++) {
-                uint64_t k = GET_U64<false>(buf, j * 8);
+                uint64_t k = GET_U64(buf, j * 8);
                 rs2.write(buf, k, 1);
             }
             uint64_t end = cycle_timer_start();
@@ -1411,7 +1412,7 @@ void RandBenchmark( void ) {
             RandSeq  rs3   = r8.get_seq(SEQ_DIST_3, szelem);
             uint64_t begin = cycle_timer_start();
             for (uint64_t j = 0; j < numgen; j++) {
-                uint64_t k = GET_U64<false>(buf, j * 8);
+                uint64_t k = GET_U64(buf, j * 8);
                 rs3.write(buf, k, 1);
             }
             uint64_t end = cycle_timer_start();
@@ -1456,7 +1457,7 @@ void RandBenchmark( void ) {
             RandSeq  rs4   = r9.get_seq(SEQ_NUM, maxelem - 1);
             uint64_t begin = cycle_timer_start();
             for (uint64_t j = 0; j < numgen; j++) {
-                uint64_t k = GET_U64<false>(buf, j * 8);
+                uint64_t k = GET_U64(buf, j * 8);
                 rs4.write(buf, k, 1);
             }
             uint64_t end = cycle_timer_start();
@@ -1501,7 +1502,7 @@ void RandBenchmark( void ) {
             RandSeq  rs5   = rA.get_seq(SEQ_NUM, maxelem);
             uint64_t begin = cycle_timer_start();
             for (uint64_t j = 0; j < numgen; j++) {
-                uint64_t k = GET_U64<false>(buf, j * 8);
+                uint64_t k = GET_U64(buf, j * 8);
                 rs5.write(buf, k, 1);
             }
             uint64_t end = cycle_timer_start();

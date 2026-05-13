@@ -21,13 +21,8 @@ include(hashes/Hashsrc.cmake)
 set(HASH_SRC_FULL_PATHS ""
         lib/specifics.h
         lib/specifics.cpp
-#        hashes/minhashWithSignature.cpp
-#        hashes/minhash.cpp
-#        hashes/simhash.cpp
-#        hashes/ssh1.cpp
-#        hashes/ssh1.h
-#        lib/BioDataMutationModels.cpp
-#        lib/BioDataMutationModels.h
+        lib/stats.cpp
+        lib/smhasher3Random.cpp
     )
 foreach(hashsrc ${HASH_SRC_FILES})
     list(APPEND HASH_SRC_FULL_PATHS "${CMAKE_SOURCE_DIR}/${hashsrc}")

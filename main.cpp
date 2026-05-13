@@ -3,7 +3,7 @@
 #include "version.h"
 #include "Hashlib.h"
 #include "TestGlobals.h"
-
+#include "smhasher3Random.h"
 
 #include "LSHCollision.h"
 #include "ApproxNearestNeighbour.h"
@@ -257,7 +257,20 @@ static bool testHash( const char * name, const flags_t flags ) {
 
 //-----------------------------------------------------------------------------
 
+uint32_t generate_single_random32(uint64_t seed) {
+	uint32_t KeyBytes = 4; // 32 bits
+	Rand r( seed, KeyBytes );
+	RandSeq rs = r.get_seq(SEQ_DIST_1, KeyBytes);
+	uint32_t random_value;
+	rs.write((void*)&random_value, 0, 1);
+	return random_value;
+}
+
 int main( int argc, const char ** argv ){
+
+    /*----------------------------------------------*/
+    uint32_t my_random = generate_single_random32(1);
+    printf("Generated random number: 0x%08x\n", my_random);
 
     const char * hashToTest  = "";
 

@@ -1,3 +1,4 @@
+// Code is currently under construction. Changes have been made which needs addition of new seekable random number generator.
 /* * SIMHASH
  * Copyright (C) 2026 IISc
  * ###YOURLICENSETEXT
