@@ -5,7 +5,7 @@ set(HASH_SRC_FILES
         hashes/ssh1/ssh1.cpp
         hashes/fnv.cpp
         hashes/minhash.cpp
-        # hashes/simhash.cpp
+        hashes/simhash-ang.cpp
         hashes/minhash-edit.cpp
 #  hashes/xxhash.cpp
 )

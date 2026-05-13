@@ -118,15 +118,15 @@ static void examplehash_initialisation() {
         //---- Variables used across tests which can be defined by user ---//
         g_verySlowNAggCases = 50000;
         g_verySlowNSeq = 1000;
-        g_verySlowNHashes = 500;
+        g_verySlowNHashes = 700;
 
         g_SlowNAggCases = 50000;
         g_SlowNSeq = 1000;
-        g_SlowNHashes = 500;
+        g_SlowNHashes = 700;
 
         g_NAggCases = 50000;
         g_NSeq = 1000;
-        g_NHashes = 200;
+        g_NHashes = 700;
 
         g_ShortSequenceLength = 50;
         g_LongSequenceLength = 50;

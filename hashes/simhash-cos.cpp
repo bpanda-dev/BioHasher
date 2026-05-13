@@ -7,6 +7,7 @@
 #include "specifics.h"
 #include "Hashlib.h"
 #include "LSHGlobals.h"
+#include "smhasher3Random.h"
 
 #include "Mathmult.h"
 #include <random>
@@ -16,8 +17,6 @@
 
 
 #define TOKEN_LENGTH 32
-
-
 
 
 // NOTE: Only valid for 32 and 64 bit hash output.  
