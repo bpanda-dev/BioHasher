@@ -98,26 +98,26 @@ static double AngularSimilarity(const std::string& seq1, const std::string& seq2
 }
 
 
-//mean = 0.0, stddev = 1.0
-static std::vector<double> GenerateNormalHyperplane(int n, seed_t seed) {
-	// 1. Initialize the engine with a specific seed for reproducibility
-	std::mt19937 gen(seed); 
+// //mean = 0.0, stddev = 1.0
+// static std::vector<double> GenerateNormalHyperplane(int n, seed_t seed) {
+// 	// 1. Initialize the engine with a specific seed for reproducibility
+// 	std::mt19937 gen(seed); 
 	
-	// 2. Define the distribution (Normal/Gaussian)
-	double mean = 0.0;
-	double std_dev = 1.0;
-	std::normal_distribution<double> dist(mean, std_dev);
+// 	// 2. Define the distribution (Normal/Gaussian)
+// 	double mean = 0.0;
+// 	double std_dev = 1.0;
+// 	std::normal_distribution<double> dist(mean, std_dev);
 	
-	// 3. Populate the array
-	std::vector<double> data;
-	data.reserve(n); // Pre-allocate memory for efficiency
+// 	// 3. Populate the array
+// 	std::vector<double> data;
+// 	data.reserve(n); // Pre-allocate memory for efficiency
 	
-	for (int i = 0; i < n; ++i) {
-		data.push_back(dist(gen));
-	}
+// 	for (int i = 0; i < n; ++i) {
+// 		data.push_back(dist(gen));
+// 	}
 
-	return data;
-}
+// 	return data;
+// }
 
 // Convert a uint64_t to a uniform double in (0, 1).
 // Uses the top 53 bits (full double mantissa precision).

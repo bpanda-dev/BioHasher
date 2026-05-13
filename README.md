@@ -364,6 +364,40 @@ Produces **6 plots** (3 linear + 3 log-scale):
 
 ---
 
+### Plotting Error
+
+If you encounter an error similar to the following while generating reports and plots:
+
+```bash
+--- Processing Collision Curve data: ../results/collisionResults_Hamming.csv ---
+Reading: ../results/collisionResults_Hamming.csv
+Traceback (most recent call last):
+  File "~/Hashing/BioLSHasher/analysis/plot_collisioncurve.py", line 1208, in <module>
+    main()
+  File "~/Hashing/BioLSHasher/analysis/plot_collisioncurve.py", line 1079, in main
+    sections, df = read_collision_data_complete(args.csvfile)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "~/Hashing/BioLSHasher/analysis/plot_collisioncurve.py", line 102, in read_collision_data_complete
+    collision_rates = [float(x.strip()) for x in line_content.split(',')]
+                       ^^^^^^^^^^^^^^^^
+ValueError: could not convert string to float: ''
+Error occurred while plotting collision curve.
+```
+
+this usually indicates that the output CSV file has been corrupted or partially overwritten during either the current run or during previous experiment(s). This is applicable for both: Collision Test and Similarity Search Test.
+
+**Solution:** Delete the existing results CSV file and rerun the experiment so that a clean output file is generated.
+
+For example:
+
+```bash
+rm ../results/collisionResults_Hamming.csv
+```
+
+Then rerun the experiment and regenerate the plots.
+
+---
+
 ## License
 
 This project builds upon the SMHasher3 framework. Please refer to individual source files for specific licensing information.

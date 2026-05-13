@@ -8,15 +8,15 @@ if we want to test different number of signatures in Minhash or other LSH functi
 
 //---- Variables used across tests which can be defined by user ---//
 
-uint32_t g_verySlowNAggCases = 100000;
-uint32_t g_verySlowNSeq = 5000;
-uint32_t g_verySlowNHashes = 1000;
+uint32_t g_verySlowNAggCases = 200000;
+uint32_t g_verySlowNSeq = 2000;
+uint32_t g_verySlowNHashes = 2000;
 
-uint32_t g_SlowNAggCases = 100000;
+uint32_t g_SlowNAggCases = 200000;
 uint32_t g_SlowNSeq = 5000;
 uint32_t g_SlowNHashes = 2000;
 
-uint32_t g_NAggCases = 100000;
+uint32_t g_NAggCases = 200000;
 uint32_t g_NSeq = 5000;
 uint32_t g_NHashes = 2000;
 
@@ -25,8 +25,8 @@ uint32_t g_LongSequenceLength = 100;
 
 uint32_t g_start_B = 1;
 uint32_t g_start_R = 1;
-uint32_t g_MAX_B = 2;
-uint32_t g_MAX_R = 3;
+uint32_t g_MAX_B = 1;
+uint32_t g_MAX_R = 1;
 
 double g_simThresholdForCollTest = 0.95; // The only purpose is for printing highly similar sequences to output file for debug.
 
@@ -57,7 +57,7 @@ double g_simThresholdForApproxNNTest = 0.95; // Similarity threshold for Approx 
 //---------------------------------------------------------------------------------------
 
 // Global variables for runtime communication
-const uint32_t g_bincount_full = 4000;
+const uint32_t g_bincount_full = 2000;
 
 // uint32_t g_TokenLength = 0;     // Default token/kmer length
 

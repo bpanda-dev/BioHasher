@@ -533,7 +533,7 @@ static bool LSHCollisionTestInner( const HashInfo * hinfo, const uint32_t seqLen
 	printf("----------------------------------------------\n");
 
 	// File header
-	out_file << ":1:LSH Collision Test Results\n";
+	out_file << "\n:1:LSH Collision Test Results\n";
 	out_file << ":2:" << "Hashname," << "SequenceLength,"<< "Distance Metric," << "Mutation Model,"<< "Mutation Expression" << std::endl;
 	out_file << ":3:" << hinfo->name << "," << seqLen << "," << hinfo->similarity_name << "," << g_mutation_model << "," << g_mutation_expression_type << std::endl;
 	

@@ -528,7 +528,7 @@ bool LSHApproxNearestNeighbourTest(const HashInfo *hinfo, flags_t flags) {
 
 
     // File header
-    out_file << ":1:LSH Approx Nearest Neighbour Summary\n";
+    out_file << "\n:1:LSH Approx Nearest Neighbour Summary\n";
     out_file << ":2:" << "Hashname," << "SequenceLength," << "Distance Metric," << "Mutation Model," << "Mutation Expression" << std::endl;
     out_file << ":3:" << hinfo->name << "," << sequenceLength << "," << hinfo->similarity_name << "," << g_mutation_model << "," << g_mutation_expression_type << std::endl;
 

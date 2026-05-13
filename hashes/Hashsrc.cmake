@@ -6,6 +6,7 @@ set(HASH_SRC_FILES
         hashes/fnv.cpp
         hashes/minhash.cpp
         hashes/simhash-ang.cpp
+        hashes/simhash-cos.cpp
         hashes/minhash-edit.cpp
 #  hashes/xxhash.cpp
 )
